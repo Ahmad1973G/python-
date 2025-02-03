@@ -1,3 +1,5 @@
+import pygame
+
 class Chamodel:
 
     def __init__(self, x, y, hight, width, speed, Weapon, Power, health, maxHealth):

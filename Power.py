@@ -1,3 +1,5 @@
+import pygame
+
 class Power:
 
     def __init__(self, range, damage, radius, ):

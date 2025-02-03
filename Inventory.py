@@ -1,3 +1,5 @@
+import pygame
+
 class Inventory:
 
 
