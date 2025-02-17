@@ -1,4 +1,5 @@
 from scapy.all import *
+from scapy.layers.inet import *
 import json
 
 # List of server IPs
@@ -7,6 +8,7 @@ SERVER_IPS = []
 SERVER_PORTS = []
 # Load balancer port
 LB_PORT = 1111111
+LB_IP = '127.0.0.1'
 # Map dimensions
 MAP_WIDTH = 38400
 MAP_HEIGHT = 34560
@@ -63,7 +65,7 @@ def MoveServer(packet_info, server_borders) -> dict:
         
     return right_servers
 
-def BuildHTTPPacket(packet_info):
+def BuildPacket(packet_info, req_packet):
     """
     Builds an HTTP packet from the packet information.
     
@@ -73,7 +75,7 @@ def BuildHTTPPacket(packet_info):
     Returns:
         scapy.layers.inet.IP: The constructed HTTP packet.
     """
-    return IP(dst=SERVER_IPS[0]) / UDP(dport=SERVER_PORTS[0], sport=LB_PORT) / Raw(load=DictToString(packet_info))
+    return IP(dst=req_packet[IP].src) / UDP(dport=req_packet[UDP].sport, sport=req_packet[UDP].dport) / Raw(load=DictToString(packet_info))
 
 def DictToString(dict) -> str:
     """
@@ -87,21 +89,6 @@ def DictToString(dict) -> str:
     """
     return json.dumps(dict)
 
-def MoveServers(right_servers, packet_info):
-    """
-    Moves servers based on the right server mapping.
-    
-    Args:
-        right_servers (dict): The mapping of packet IDs to server IDs.
-        packet_info (dict): The packet information.
-    """
-    sent_info = [{}, {}, {}, {}]
-    for id, right_server in items(right_servers):
-        sent_info[packet_info[id][server] - 1][id] = right_server
-
-    for i in range(len(sent_info)):
-        send(sent_info[i], SERVER_IPS[i], SERVER_PORTS[i])
-
 def handle_packet(packet):
     """
     Handles incoming packets and processes them.
@@ -109,12 +96,15 @@ def handle_packet(packet):
     Args:
         packet: The incoming packet.
     """
-    if packet.haslayer(scapy.UDP):
-        if packet[scapy.UDP].dport == LB_PORT:
-            if packet[scapy.UDP].sport not in SERVER_PORTS:
+    if packet.haslayer(UDP):
+        if packet[UDP].dport == LB_PORT and packet[IP].src in SERVER_IPS and packet[IP].dst == LB_IP and packet.haslayer(Raw):
+            if packet[UDP].sport not in SERVER_PORTS:
                 return
             packet_info = packet_info(packet)
             right_servers = MoveServer(packet_info, server_borders)
+            response = BuildPacket(right_servers, packet)
+            send(response)
+
 
 
 if __name__ == "__main__":
