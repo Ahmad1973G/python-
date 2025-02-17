@@ -16,11 +16,14 @@ def packet_info(packet):
 
 def MoveServer(packet_info, server_borders) -> dict:
     count = 1
-    if (packet_info['server' + count] == 1):
-        if (server_borders['server' + count][0] >= packet_info['x' + count]):
-            if (server_borders['server' + count])
+    right_servers = {}
+    while count * 5 <= len(packet_info):
+        if (server_borders['server1'][0] >= packet_info['x' + count] and server_borders['server1'][1] >= packet_info['y' + count]):
+            right_servers['server' + count] = 1
+        if (server_borders['server2'][0] <= packet_info['x' + count] and server_borders['server1'][1] >= packet_info['y' + count]):
+            right_servers['server' + count] = 2
+        if (server_borders['server3'][0] <= packet_info['x' + count] and server_borders['server1'][1] <= packet_info['y' + count]):
 
-        
 
 
 def handle_packet(packet):
