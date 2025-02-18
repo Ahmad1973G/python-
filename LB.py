@@ -3,9 +3,7 @@ from scapy.layers.inet import *
 import json
 
 # List of server IPs
-SERVER_IPS = []
-# List of server ports
-SERVER_PORTS = []
+SERVER_IPS_PORTS = []
 # Load balancer port
 LB_PORT = 1111111
 LB_IP = '127.0.0.1'
@@ -53,6 +51,7 @@ def MoveServer(packet_info, server_borders) -> dict:
         dict: A dictionary mapping packet IDs to server IDs.
     """
     right_servers = {}
+    server_to_send = {}
     for id, properties in packet_info.items():
         if properties["x"] < server_borders[0] + MAX_ATTACK and properties["y"] < server_borders[1] + MAX_ATTACK:
             right_servers[id] = 1
@@ -65,15 +64,38 @@ def MoveServer(packet_info, server_borders) -> dict:
         
     return right_servers
 
+def HandlePlayerServer(id, properties, server_to_send, right_servers):
+    if properties["x"] < server_borders[0] + MAX_ATTACK and properties["y"] < server_borders[1] + MAX_ATTACK:
+        right_servers[id] = 1
+        if (properties["x"] < server_borders[0] and properties["y"] < server_borders[1]):
+            server_to_send[id] = [1]
+            return
+        elif (properties["x"] > server_borders[0] and properties["y"] < server_borders[1]):
+            server_to_send[id] = [2]
+            return
+        elif (properties["x"] < server_borders[0] and properties["y"] > server_borders[1]):
+            server_to_send[id] = [3]
+            return
+        else:
+            server_to_send[id] = [2, 3, 4]
+            return
+        
+    if properties["x"] > server_borders[0] - MAX_ATTACK and properties["y"] > server_borders[1] - MAX_ATTACK:
+        right_servers[id] = 3
+    if properties["x"] < server_borders[0] + MAX_ATTACK and properties["y"] > server_borders[1] - MAX_ATTACK:
+        right_servers[id] = 4
+    if properties["x"] > server_borders[0] - MAX_ATTACK and properties["y"] < server_borders[1] - MAX_ATTACK:
+        right_servers[id] = 2
+
 def BuildPacket(packet_info, req_packet):
     """
-    Builds an HTTP packet from the packet information.
+    Builds a packet from the packet information.
     
     Args:
         packet_info (dict): The packet information.
         
     Returns:
-        scapy.layers.inet.IP: The constructed HTTP packet.
+        scapy.layers.inet.IP: The constructed packet.
     """
     return IP(dst=req_packet[IP].src) / UDP(dport=req_packet[UDP].sport, sport=req_packet[UDP].dport) / Raw(load=DictToString(packet_info))
 
@@ -96,14 +118,26 @@ def handle_packet(packet):
     Args:
         packet: The incoming packet.
     """
-    if packet.haslayer(UDP):
-        if packet[UDP].dport == LB_PORT and packet[IP].src in SERVER_IPS and packet[IP].dst == LB_IP and packet.haslayer(Raw):
-            if packet[UDP].sport not in SERVER_PORTS:
-                return
-            packet_info = packet_info(packet)
-            right_servers = MoveServer(packet_info, server_borders)
-            response = BuildPacket(right_servers, packet)
-            send(response)
+    if (not packet.haslayer(UDP)):
+        return "packet does not have UDP layer"
+    
+    if (not packet.haslayer(IP)):
+        return "packet does not have IP layer"
+    
+    if (not packet.haslayer(scapy.Raw)):
+        return "packet does not have Raw layer"
+    
+    if ((packet[IP].src, packet[UDP].sport) not in SERVER_IPS_PORTS):
+        return "packet is not from one of the servers"
+    
+    if (packet[IP].dst != LB_IP or packet[UDP].dport != LB_PORT):
+        return "packet is not for the load balancer"
+    
+    packet_info = packet_info(packet)
+    right_servers = MoveServer(packet_info, server_borders)
+    response = BuildPacket(right_servers, packet)
+    send(response)
+    return "packet has been processed"
 
 
 
