@@ -10,7 +10,8 @@ class Inventory:
 
 
     def dropitem(self, slots, index):
-
+        slots [index]=1
+        
 
         return slots
     
