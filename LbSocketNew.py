@@ -61,7 +61,6 @@ class LoadBalancer:
     
         Args:
             data: The raw packet data.
-        
         Returns:
             dict: The decoded packet information.
         """
