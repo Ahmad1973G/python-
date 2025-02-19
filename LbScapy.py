@@ -20,7 +20,8 @@ def main(server_borders):
     Args:
         server_borders (tuple): The borders of the server.
     """
-    sniff(prn=handle_packet, filter=f"udp port {LB_PORT}", store=0)
+    start_protocol()
+    sniff(prn=handle_packet(server_borders), filter=f"udp port {LB_PORT}", store=0)
 
 def packet_info(packet):
     """
@@ -106,7 +107,7 @@ def DictToString(dict) -> str:
     """
     return json.dumps(dict)
 
-def handle_packet(packet):
+def handle_packet(packet, server_borders):
     """
     Handles incoming packets and processes them.
     
@@ -116,20 +117,20 @@ def handle_packet(packet):
     if (not packet.haslayer(UDP)):
         return "packet does not have UDP layer"
     
-    if (not packet.haslayer(IP)):
+    elif (not packet.haslayer(IP)):
         return "packet does not have IP layer"
     
-    if (not packet.haslayer(scapy.Raw)):
+    elif (not packet.haslayer(scapy.Raw)):
         return "packet does not have Raw layer"
     
-    if ((packet[IP].src, packet[UDP].sport) not in SERVER_IPS_PORTS):
+    elif ((packet[IP].src, packet[UDP].sport) not in SERVER_IPS_PORTS):
         return "packet is not from one of the servers"
     
-    if (packet[IP].dst != LB_IP or packet[UDP].dport != LB_PORT):
+    elif (packet[IP].dst != LB_IP or packet[UDP].dport != LB_PORT):
         return "packet is not for the load balancer"
     
     packet_info = packet_info(packet)
-    right_servers = MoveServer(packet_info, server_borders)
+    right_servers, server_to_sent = MoveServer(packet_info, server_borders)
     response = BuildPacket(right_servers, packet)
     send(response)
     return "packet has been processed"
