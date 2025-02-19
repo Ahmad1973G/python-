@@ -39,7 +39,7 @@ def packet_info(packet):
         print("Error: Could not decode packet")
         return None 
 
-def MoveServer(packet_info, server_borders) -> dict:
+def MoveServer(packet_info, server_borders) -> (dict, dict):
     """
     Determines the right server for each packet based on its coordinates.
     
@@ -53,39 +53,34 @@ def MoveServer(packet_info, server_borders) -> dict:
     right_servers = {}
     server_to_send = {}
     for id, properties in packet_info.items():
-        if properties["x"] < server_borders[0] + MAX_ATTACK and properties["y"] < server_borders[1] + MAX_ATTACK:
+        if properties["x"] < server_borders[0] and properties["y"] < server_borders[1]:
             right_servers[id] = 1
-        if properties["x"] > server_borders[0] - MAX_ATTACK and properties["y"] > server_borders[1] - MAX_ATTACK:
+        elif properties["x"] > server_borders[0] and properties["y"] > server_borders[1]:
             right_servers[id] = 3
-        if properties["x"] < server_borders[0] + MAX_ATTACK and properties["y"] > server_borders[1] - MAX_ATTACK:
+        elif properties["x"] < server_borders[0] and properties["y"] > server_borders[1]:
             right_servers[id] = 4
-        if properties["x"] > server_borders[0] - MAX_ATTACK and properties["y"] < server_borders[1] - MAX_ATTACK:
+        else:
             right_servers[id] = 2
+
+        HandlePlayerServer(id, properties, server_to_send, right_servers)
         
-    return right_servers
+    return right_servers, server_to_send
 
 def HandlePlayerServer(id, properties, server_to_send, right_servers):
-    if properties["x"] < server_borders[0] + MAX_ATTACK and properties["y"] < server_borders[1] + MAX_ATTACK:
-        right_servers[id] = 1
-        if (properties["x"] < server_borders[0] and properties["y"] < server_borders[1]):
-            server_to_send[id] = [1]
-            return
-        elif (properties["x"] > server_borders[0] and properties["y"] < server_borders[1]):
-            server_to_send[id] = [2]
-            return
-        elif (properties["x"] < server_borders[0] and properties["y"] > server_borders[1]):
-            server_to_send[id] = [3]
-            return
+    if (server_borders[0] - MAX_ATTACK < properties['x'] < server_borders[0] + MAX_ATTACK):
+        if (properties['y'] < server_borders[1] - MAX_ATTACK):
+            server_to_send[id] = [1, 2]
+        elif (properties['y'] > server_borders[1] + MAX_ATTACK):
+            server_to_send[id] = [3, 4]
         else:
-            server_to_send[id] = [2, 3, 4]
-            return
-        
-    if properties["x"] > server_borders[0] - MAX_ATTACK and properties["y"] > server_borders[1] - MAX_ATTACK:
-        right_servers[id] = 3
-    if properties["x"] < server_borders[0] + MAX_ATTACK and properties["y"] > server_borders[1] - MAX_ATTACK:
-        right_servers[id] = 4
-    if properties["x"] > server_borders[0] - MAX_ATTACK and properties["y"] < server_borders[1] - MAX_ATTACK:
-        right_servers[id] = 2
+            server_to_send[id] = [1, 22, 3, 4]
+    else:
+        if (properties['x'] < server_borders[0] - MAX_ATTACK):
+            server_to_send[id] = [1, 4]
+        else:
+            server_to_send[id] = [2, 3]
+    
+    server_to_send[id].remove(properties['server'])
 
 def BuildPacket(packet_info, req_packet):
     """
