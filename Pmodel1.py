@@ -12,3 +12,9 @@ class Chamodel:
         self.speed = speed
         self.health = health
         self.maxHealth = maxHealth
+
+
+
+
+
+        
