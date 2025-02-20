@@ -1,16 +1,18 @@
 import socket
 import json
 import threading
+import time
 
 class LoadBalancer:
     def __init__(self):
-        self.LbIP = self.get_ip_address()
+        self.IP = self.get_ip_address()
         self.LbPORT = 0
         self.servers = []
         self.map_width, self.map_height = 38400, 34560
         self.max_attack = 300
         self.server_borders = (self.map_width / 2, self.map_height / 2)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.time = time.time()
 
     def get_ip_address(self):
         hostname = socket.gethostname()
@@ -31,23 +33,30 @@ class LoadBalancer:
         
         return False
 
-    def read_ack(self, data):
+    def read_ack(self, data, addr):
         str_data = data.decode()
         if (str_data == 'ACK CODE 2'):
-            print("Received the ACK packet successfully")
+            print("Received the ACK packet successfully from IP: ", addr[0], " Port: ", addr[1])
             return True
         else:
             return False
+
     def start_protocol(self):
-        self.socket.bind((self.LbIP, self.LbPORT))
+        self.socket.bind((self.IP, self.LbPORT))
         self.LbPORT = self.socket.getsockname()[1]
-        print(f"Server is running on IP: {self.LbIP}, Port: {self.LbPORT}")
+        print(f"Server is running on IP: {self.IP}, Port: {self.LbPORT}")
+
         print("Sent the SYNC packet")
         self.broadcast_packet(self.createSYNCpacket(), 5000)
         self.socket.listen()
+        start_time = time.time()
         count = 0
         print("Server is waiting for a response")
         while count < 5:
+            if (time.time() - start_time > 5):
+                start_time = time.time()
+                self.broadcast_packet(self.createSYNCpacket(), 5000)
+                print("Sent the SYNC packet again")
             data, addr = self.socket.recvfrom(1024)
             if (not self.read_sa_send_ack(data)):
                 continue
@@ -60,8 +69,9 @@ class LoadBalancer:
                 count += 1
                 self.servers.append(addr)
                 print(f"Server added to the list, IP: {addr[0]}, Port: {addr[1]}")
-            else:
-                count += 1
+                self.broadcast_packet(self.createSYNCpacket(), 5000)
+                print("Sent the SYNC packet again")
+            
         print("All servers are connected")
         print("Servers: ", self.servers)
 
@@ -99,7 +109,7 @@ class LoadBalancer:
             else:
                 right_servers[id] = 2
 
-            HandlePlayerServer(id, properties, server_to_send, right_servers)
+            self.HandlePlayerServer(id, properties, server_to_send, right_servers)
             
         return right_servers, server_to_send
     
