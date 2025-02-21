@@ -1,9 +1,7 @@
 FROM python:3.8
 
-ADD hello.py .
+ADD database .
 
-RUN pip install pygame
+RUN pip install pygame sqlite3
 
-CMD [ "python", "./hello.py" ]
-
-
+CMD [ "python", "./database.py" ]
