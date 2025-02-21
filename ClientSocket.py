@@ -19,7 +19,7 @@ class ClientServer:
     def read_SYN_and_send_SA(self, data):
         str_data = data.decode()
         if (str_data == 'SYNC+ACK CODE 420'):
-            self.socket.sendto("ACK CODE 999".encode(), (self.IP, self.PORT))
+            self.socket.sendto(f"ACK CODE 999 IP.{self.IP} PORT.{self.PORT}".encode(), (self.IP, self.PORT))
             print("Received the SYN+ACK packet successfully")
             print("Sent the ACK packet")
             return True
