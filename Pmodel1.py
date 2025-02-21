@@ -1,6 +1,6 @@
 import pygame
 
-class Chamodel:
+class Player:
 
     def __init__(self, x, y, hight, width, speed, Weapon, Power, health, maxHealth):
         self.x = x
