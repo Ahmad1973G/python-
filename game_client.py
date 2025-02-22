@@ -1,9 +1,15 @@
 import pygame as pg
 
+import json
+
+
+
+
 
 def main():
+
     pg.init()
-    screen = pg.display.set_mode((640, 480))
+    screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
     image = pg.Surface((30, 30))
     image.fill(pg.Color('dodgerblue1'))
