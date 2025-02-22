@@ -34,5 +34,3 @@ class ClientServer:
             return True
         else:
             return False
-        
-    
