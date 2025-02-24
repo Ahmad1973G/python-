@@ -11,7 +11,7 @@ class LoadBalancer:
         self.map_width, self.map_height = 38400, 34560
         self.max_attack = 300
         self.server_borders = (self.map_width / 2, self.map_height / 2)
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.time = time.time()
 
     def get_ip_address(self):
@@ -23,59 +23,27 @@ class LoadBalancer:
         packet = "SYNC CODE 1"
         return packet.encode()
 
-    def read_sa_send_ack(self, data, addr):
+    def read_sa_send_ack(self, conn):
+        data = conn.recv(1024)
         str_data = data.decode()
-        if (str_data == 'SYNC+ACK CODE 1'):
-            self.sock.sendto(f"ACK CODE 2 IP.{addr[0]} PORT.{addr[1]}".encode(), (self.IP, self.PORT))
+        if str_data == 'SYNC+ACK CODE 1':
+            conn.send(f"ACK CODE 2 IP.{conn.getpeername()[0]} PORT.{conn.getpeername()[1]}".encode())
             print("Received the SYNC+ACK packet successfully")
             print("Sent the ACK packet")
             return True
-        
         return False
 
-    def read_ack(self, data, addr):
+    def read_ack(self, conn):
+        data = conn.recv(1024)
         str_data = data.decode()
-        if (str_data == 'ACK CODE 2'):
-            print("Received the ACK packet successfully from IP: ", addr[0], " Port: ", addr[1])
+        if str_data == 'ACK CODE 2':
+            print("Received the ACK packet successfully from IP: ", conn.getpeername()[0], " Port: ", conn.getpeername()[1])
             return True
         else:
             return False
 
-    def start_protocol(self):
-        self.socket.bind((self.IP, self.PORT))
-        self.PORT = self.socket.getsockname()[1]
-        print(f"Server is running on IP: {self.IP}, Port: {self.PORT}")
 
-        self.broadcast_packet(self.createSYNCpacket(), 5000)
-        print("Sent the SYNC packet")
-        start_time = time.time()
-        count = 0
-        print("Server is waiting for a response")
-        while count < 5:
-            if (time.time() - start_time > 5):
-                start_time = time.time()
-                self.broadcast_packet(self.createSYNCpacket(), 5000)
-                print("Sent the SYNC packet again")
-            data, addr = self.socket.recvfrom(1024)
-            if (not self.read_sa_send_ack(data, addr)):
-                continue
-
-            
-            data1, addr1 = self.socket.recvfrom(1024)
-            while (addr1 != addr):
-                data1, addr1 = self.socket.recvfrom(1024)
-
-            if (self.read_ack(data1)):
-                count += 1
-                self.servers.append(addr)
-                print(f"Server added to the list, IP: {addr[0]}, Port: {addr[1]}")
-                self.broadcast_packet(self.createSYNCpacket(), 5000)
-                print("Sent the SYNC packet again")
-            
-        print("All servers are connected")
-        print("Servers: ", self.servers)
-
-    def MoveServer(self, packet_info, server_borders) -> (dict, dict):
+    def MoveServer(self, packet_info, server_borders) -> dict | dict:
         right_servers = {}
         server_to_send = {}
         for id, properties in packet_info.items():
@@ -141,5 +109,5 @@ class LoadBalancer:
             return json.loads(str_data.decode())
         except:
             print("Error: Could not decode packet")
-            return None 
+            return None
 
