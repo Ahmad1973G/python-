@@ -18,12 +18,12 @@ ACK = "ACK"
 
 
 class SubServer:
-    def _init_(self):
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    def __init__(self):
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_address = (self.get_ip_address(), SERVER_PORT)
-        self.client_syn_address = ('<broadcast>', CLIENT_SYN_PORT)
         self.server_socket.bind(self.server_address)
-        self.server_address = (self.get_ip_address(),self.server_socket.getsockname()[1])
+        self.server_socket.listen(5)
+        self.server_address = (self.get_ip_address(), self.server_socket.getsockname()[1])
         self.load_balancer_address = (LB_IP, LB_PORT)
         self.connected_clients = {}  # Store connected clients' addresses
         self.is_connected_to_lb = False
@@ -40,15 +40,16 @@ class SubServer:
             print("Listening for SYN from load balancer...")
             self.server_socket.settimeout(10)  # Set a timeout to avoid blocking
             try:
-                data, address = self.server_socket.recvfrom(1024)
+                conn, address = self.server_socket.accept()
+                data = conn.recv(1024)
                 message = data.decode()
                 if message == SYN and address[0] == LB_IP:
                     print(f"Received SYN from load balancer at {address}")
                     # Send SYN+ACK 
-                    self.server_socket.sendto(SYN_ACK.encode(), address)
+                    conn.send(SYN_ACK.encode())
                     print(f"Sent SYN+ACK to load balancer at {address}")
                     # Wait for ACK
-                    data, address = self.server_socket.recvfrom(1024)
+                    data = conn.recv(1024)
                     message = data.decode()
                     if message == ACK and address[0] == LB_IP:
                         print(f"Received ACK from load balancer at {address}")
@@ -58,57 +59,27 @@ class SubServer:
                         print("Unexpected message from load balancer. Retrying...")
                 else:
                     print("Unexpected message or incorrect load balancer IP. Retrying...")
+                conn.close()
             except socket.timeout:
                 print("Timeout waiting for SYN. Retrying...")
 
-    def client_connect_protocol(self):
-            """Handles the client connection protocol."""
-            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            print("Listening for client SYN broadcast...")
-            while True:
-                data, address = self.server_socket.recvfrom(1024)
-                message = data.decode()
-                if message == SYN and address[1] == CLIENT_SYN_PORT:
-                    print(f"Received client SYN broadcast from {address}")
-                    # Send SYN in response
-                    self.server_socket.sendto(SYN.encode(), address)
-                    print(f"Sent SYN to client {address}")
-                    # Expect SYN+ACK
-                    try:
-                        self.server_socket.settimeout(5)
-                        data, address = self.server_socket.recvfrom(1024)
-                        message = data.decode()
-                        if message == SYN_ACK:
-                            print(f"Received SYN+ACK from client {address}")
-                            # Send ACK to client
-                            self.server_socket.sendto(ACK.encode(), address)
-                            print(f"Sent ACK to client {address}")
-                            self.connected_clients[address] = True
-                            print(f"Client {address} connected.")
-                            # Start client handling thread
-                            client_thread = threading.Thread(target=self.handle_client, args=(address,))
-                            client_thread.start()
-                        else:
-                            print(f"Unexpected message from client {address}")
-                    except socket.timeout:
-                        print(f"Timeout waiting for SYN+ACK from client {address}")
-
-    def handle_client(self, client_address):
+    def handle_client(self, conn, client_address):
         """Handles communication with a connected client."""
         try:
             while self.connected_clients[client_address]:
-                data, address = self.server_socket.recvfrom(1024)
+                data = conn.recv(1024)
                 message = data.decode()
                 print(f"Received message from client {client_address}: {message}")
                 # Process the client message
                 response = f"Server received: {message}"  # Example response
-                self.server_socket.sendto(response.encode(), client_address)
+                conn.send(response.encode())
         except Exception as e:
             print(f"Error handling client {client_address}: {e}")
         finally:
             # Clean up when client disconnects
             print(f"Client {client_address} disconnected.")
             del self.connected_clients[client_address]
+            conn.close()
 
     def run(self):
         """Runs the sub-server."""
@@ -119,7 +90,16 @@ class SubServer:
         client_thread = threading.Thread(target=self.client_connect_protocol)
         client_thread.start()
 
+    def client_connect_protocol(self):
+        """Handles the connection protocol with clients."""
+        while True:
+            conn, client_address = self.server_socket.accept()
+            print(f"Client {client_address} connected.")
+            self.connected_clients[client_address] = True
+            client_thread = threading.Thread(target=self.handle_client, args=(conn, client_address))
+            client_thread.start()
 
-if _name_ == "_main_":
+
+if __name__ == "__main__":
     server = SubServer()
     server.run()
