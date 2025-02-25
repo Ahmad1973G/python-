@@ -95,4 +95,41 @@ class SubServer:
                 del self.player_data[client_address]
             conn.close()  # Close the connection
 
-    def process_player_data(self, conn, player_data_str, client_address
+    def process_player_data(self, conn, player_data_str, client_address):
+        """
+        Receives player data, updates the player data dictionary,
+        and sends a list of other players' information to the client.
+        """
+        try:
+            player_data = json.loads(player_data_str)
+            # Update player data in the dictionary
+            self.player_data[client_address] = player_data
+
+            # Prepare data of other players to send to the client (excluding the client's own data)
+            other_players_data = [data for addr, data in self.player_data.items() if addr != client_address]
+
+            # Convert the list to a JSON string
+            other_players_data_str = json.dumps(other_players_data)
+
+            # Send the other players' data back to the client
+            conn.send(other_players_data_str.encode())  # Send using the connection socket
+            print(f"Sent other players' data to client {client_address}")
+        except json.JSONDecodeError:
+            print(f"Error decoding player data from {client_address}")
+        except Exception as e:
+            print(f"Error processing player data for {client_address}: {e}")
+
+    def run(self):
+        """Runs the sub-server."""
+        # Start load balancer connection
+        lb_thread = threading.Thread(target=self.lb_connect_protocol)
+        lb_thread.start()
+
+        # Start client connection
+        client_thread = threading.Thread(target=self.client_connect_protocol)
+        client_thread.start()
+
+
+if __name__ == "__main__":
+    server = SubServer()
+    server.run()
