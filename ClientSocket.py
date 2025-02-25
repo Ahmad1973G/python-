@@ -1,5 +1,6 @@
 import socket
-import client_test
+import json
+import threading
 
 class ClientServer:
     def __init__(self):
@@ -49,20 +50,23 @@ class ClientServer:
     
     def connect(self, IP, PORT):
         self.server = (IP, PORT)
-        self.socket.connect(self.server)
+        while True:
+            try:
+                self.socket.connect(1, 1)
+                break
+            except:
+                print("Connection failed, trying again")
         print(f"Connected to {IP} on port {PORT}")
+    
+    def run_conn(data) -> list[dict]:
+        self.send_data(data)
+        response = self.receive_data()
+        result = []
+        players = response.split(";")
+        for player in players:
+            result.append(json.loads(player))
+        return result
 
 
 def main():
     client = ClientServer()
-    while True:
-        try:
-            client.connect(1, 1)
-            break
-        except:
-            print("Connection failed, trying again")
-
-    data = client_test.comp_data()
-    client.send_data(data)
-    client.receive_data() 
-    client_test.get_data(client.receive_data())
