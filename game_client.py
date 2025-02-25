@@ -39,6 +39,36 @@ def main():
         clock.tick(60)
 
 
+    
+def print_players(players_list, client_loc):
+    screen = pg.display.set_mode((1000, 650))
+    while True:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                return
+        for player in players_list:
+            if player['id'] != client_loc['id']:
+                image = pg.Surface((player['width'], player['height']))
+                image.fill(pg.Color('red'))
+                rect = image.get_rect(center=(player['x'], player['y']))
+                screen.blit(image, rect)
+                pg.display.flip()
+            
+        else:
+            image = pg.Surface((client_loc['width'], client_loc['height']))
+            image.fill(pg.Color('blue'))
+            rect = image.get_rect(center=(client_loc['x'], client_loc['y']))
+            screen.blit(image, rect)
+            pg.display.flip()
+            
+    
 if __name__ == '__main__':
+    main_player = {"x": 500, "y": 325, "width": 20, "height": 20, "id": 0}  # Main player is always in the middle.
+    players = [
+        {"x": 600, "y": 400, "width": 20, "height": 20, "id": 1},
+        {"x": 400, "y": 300, "width": 20, "height": 20, "id": 2},
+        {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
+    ]
+    print_players(players, main_player)
     main()
     pg.quit()
