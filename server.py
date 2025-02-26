@@ -4,7 +4,7 @@ import threading
 import time
 
 # Configuration
-LB_IP = 'Your_Load_Balancer_IP'  # Replace with the load balancer's IP
+LB_IP = 'Load_Balancer_IP'  # Replace with the load balancer's IP
 LB_PORT = 5000  # Replace with the load balancer port
 SERVER_PORT = 0  # Let the OS assign a port
 CLIENT_SYN_PORT = 6000  # The port that clients will broadcast SYN packets
