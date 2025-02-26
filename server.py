@@ -4,7 +4,7 @@ import threading
 import time
 
 # Configuration
-LB_IP = '127.0.0.1'  # Roy's Computer, temporary fix
+LB_IP = '127.0.0.1'  # Changed to loopback address
 LB_PORT = 5000  # Replace with the load balancer port
 SERVER_PORT = 0  # Let the OS assign a port
 CLIENT_SYN_PORT = 6000  # The port that clients will broadcast SYN packets
@@ -14,7 +14,6 @@ SERVER_ID = 1  # Unique identifier for this server
 SYN = "SYN"
 SYN_ACK = "SYN+ACK"
 ACK = "ACK"
-
 
 class SubServer:
     def __init__(self):
@@ -41,8 +40,10 @@ class SubServer:
             self.server_socket.settimeout(10)  # Set a timeout to avoid blocking
             try:
                 conn, address = self.server_socket.accept()
+                print(f"Accepted connection from {address}")  # ADDED
                 data = conn.recv(1024)
                 message = data.decode()
+                print(f"Received message: {message}, from: {address}")  # ADDED
                 if message == SYN and address[0] == LB_IP:
                     print(f"Received SYN from load balancer at {address}")
                     # Send SYN+ACK
@@ -51,6 +52,7 @@ class SubServer:
                     # Wait for ACK
                     data = conn.recv(1024)
                     message = data.decode()
+                    print(f"Received message: {message}, from: {address}")  # ADDED
                     if message == ACK and address[0] == LB_IP:
                         print(f"Received ACK from load balancer at {address}")
                         self.is_connected_to_lb = True
@@ -65,12 +67,13 @@ class SubServer:
 
     def client_connect_protocol(self):
         """Handles the connection protocol with clients."""
-        while True:
+        while self.is_connected_to_lb: # Only accept clients if Load Balancer is connected
             conn, client_address = self.server_socket.accept()
             print(f"Client {client_address} connected.")
             self.connected_clients[client_address] = conn  # Store the socket object
             client_thread = threading.Thread(target=self.handle_client, args=(conn, client_address))
             client_thread.start()
+        print("Load Balancer disconnected, no longer accepting client connections.")
 
     def handle_client(self, conn, client_address):
         """Handles communication with a connected client."""
@@ -83,7 +86,6 @@ class SubServer:
                 print(f"Received message from client {client_address}: {message}")
                 # Process the client message (Update player data and send other player info)
                 self.process_player_data(conn, message, client_address)  # Pass the socket object
-
         except Exception as e:
             print(f"Error handling client {client_address}: {e}")
         finally:
@@ -104,13 +106,10 @@ class SubServer:
             player_data = json.loads(player_data_str)
             # Update player data in the dictionary
             self.player_data[client_address] = player_data
-
             # Prepare data of other players to send to the client (excluding the client's own data)
             other_players_data = [data for addr, data in self.player_data.items() if addr != client_address]
-
             # Convert the list to a JSON string
             other_players_data_str = json.dumps(other_players_data)
-
             # Send the other players' data back to the client
             conn.send(other_players_data_str.encode())  # Send using the connection socket
             print(f"Sent other players' data to client {client_address}")
@@ -124,11 +123,14 @@ class SubServer:
         # Start load balancer connection
         lb_thread = threading.Thread(target=self.lb_connect_protocol)
         lb_thread.start()
+        lb_thread.join()  # Wait for the LB connection to be established
 
         # Start client connection
-        client_thread = threading.Thread(target=self.client_connect_protocol)
-        client_thread.start()
-
+        if self.is_connected_to_lb:
+            client_thread = threading.Thread(target=self.client_connect_protocol)
+            client_thread.start()
+        else:
+            print("Not starting client connection protocol because LB connection failed.")
 
 if __name__ == "__main__":
     server = SubServer()
