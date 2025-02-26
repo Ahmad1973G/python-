@@ -2,12 +2,11 @@ import socket
 import json
 import threading
 import time
-from typing import Union #Added Union instead of dict | dict
+from typing import Union
 
 class LoadBalancer:
     def __init__(self):
-     #   self.IP = self.get_ip_address()
-        self.IP = "127.0.0.1"
+        self.IP = self.get_ip_address()
         self.PORT = 5000
         self.servers = []
         self.map_width, self.map_height = 38400, 34560
@@ -136,4 +135,3 @@ class LoadBalancer:
 if __name__ == "__main__":
     lb = LoadBalancer()
     lb.run() # Start listening and handling connections
-
