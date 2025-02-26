@@ -6,7 +6,7 @@ import time
 class LoadBalancer:
     def __init__(self):
         self.IP = self.get_ip_address()
-        self.PORT = 0
+        self.PORT = 5000
         self.servers = []
         self.map_width, self.map_height = 38400, 34560
         self.max_attack = 300
