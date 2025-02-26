@@ -5,7 +5,7 @@ import time
 
 # Configuration
 LB_IP = '127.0.0.1'  # Changed to loopback address
-LB_PORT = 5000  # Replace with the load balancer port
+LB_PORT = 5000
 SERVER_PORT = 0  # Let the OS assign a port
 CLIENT_SYN_PORT = 6000  # The port that clients will broadcast SYN packets
 SERVER_ID = 1  # Unique identifier for this server
