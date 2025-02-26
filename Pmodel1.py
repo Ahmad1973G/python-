@@ -4,8 +4,9 @@ import json
 
 
 class Player:
-    def _init_(self, x, y, hight, width, speed, Weapon, Power, health, maxHealth,acceleration,client_loc):
+    def _init_(self, x,diff, y, hight, width, speed, Weapon, Power, health, maxHealth,acceleration,client_loc):
         self.x = x
+        self.diff=diff
         self.Weapon = Weapon
         self.Power = Power
         self.y = y
@@ -25,15 +26,19 @@ class Player:
             "width": width,
             "height": height,
             "id": id
+
         }
         with open('move_data.json', 'w') as json_file:
             json.dump(client_loc, json_file)
             
         return client_loc
-    def move(self,x, y, client_loc, acceleration):
-        while self.x!=self.client_loc['x'] and self.y!=self.client_loc['y']:
-            self.run = (self.x - self.client_loc['x']) * self.acceleration
-            self.rise = (self.y - self.client_loc['y']) * self.acceleration
+    def move(self,x, y,diff, client_loc, acceleration):
+        while True:
+            for event in pg.event.get():
+                if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                    return
+            self.client_loc['x'] = (diff[0]) * self.acceleration
+            self.client_loc['y'] = (diff[1]) * self.acceleration
 
     def colision (self, mouse_pos):
         if self.startX_col <= self.x <= self.endX_col:

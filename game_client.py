@@ -1,42 +1,22 @@
 import pygame as pg
-
+import Pmodel1 
 import json
+import threading
+import time
 
 
 
 
+def get_mouse_pos():
+    mouse_pos = pg.mouse.get_pos()
+    for event in pg.event.get():
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            x=mouse_pos[0]
+            y=mouse_pos[1]
+            diff[0]=500-x
+            diff[1]=325-y
+            obj.move(x, y, obj.client_loc, obj.acceleration)
 
-def main():
-
-    pg.init()
-    screen = pg.display.set_mode((1000, 650))
-    clock = pg.time.Clock()
-    image = pg.Surface((30, 30))
-    image.fill(pg.Color('dodgerblue1'))
-    x, y = 300, 200  # Actual position.
-    rect = image.get_rect(center=(x, y))  # Blit position.
-
-    while True:
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                return
-
-        mouse_pos = pg.mouse.get_pos()
-        # x and y distances to the target.
-        run = (mouse_pos[0] - x) * 0.1  # Scale it to the desired length.
-        rise = (mouse_pos[1] - y) * 0.1
-        # Update the position.
-        if event.type == pg.MOUSEBUTTONDOWN \
-        and event.button == 1:
-            x += run
-            y += rise
-            rect.center = x, y
-
-        screen.fill((30, 30, 30))
-        screen.blit(image, rect)
-
-        pg.display.flip()
-        clock.tick(60)
 
 
     
@@ -50,25 +30,44 @@ def print_players(players_list, client_loc):
             if player['id'] != client_loc['id']:
                 image = pg.Surface((player['width'], player['height']))
                 image.fill(pg.Color('red'))
-                rect = image.get_rect(center=(player['x'], player['y']))
+                rect = image.get_rect(center=(player['x']-diff[0], player['y']-diff[1]))
                 screen.blit(image, rect)
-                pg.display.flip()
+                
             
         else:
             image = pg.Surface((client_loc['width'], client_loc['height']))
             image.fill(pg.Color('blue'))
-            rect = image.get_rect(center=(client_loc['x'], client_loc['y']))
+            rect = image.get_rect(center=(500, 325))
             screen.blit(image, rect)
-            pg.display.flip()
             
+        pg.display.flip()
+        obj.convert_to_json(300, 325,20, 20, 0)    
+
     
 if __name__ == '__main__':
-    main_player = {"x": 500, "y": 325, "width": 20, "height": 20, "id": 0}  # Main player is always in the middle.
-    players = [
-        {"x": 600, "y": 400, "width": 20, "height": 20, "id": 1},
-        {"x": 400, "y": 300, "width": 20, "height": 20, "id": 2},
-        {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
+    client_loc = {"x":500, "y":325, "width": 20, "height": 20, "id": 1}  # Main player is always in the middle.
+    diff=[500-client_loc['x'],325-client_loc['y']]
+    players_list = [
+        {"x": 600, "y": 400,'diff_x':diff[0],'diff_y':diff[1], "width": 20, "height": 20, "id": 0},
+        {"x": 500, "y": 325,'diff_x':diff[0],'diff_y':diff[1], "width": 20, "height": 20, "id": 1},
+        {"x": 400, "y": 300,'diff_x':diff[0],'diff_y':diff[1], "width": 20, "height": 20, "id": 2},
+        {"x": 700, "y": 500,'diff_x':diff[0],'diff_y':diff[1], "width": 20, "height": 20, "id": 3}
     ]
-    print_players(players, main_player)
-    main()
-    pg.quit()
+    
+    obj=Pmodel1.Player()
+    #def _init_(self, x,diff, y, hight, width, speed, Weapon, Power, health, maxHealth,acceleration,client_loc)
+    obj._init_(500,diff, 325, 20, 20, 5, "Gun", "Power", 100, 100, 0.1, client_loc)
+    obj.convert_to_json(500, 325, 20, 20, 0)
+    thread1=threading.Thread(target=print_players(players_list, client_loc))
+    thread2=threading.Thread(target=get_mouse_pos)
+    pg.init()
+    thread2.start()
+    thread1.start() 
+    while True:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                exit()
+ 
+        
+    
