@@ -2,6 +2,7 @@ import socket
 import json
 import threading
 import time
+from typing import Union # ADDED to country syntax problem with dict | dict
 
 class LoadBalancer:
     def __init__(self):
@@ -18,7 +19,7 @@ class LoadBalancer:
         hostname = socket.gethostname()
         ip_address = socket.gethostbyname(hostname)
         return ip_address
-    
+
     def createSYNCpacket(self):
         packet = "SYNC CODE 1"
         return packet.encode()
@@ -42,8 +43,7 @@ class LoadBalancer:
         else:
             return False
 
-
-    def MoveServer(self, packet_info, server_borders) -> dict | dict:
+    def MoveServer(self, packet_info, server_borders) ->  Union[dict, dict]: # MODIFIED
         right_servers = {}
         server_to_send = {}
         for id, properties in packet_info.items():
@@ -57,13 +57,12 @@ class LoadBalancer:
                 right_servers[id] = 2
 
             self.HandlePlayerServer(id, properties, server_to_send, right_servers)
-            
+
         return right_servers, server_to_send
-    
+
     def broadcast_packet(self, packet, port):
         """
         Broadcasts a packet to the network.
-        
         Args:
             packet (bytes): The packet to broadcast.
             port (int): The port to broadcast the packet on.
@@ -73,9 +72,8 @@ class LoadBalancer:
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         # Broadcast the packet to the broadcast address
         # The broadcast address is a special address used to send data to all possible destinations in the network.
-        broadcast_address = '<broadcast>'
+        broadcast_address = ''
         self.socket.sendto(packet, (broadcast_address, port))
-
         # Disable broadcasting mode
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 0)
 
@@ -92,13 +90,12 @@ class LoadBalancer:
                 server_to_send[id] = [1, 4]
             else:
                 server_to_send[id] = [2, 3]
-        
+
         server_to_send[id].remove(properties['server'])
 
     def packet_info(data):
         """
         Extracts and decodes the packet information.
-    
         Args:
             data: The raw packet data.
         Returns:
@@ -111,3 +108,11 @@ class LoadBalancer:
             print("Error: Could not decode packet")
             return None
 
+if __name__ == "__main__":
+    lb = LoadBalancer()
+    # lb.broadcast_packet("bruh".encode(), 49152)
+    # server_address = ('localhost', 5005)  # Replace with the server's address
+    # lb.socket.connect(server_address)
+    # lb.read_sa_send_ack(lb.socket)
+    # lb.read_ack(lb.socket)
+    # time.sleep(1000)
