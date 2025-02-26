@@ -2,7 +2,7 @@ import socket
 import json
 import threading
 import time
-from typing import Union # ADDED to country syntax problem with dict | dict
+from typing import Union #Added Union instead of dict | dict
 
 class LoadBalancer:
     def __init__(self):
@@ -14,6 +14,9 @@ class LoadBalancer:
         self.server_borders = (self.map_width / 2, self.map_height / 2)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.time = time.time()
+        self.socket.bind((self.IP, self.PORT))  # Bind the socket to the address
+        self.socket.listen(5)  # Listen for incoming connections
+        print(f"Load Balancer listening on {self.IP}:{self.PORT}")
 
     def get_ip_address(self):
         hostname = socket.gethostname()
@@ -43,7 +46,7 @@ class LoadBalancer:
         else:
             return False
 
-    def MoveServer(self, packet_info, server_borders) ->  Union[dict, dict]: # MODIFIED
+    def MoveServer(self, packet_info, server_borders) -> Union[dict, dict]:
         right_servers = {}
         server_to_send = {}
         for id, properties in packet_info.items():
@@ -65,6 +68,8 @@ class LoadBalancer:
         Broadcasts a packet to the network.
         Args:
             packet (bytes): The packet to broadcast.
+        Args:
+            data (bytes): The packet to broadcast.
             port (int): The port to broadcast the packet on.
         """
         # Create a UDP socket
@@ -108,11 +113,26 @@ class LoadBalancer:
             print("Error: Could not decode packet")
             return None
 
+    def handle_connection(self, conn, address):
+        print(f"Accepted connection from {address}")
+        try:
+            if self.read_sa_send_ack(conn):
+                self.read_ack(conn)
+            else:
+                print(f"Connection from {address} failed during handshake.")
+        except Exception as e:
+            print(f"Error handling connection from {address}: {e}")
+        finally:
+            conn.close()
+            print(f"Connection with {address} closed.")
+
+    def run(self):
+        while True:
+            conn, address = self.socket.accept()  # Accept incoming connections
+            client_thread = threading.Thread(target=self.handle_connection, args=(conn, address))
+            client_thread.start()
+
 if __name__ == "__main__":
     lb = LoadBalancer()
-    # lb.broadcast_packet("bruh".encode(), 49152)
-    # server_address = ('localhost', 5005)  # Replace with the server's address
-    # lb.socket.connect(server_address)
-    # lb.read_sa_send_ack(lb.socket)
-    # lb.read_ack(lb.socket)
-    # time.sleep(1000)
+    lb.run() # Start listening and handling connections
+
