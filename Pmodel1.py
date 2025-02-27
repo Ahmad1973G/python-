@@ -4,22 +4,24 @@ import json
 
 
 class Player:
-    def _init_(self, x,diff, y, hight, width, speed, Weapon, Power, health, maxHealth,acceleration,client_loc):
+    def _init_(self, x,y, hight, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset):
         self.x = x
-        self.diff=diff
-        self.Weapon = Weapon
-        self.Power = Power
-        self.y = y
+        self.y = y 
         self.hight = hight
         self.width = width
         self.speed = speed
+        self.Weapon = Weapon
+        self.Power = Power
         self.health = health
         self.maxHealth = maxHealth
         self.acceleration=acceleration
-        self.client_loc=client_loc
+        self.players=players
+        self.moving=moving
+        self.move_offset = (0, 0)
         
         
     def convert_to_json(self, x, y, width, height, id):  # receives info and turns it into a json file
+        pg.init()   
         client_loc = {
             "x": x,
             "y": y,
@@ -32,13 +34,22 @@ class Player:
             json.dump(client_loc, json_file)
             
         return client_loc
-    def move(self,x, y,diff, client_loc, acceleration):
-        while True:
-            for event in pg.event.get():
-                if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                    return
-            self.client_loc['x'] = (diff[0]) * self.acceleration
-            self.client_loc['y'] = (diff[1]) * self.acceleration
+    def move(self, players, acceleration, move_offset, moving):
+        if not moving:
+            return False, move_offset
+
+        
+        for player in players:
+            player['x'] -= move_offset[0] * acceleration
+            player['y'] -= move_offset[1] * acceleration
+        
+        move_offset = (move_offset[0]*(1-acceleration), move_offset[1]*(1-acceleration))
+        
+        if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
+            return False, (0, 0)  # Stop moving when close enough
+        
+        return True, move_offset
+
 
     def colision (self, mouse_pos):
         if self.startX_col <= self.x <= self.endX_col:
