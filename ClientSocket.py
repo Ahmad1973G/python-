@@ -9,6 +9,8 @@ SERVER_PORT = 5001  # Let the OS assign a port
 
 class ClientServer:
     def __init__(self):
+        self.IP = 0
+        self.PORT = 0
         self.server = ()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.time = time.time()
@@ -38,7 +40,7 @@ class ClientServer:
             "attack": int(random.random() * 300),
             "health": 100,
         }
-        return {self.socket.getsockname()[1]: properties}
+        return properties
 
     def read_ACK(self, conn):
         data = conn.recv(1024)
@@ -69,28 +71,32 @@ class ClientServer:
             except Exception as e:
                 print("Connection failed, trying again, error:", e)
         print(f"Connected to {IP} on port {PORT}")
+        self.IP = self.socket.getsockname()[0]
+        self.PORT = self.socket.getsockname()[1]
     
     def run_conn(self, data):
         print("Sending data...")
         self.send_data(data)
+        print("Data sent.")
         response = self.receive_data()
         print("Received data.")
         response = json.loads(response)
         return response
 
     def run(self):
-        result = self.run_conn(json.dumps(self.create_client_properties()))
-        print(result)
+        start_time = time.time()
+        while True: 
+            if time.time() - start_time > 2:
+                result = self.run_conn(json.dumps(self.create_client_properties()))
+                print(result)
+                start_time = time.time()
 
 
 def main():
     client = ClientServer()
     client.connect(SERVER_IP, SERVER_PORT)
-    start_time = time.time()
-    while True: 
-        if time.time() - start_time > 5:
-            client.run()
-            start_time = time.time()
+    client.run()
+
 
 if __name__ == "__main__":
     main()

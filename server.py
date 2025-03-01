@@ -73,7 +73,7 @@ class SubServer:
             client_thread = threading.Thread(target=self.handle_client, args=(conn, client_address))
             client_thread.start()
             print(f"Started thread for client {client_address}")
-            print("Connected clients:", self.connected_clients)
+            print("Connected clients:", self.connected_clients.keys())
         print("Not listening to clients anymore.")
 
     def handle_client(self, conn, client_address):
@@ -109,8 +109,12 @@ class SubServer:
             self.players_data[client_address[1]] = player_data
         
             # Prepare data of other players to send to the client (excluding the client's own data)
-            other_players_data = [data for port, data in self.players_data.items() if port != client_address[1]]
-                
+            other_players_data = []
+            for port, data in self.players_data.items():
+                if port != client_address[1]:
+                    copy_data = data.copy()
+                    copy_data["port"] = port
+                    other_players_data.append(copy_data)
             # Convert to JSON string and send
             other_players_data_str = json.dumps(other_players_data)
             conn.send(other_players_data_str.encode())
