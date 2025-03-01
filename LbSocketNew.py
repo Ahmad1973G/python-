@@ -6,7 +6,7 @@ from typing import Union
 
 class LoadBalancer:
     def __init__(self):
-        self.IP = self.get_ip_address()
+        self.IP = '127.0.0.1'
         self.PORT = 5000
         self.servers = []
         self.map_width, self.map_height = 38400, 34560
@@ -31,7 +31,7 @@ class LoadBalancer:
         data = conn.recv(1024)
         str_data = data.decode()
         if str_data == 'SYNC+ACK CODE 1':
-            conn.send(f"ACK CODE 2 IP.{conn.getpeername()[0]} PORT.{conn.getpeername()[1]}".encode())
+            conn.send("ACK CODE 2".encode())
             print("Received the SYNC+ACK packet successfully")
             print("Sent the ACK packet")
             return True
@@ -115,6 +115,7 @@ class LoadBalancer:
 
     def handle_connection(self, conn, address):
         print(f"Accepted connection from {address}")
+        conn.send(self.createSYNCpacket())  # Send SYNC packet
         try:
             if self.read_sa_send_ack(conn):
                 self.read_ack(conn)
