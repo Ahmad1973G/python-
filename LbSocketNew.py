@@ -6,8 +6,8 @@ from typing import Union
 
 class LoadBalancer:
     def __init__(self):
-        self.IP = '127.0.0.1'
-        self.PORT = 5000
+        self.IP = self.get_ip_address()
+        self.PORT = 5002
         self.servers = []
         self.map_width, self.map_height = 38400, 34560
         self.max_attack = 300
@@ -16,7 +16,11 @@ class LoadBalancer:
         self.time = time.time()
         self.socket.bind((self.IP, self.PORT))  # Bind the socket to the address
         self.socket.listen(5)  # Listen for incoming connections
-        print(f"Load Balancer listening on {self.IP}:{self.PORT}")
+        self.socket.settimeout(5)
+        print(f"Load Balancer on {self.IP}:{self.PORT}")
+        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udp_socket.bind((self.IP, self.PORT + 1))
+        self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     def get_ip_address(self):
         hostname = socket.gethostname()
@@ -24,28 +28,20 @@ class LoadBalancer:
         return ip_address
 
     def createSYNCpacket(self):
-        packet = "SYNC CODE 1"
+        packet = "SYNC CODE 1, IP;" + self.IP + ",PORT;" + str(self.PORT)
         return packet.encode()
 
-    def read_sa_send_ack(self, conn):
+    def read_sa_send_ack(self, conn, id):
         data = conn.recv(1024)
         str_data = data.decode()
         if str_data == 'SYNC+ACK CODE 1':
-            conn.send("ACK CODE 2".encode())
+            conn.send(f"ACK CODE 2;{id}".encode())
             print("Received the SYNC+ACK packet successfully")
             print("Sent the ACK packet")
             return True
         return False
 
-    def read_ack(self, conn):
-        data = conn.recv(1024)
-        str_data = data.decode()
-        if str_data == 'ACK CODE 2':
-            print("Received the ACK packet successfully from IP: ", conn.getpeername()[0], " Port: ", conn.getpeername()[1])
-            return True
-        else:
-            return False
-
+    
     def MoveServer(self, packet_info, server_borders) -> Union[dict, dict]:
         right_servers = {}
         server_to_send = {}
@@ -72,15 +68,7 @@ class LoadBalancer:
             data (bytes): The packet to broadcast.
             port (int): The port to broadcast the packet on.
         """
-        # Create a UDP socket
-        # Enable broadcasting mode
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        # Broadcast the packet to the broadcast address
-        # The broadcast address is a special address used to send data to all possible destinations in the network.
-        broadcast_address = ''
-        self.socket.sendto(packet, (broadcast_address, port))
-        # Disable broadcasting mode
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 0)
+        self.udp_socket.sendto(packet, ('255.255.255.255', port))
 
     def HandlePlayerServer(self, id, properties, server_to_send, right_servers):
         if (self.server_borders[0] - self.max_attack < properties['x'] < self.server_borders[0] + self.max_attack):
@@ -113,25 +101,31 @@ class LoadBalancer:
             print("Error: Could not decode packet")
             return None
 
-    def handle_connection(self, conn, address):
-        print(f"Accepted connection from {address}")
-        conn.send(self.createSYNCpacket())  # Send SYNC packet
-        try:
-            if self.read_sa_send_ack(conn):
-                self.read_ack(conn)
-            else:
-                print(f"Connection from {address} failed during handshake.")
-        except Exception as e:
-            print(f"Error handling connection from {address}: {e}")
-        finally:
-            conn.close()
-            print(f"Connection with {address} closed.")
+    def start_protocol(self):
+        count = 0
+        while count < 5:
+            self.broadcast_packet(self.createSYNCpacket(),  self.udp_socket.getsockname()[1])
+            print("Sent SYNC packet again")
+            
+            try:
+                conn, _ = self.socket.accept()  # Will timeout after 2 seconds
+                if self.read_sa_send_ack(conn, count + 1):
+                    count += 1
+                    self.servers.append(conn)
+                    print("Sent id to server")
+                    print(f"{count} Servers connected")
+
+                else:
+                    conn.close()
+
+            except socket.timeout:
+                print("No connection received within timeout period")
+            except Exception as e:
+                print(f"Error accepting connection: {e}")
 
     def run(self):
-        while True:
-            conn, address = self.socket.accept()  # Accept incoming connections
-            client_thread = threading.Thread(target=self.handle_connection, args=(conn, address))
-            client_thread.start()
+        self.start_protocol()
+
 
 if __name__ == "__main__":
     lb = LoadBalancer()

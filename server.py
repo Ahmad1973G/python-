@@ -4,11 +4,9 @@ import threading
 import time
 
 # Configuration
-LB_IP = '127.0.0.1'  # Roy's Computer, temporary fix #MUST BE 127.0.0.1 when both run on the same computer
-LB_PORT = 5000  # Replace with the load balancer port
-SERVER_IP = '127.0.0.1'
-SERVER_PORT = 5001  # Let the OS assign a port
-SERVER_ID = 1  # Unique identifier for this server
+LB_PORT = 5002  # Replace with the load balancer port
+UDP_PORT = LB_PORT + 1  # Replace with the load balancer UDP port
+SERVER_PORT = 5000  # Let the OS assign a port
 
 # Protocol Messages
 SYN = "SYNC CODE 1"
@@ -19,49 +17,79 @@ class SubServer:
     def __init__(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Changed to TCP
         self.lb_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_address = (SERVER_IP, SERVER_PORT)
+        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.udp_socket.bind(('0.0.0.0', UDP_PORT))
+        self.server_address = (self.get_ip_address(), SERVER_PORT)
         self.server_socket.bind(self.server_address)
         self.server_socket.listen()  # Listen for incoming connections
-        self.load_balancer_address = (LB_IP, LB_PORT)
+        self.load_balancer_address = (0, LB_PORT)
         self.connected_clients = {}  # Store connected clients' addresses (IP -> Socket object)
         self.is_connected_to_lb = False
         self.players_data = {}  # Dictionary to store player information (IP -> player_info)
+        self.udp_socket.settimeout(4) # Set a timeout for UDP socket
+        self.id = 0
 
     def get_ip_address(self):
         hostname = socket.gethostname()
         ip_address = socket.gethostbyname(hostname)
         return ip_address
 
+    def recv_id(self):
+        data = self.lb_socket.recv(1024)
+        str_data = data.decode()
+        if str_data.startswith("ID"):
+            self.id = int(str_data.split(" ")[-1])
+            print("Received ID:", self.id)
+            return True
+        return False
+
     def lb_connect_protocol(self):
         """Handles the connection protocol with the load balancer."""
-        self.lb_socket.connect(self.load_balancer_address)
-
+        print("Listening on UDP for load balancer on", self.get_ip_address())
         while not self.is_connected_to_lb:
-            # Listen for SYN from Load Balancer
-            print("Listening for SYN from load balancer...")
             try:
-                data = self.lb_socket.recv(1024)
-                message = data.decode()
-                peer_address = self.lb_socket.getpeername()
-                if message == SYN and peer_address[0] == LB_IP:  # Changed from self.lb_socket[0]
-                    print(f"Received SYN from load balancer at {peer_address}")
-                    # Send SYN+ACK
-                    self.lb_socket.send(SYN_ACK.encode())
-                    print(f"Sent SYN+ACK to load balancer at {peer_address}")
-                    # Wait for ACK
-                    data = self.lb_socket.recv(1024)
-                    message = data.decode()
-                    if message == ACK and peer_address[0] == LB_IP:  # Changed from self.lb_socket[0]
-                        print(f"Received ACK from load balancer at {peer_address}")
-                        self.is_connected_to_lb = True
-                        print("Successfully connected to load balancer.")
-                    else:
-                        print("Unexpected message from load balancer. Retrying...")
-                else:
-                    print("Unexpected message or incorrect load balancer IP. Retrying...")
-
+                data, _ = self.udp_socket.recvfrom(1024)
+                print("Received UDP packet: ", data.decode())
+                if self.readSYNCpacket(data):
+                    self.sendSYNCACK()
+                    if self.recvACK():
+                        if self.recv_id():
+                            self.is_connected_to_lb = True
+            except socket.timeout:
+                print("No UDP packet received within timeout period")
             except Exception as e:
-                print(f"Exception occurred while trying to connect to Load Balancer, exiting loop: {e}")
+                print(f"Error receiving UDP packet: {e}")
+                if self.lb_socket:
+                    self.lb_socket.shutdown(socket.SHUT_RDWR)
+                    self.lb_socket.close()
+            
+    
+    def readSYNCpacket(self, data):
+        str_data = data.decode()
+        if str_data.startswith(SYN):
+            lb_ip, lb_port = str_data.split(" ")[-1].split(",")[0].split(";")[1], int(str_data.split(" ")[-1].split(",")[1].split(";")[1])
+            if lb_port == LB_PORT:
+                try:
+                    self.load_balancer_address = (lb_ip, lb_port)
+                    self.lb_socket.connect(self.load_balancer_address)
+                    print("SYNC Success")
+                    return True
+                except Exception as e:
+                    print(f"Error connecting to load balancer: {e}")
+        return False
+
+    def sendSYNCACK(self):
+        self.lb_socket.send(SYN_ACK.encode())
+
+    def recvACK(self):
+        data = self.lb_socket.recv(1024).decode()
+        if data.startswith(ACK):
+            print("Received ACK")
+            self.id = int(data.split(";")[-1])
+            print("ID:", self.id)
+            return True
+        return False
 
     def client_connect_protocol(self):
         """Handles the connection protocol with clients."""
