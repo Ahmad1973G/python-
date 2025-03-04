@@ -90,11 +90,11 @@ class ClientServer:
         response = json.loads(response)
         return response
 
-    def run(self):
+    def run(self, data):
         start_time = time.time()
         while True: 
             if time.time() - start_time > 2:
-                result = self.run_conn(json.dumps(self.create_client_properties()))
+                result = self.run_conn(json.dumps(data))
                 print(result)
                 start_time = time.time()
 
