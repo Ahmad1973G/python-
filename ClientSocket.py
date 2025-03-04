@@ -1,23 +1,23 @@
 import socket
 import json
 import threading
-import random
 import time
 
-SERVER_PORT = 5001  # Let the OS assign a port
+SERVER_PORT = 5003  # Let the OS assign a port
 
 class ClientServer:
     def __init__(self):
         self.IP = self.get_ip_address()
         self.PORT = 0
-        self.server = ()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind((self.IP, self.PORT))
-        self.PORT = self.socket.getsockname()[1]
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.time = time.time()
+        self.id = 0
 
+    def broadcast_packet(self, packet, port):
+        self.udp_socket.sendto(packet, ('255.255.255.255', port))
+    
     def get_ip_address(self):
         hostname = socket.gethostname()
         ip_address = socket.gethostbyname(hostname)
@@ -26,16 +26,6 @@ class ClientServer:
     def createSYNCpacket(self):
         packet = "SYNC CODE 69"
         return packet.encode()
-    
-    def read_SYN_and_send_SA(self, conn):
-        data = conn.recv(1024)
-        str_data = data.decode()
-        if str_data == 'SYNC+ACK CODE 420':
-            conn.send(f"ACK CODE 999 {self.IP};{self.PORT}".encode())
-            print("Received the SYN+ACK packet successfully")
-            print("Sent the ACK packet")
-            return True
-        return False
 
     def read_ACK(self, conn):
         data = conn.recv(1024)
@@ -47,6 +37,40 @@ class ClientServer:
         else:
             return False
 
+    def recSYNCACK_sendACK(self):
+        data, addr = self.udp_socket.recvfrom(1024)
+        str_data = data.decode()
+        if str_data.startswith("SYNC+ACK CODE 69"):
+            self.server = (str_data.split(" ")[-1].split(";")[0],
+                            int(str_data.split(" ")[-1].split(";")[1]))
+            try:
+                self.socket.connect(self.server)
+                print(f"Connected to {self.server[0]} on port {self.server[1]}")
+                self.PORT = self.socket.getsockname()[1]
+                self.socket.send("ACK CODE 584".encode())
+                return True
+            except Exception as e:
+                print("Error connecting to server:", e)
+        return False
+
+    def recv_ID(self):
+        data = self.socket.recv(1024)
+        str_data = data.decode()
+        if str_data.startswith("ID CODE 69"):
+            return int(str_data.split(" ")[-1])
+        return -1
+
+    def connect(self):
+        self.broadcast_packet(self.createSYNCpacket(), SERVER_PORT)
+        print("Sent the SYNC packet")
+        if self.recSYNCACK_sendACK():
+            print("Received the SYNC+ACK packet successfully")
+            print("Sent the ACK packet")
+            self.id = self.recv_ID()
+            print("Received the ID packet, ID:", self.id)
+            return self.id
+            
+
     def send_data(self, data):
         try:
             self.socket.send(data.encode())
@@ -56,18 +80,6 @@ class ClientServer:
     def receive_data(self):
         data = self.socket.recv(1024)
         return data.decode()
-    
-    def connect(self):
-        self.server = (SERVER_IP, SERVER_PORT)
-        while True:
-            try:
-                self.socket.connect(self.server)
-                break
-            except Exception as e:
-                print("Connection failed, trying again, error:", e)
-        print(f"Connected to {IP} on port {PORT}")
-        self.IP = self.socket.getsockname()[0]
-        self.PORT = self.socket.getsockname()[1]
     
     def run_conn(self, data):
         print("Sending data...")
@@ -89,7 +101,7 @@ class ClientServer:
 
 def main():
     client = ClientServer()
-    client.connect()
+    client.id = client.connect()
     client.run()
 
 
