@@ -60,14 +60,6 @@ class LoadBalancer:
         return right_servers, server_to_send
 
     def broadcast_packet(self, packet, port):
-        """
-        Broadcasts a packet to the network.
-        Args:
-            packet (bytes): The packet to broadcast.
-        Args:
-            data (bytes): The packet to broadcast.
-            port (int): The port to broadcast the packet on.
-        """
         self.udp_socket.sendto(packet, ('255.255.255.255', port))
 
     def HandlePlayerServer(self, id, properties, server_to_send, right_servers):
@@ -122,6 +114,7 @@ class LoadBalancer:
                 print("No connection received within timeout period")
             except Exception as e:
                 print(f"Error accepting connection: {e}")
+                conn.close()
 
     def run(self):
         self.start_protocol()
