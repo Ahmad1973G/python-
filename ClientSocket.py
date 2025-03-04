@@ -4,15 +4,18 @@ import threading
 import random
 import time
 
-SERVER_IP = '127.0.0.1'
 SERVER_PORT = 5001  # Let the OS assign a port
 
 class ClientServer:
     def __init__(self):
-        self.IP = 0
+        self.IP = self.get_ip_address()
         self.PORT = 0
         self.server = ()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind((self.IP, self.PORT))
+        self.PORT = self.socket.getsockname()[1]
+        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.time = time.time()
 
     def get_ip_address(self):
@@ -28,19 +31,11 @@ class ClientServer:
         data = conn.recv(1024)
         str_data = data.decode()
         if str_data == 'SYNC+ACK CODE 420':
-            conn.send(f"ACK CODE 999 IP.{self.IP} PORT.{self.PORT}".encode())
+            conn.send(f"ACK CODE 999 {self.IP};{self.PORT}".encode())
             print("Received the SYN+ACK packet successfully")
             print("Sent the ACK packet")
             return True
         return False
-    def create_client_properties(self):
-        properties = {
-            "x": int(random.random() * 38400),
-            "y": int(random.random() * 34560),
-            "attack": int(random.random() * 300),
-            "health": 100,
-        }
-        return properties
 
     def read_ACK(self, conn):
         data = conn.recv(1024)
