@@ -31,7 +31,7 @@ def run_game():
     acceleration = 0.1
     moving = False
 
-    Socket = ClientSocket.ClientSocket()
+    Socket = ClientSocket.ClientServer()
     Socket.connect()
     
     while True:
