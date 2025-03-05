@@ -115,7 +115,6 @@ class SubServer:
                 return self.recvACKclient_sendID(data, addr)
             return -1
         except socket.timeout:
-            print("No UDP packet received within timeout period")
             return -1
         except Exception as e:
             print(f"Error receiving UDP packet: {e}")
