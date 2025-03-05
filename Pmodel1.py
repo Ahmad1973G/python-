@@ -4,10 +4,10 @@ import json
 
 
 class Player:
-    def _init_(self, x,y, hight, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset):
+    def init(self, x,y, height, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset):
         self.x = x
         self.y = y 
-        self.hight = hight
+        self.height = height
         self.width = width
         self.speed = speed
         self.Weapon = Weapon
@@ -20,20 +20,15 @@ class Player:
         self.move_offset = (0, 0)
         
         
-    def convert_to_json(self, x, y, width, height, id):  # receives info and turns it into a json file
-        pg.init()   
+    def convert_to_json(self):  # receives info and turns it into a json file 
         client_loc = {
-            "x": x,
-            "y": y,
-            "width": width,
-            "height": height,
-            "id": id
-
+            "x": self.x,
+            "y": self.y,
+            "width": self.width,
+            "height": self.height,
         }
-        with open('move_data.json', 'w') as json_file:
-            json.dump(client_loc, json_file)
-            
-        return client_loc
+        return json.dumps(client_loc)
+        
     def move(self, players, acceleration, move_offset, moving):
         if not moving:
             return False, move_offset
@@ -49,6 +44,7 @@ class Player:
             return False, (0, 0)  # Stop moving when close enough
         
         return True, move_offset
+
 
 
     def colision (self, mouse_pos):
@@ -72,5 +68,5 @@ class Player:
                     self.run = 0
                     self.rise = 0
 
-    if __name__ == '__main__':
+    if __name__ == '_main_':
         pg.quit()
