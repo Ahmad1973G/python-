@@ -2,6 +2,7 @@ import pygame as pg
 import json
 import Pmodel1
 import ClientSocket
+import threading
 
 def print_players(players_list, screen):
     screen.fill((30, 30, 30))
@@ -23,16 +24,15 @@ def run_game():
     pg.init()
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    players = [
-        {"x": 600, "y": 400, "width": 20, "height": 20, "id": 1},
-        {"x": 400, "y": 300, "width": 20, "height": 20, "id": 2},
-        {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
-    ]
+    players = []
     obj=Pmodel1.Player()
     obj._init_(500, 325, 20, 20, 1, 1, 1, 100, 100, 0.1,'players','False', (500, 325))
     move_offset = (0, 0)
     acceleration = 0.1
     moving = False
+
+    Socket = ClientSocket.ClientSocket()
+    Socket.connect()
     
     while True:
         for event in pg.event.get():
@@ -45,11 +45,9 @@ def run_game():
                 move_offset = (target_pos[0] - 500, target_pos[1] - 325)
                 moving = True
                 
-        moving, move_offset = obj.move(players, acceleration, move_offset, moving)
-        print_players(players, screen)
-        Socket = ClientSocket.ClientSocket()
-        Socket.connect()
+
         players = Socket.run_conn(obj.convert_to_json())
+        moving, move_offset = obj.move(players, acceleration, move_offset, moving)
         print_players(players, screen)
         clock.tick(60)
 
