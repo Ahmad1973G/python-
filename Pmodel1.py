@@ -33,7 +33,8 @@ class Player:
     def move(self, players, acceleration, move_offset, moving):
         if not moving:
             return False, move_offset
-
+        self.x += move_offset[0] * acceleration
+        self.y += move_offset[1] * acceleration
         
         for player in players:
             player['x'] -= move_offset[0] * acceleration
@@ -44,7 +45,7 @@ class Player:
         if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
             return False, (0, 0)  # Stop moving when close enough
         
-        return True, move_offset
+        return True, move_offset,self.x,self.y
     def colision(self,direction,players,colision_id,setup,target_pos,player_corner):
         for i in range(0,5):
             colision_id[i]=0

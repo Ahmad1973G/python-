@@ -26,6 +26,7 @@ def run_game():
 
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
+    my_player=[{'x':400,'y':400,'width':20,'height':20,'id':0}]
     players=[]
     obj=Pmodel1.Player()
 #x,y, hight, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset):
@@ -36,8 +37,10 @@ def run_game():
     colision_id=[0,0,0,0,0] #id of the player that will colide
     direction = 0 #like m in y=mx+b
     setup=0#like b in y=mx+b
+    x=400
+    y=400
     player_corner=[500-(20/2),325-(20/2),500+(20/2),325-(20/2),500-(20/2),325+(20/2),500+(20/2),325+(20/2)]
-    obj.init(500, 325, 20, 20, 1, 1, 1, 100, 100, 0.1,'players','False', (500, 325),direction,colision_id,player_corner)
+    obj.init(400,400, 20, 20, 1, 1, 1, 100, 100, 0.1,'players','False', (500, 325),direction,colision_id,player_corner)
     Socket = ClientSocket.ClientServer()
     Socket.connect()
     players = Socket.run_conn(obj.convert_to_json())
@@ -62,12 +65,13 @@ def run_game():
         players = Socket.run_conn(obj.convert_to_json())
         if colision_id[0]==0:
 
-            moving, move_offset = obj.move(players, acceleration, move_offset, moving) 
-       # else:
-        #    for i in range(colision_id._len_()):
-         #       if colision_id[i]==0:
-          #          break
-           #     colision_id[i]=math.sqrt()
+            moving, move_offset,x,y = obj.move(players, acceleration, move_offset, moving) 
+            players.send(json.dumps({'x':x,'y':y}))
+        #else:
+         #   for i in range(colision_id._len_()):
+                #if colision_id[i]==0:
+               #     break
+              # colision_id[i]=math.sqrt()
         print_players(players, screen)
         
         clock.tick(60)
