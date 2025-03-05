@@ -5,12 +5,20 @@ conn = sqlite3.connect('players.db')
 c = conn.cursor()
 
 c.execute("""CREATE TABLE players (
+      PlayerID INTEGER PRIMARY KEY,
+      PlayerModel TEXT,
+      PlayerLifecount INTEGER,
+      PlayerMoney INTEGER,
+      Playerslot1 INTEGER,
+      Playerslot2 INTEGER,
+      Playerslot3 INTEGER,
+      Playerslot4 INTEGER,
+      Playerslot5 INTEGER
+    )""")
 
-          PlayerDict = {PlayerID: {PlayerModel: null, PlayerLifecount: null,
-                        PlayerMoney INTEGER: null, Playerslot1 INTEGER: null,
-                        Playerslot2 INTEGER: null, Playerslot3 INTEGER: null,
-                        Playerslot4 INTEGER: null, Playerslot5 INTEGER: null}}
-          
-          Item dict = {ItemID INTEGER: {ItemName TEXT: null, ItemPrice INTEGER: null}}
-        )""")
+c.execute("""CREATE TABLE items (
+      ItemID INTEGER PRIMARY KEY,
+      ItemName TEXT,
+      ItemPrice INTEGER
+    )""")
 
