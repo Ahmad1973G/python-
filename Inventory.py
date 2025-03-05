@@ -9,25 +9,25 @@ class Inventory:
         self.ammo = ammo
 
 
-    def dropitem(self, slots, index):
-        slots [index]=1
+    def dropitem(slots, index):
+
         
+        slots [index] = null
 
         return slots
     
-    def pickupitem(self, slots, item):
+    def pickupitem(slots, item):
         for i in range(0, 5):
-            if slots[i] != null:
+            if slots[i] == null:
                 slots[i] = item
                 return slots
-        print("you dont have enough space")
 
         return slots
     
     def buy(self, gold, slots, cost, wanteditem):
         if gold >= cost:
             gold -= cost
-            pickupitem(self, slots, wanteditem)
+            pickupitem(slots, wanteditem)
         else:
             print("you dont have enough gold")
 
