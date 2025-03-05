@@ -26,14 +26,22 @@ def run_game():
     clock = pg.time.Clock()
     players = []
     obj=Pmodel1.Player()
+<<<<<<< HEAD
     obj.init(500, 325, 20, 20, 1, 1, 1, 100, 100, 0.1,'players','False', (500, 325))
+=======
+    obj._init_(500, 325, 20, 20, 1, 1, 1, 100, 100, 0.1,'players','False', (500, 325))
+>>>>>>> 42ffd9f99bf9404c6147d4d66404b17ac8023602
     move_offset = (0, 0)
     acceleration = 0.1
     moving = False
 
     Socket = ClientSocket.ClientServer()
     Socket.connect()
+<<<<<<< HEAD
     players = Socket.run_conn(obj.convert_to_json())
+=======
+    
+>>>>>>> 42ffd9f99bf9404c6147d4d66404b17ac8023602
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:

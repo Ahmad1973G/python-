@@ -4,7 +4,11 @@ import json
 
 
 class Player:
+<<<<<<< HEAD
     def init(self, x,y, height, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset):
+=======
+    def _init_(self, x,y, height, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset):
+>>>>>>> 42ffd9f99bf9404c6147d4d66404b17ac8023602
         self.x = x
         self.y = y 
         self.height = height
