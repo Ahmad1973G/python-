@@ -4,11 +4,8 @@ import json
 
 
 class Player:
-<<<<<<< HEAD
-    def init(self, x,y, height, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset):
-=======
     def _init_(self, x,y, height, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset):
->>>>>>> 42ffd9f99bf9404c6147d4d66404b17ac8023602
+
         self.x = x
         self.y = y 
         self.height = height
@@ -48,29 +45,30 @@ class Player:
             return False, (0, 0)  # Stop moving when close enough
         
         return True, move_offset
+    def colision(self,direction,players,colision_id,setup,target_pos,player_corner):
+        for i in range(0,5):
+            colision_id[i]=0
+        for j in [0,2,4,6]:
+            direction=(325-player_corner[j+1]-(325-target_pos[1]))/(player_corner[j]-500-(target_pos[0]-500))
+            setup=325-player_corner[j+1]-direction*(player_corner[j]-500)
+            c=0
 
+            for player in players:
+                c+=1
+                for i in range(0,player['width']):
+                    if int((player['x']-(player['width']/2)+i-500)*direction+setup)==int(325-(player['y']+player['height']/2)):
+                        colision_id[c]=player['id']
+                for i in range(0,player['width']):
+                    if int((player['x']-(player['width']/2)+i-500)*direction+setup)==int(325-(player['y']-player['height']/2)):
+                        colision_id[c]=player['id']
+                for i in range(0,player['height']):
+                    if int(((player['x']-player['width']/2)-500)*direction+setup)==int(325-(player['y']-(player['height']/2))+i):
+                        colision_id[c]=player['id'] 
+                for i in range(0,player['height']):
+                    if int((player['x']+player['width']/2-500)*direction+setup)==int(325-(player['y']-player['height']/2)+i):
+                        colision_id[c]=player['id']
+        return colision_id
 
-
-    def colision (self, mouse_pos):
-        if self.startX_col <= self.x <= self.endX_col:
-            if mouse_pos[1] > self.y:
-                if self.startY_col <= self.y + 20 <= self.endY_col:
-                    self.rise = 0
-                    self.run = 0
-            elif mouse_pos[1] < self.y:
-                if self.startY_col <= self.y - 20 <= self.endY_col:
-                    self.rise = 0
-                    self.run = 0
-
-        elif self.startY_col <= self.y <= self.endY_col:
-            if mouse_pos[0] > self.x:
-                if self.startX_col <= self.x + 20 <= self.endX_col:
-                    self.run = 0
-                    self.rise = 0
-            elif mouse_pos[0] < self.x:
-                if self.startX_col <= self.x - 20 <= self.endX_col:
-                    self.run = 0
-                    self.rise = 0
 
     if __name__ == '_main_':
         pg.quit()
