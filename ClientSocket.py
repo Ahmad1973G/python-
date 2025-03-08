@@ -6,7 +6,7 @@ import time
 SERVER_PORT = 5003  # Let the OS assign a port
 
 class ClientServer:
-    def __init__(self):
+    def __init__ (self):
         self.IP = self.get_ip_address()
         self.PORT = 0
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -90,19 +90,11 @@ class ClientServer:
         response = json.loads(response)
         return response
 
-<<<<<<< HEAD
-    def run(self):
-        start_time = time.time()
-        while True: 
-            if time.time() - start_time > 2:
-                result = self.run_conn(json.dumps(self.create_client_properties()))
-=======
     def run(self, data):
         start_time = time.time()
         while True: 
             if time.time() - start_time > 2:
                 result = self.run_conn(json.dumps(data))
->>>>>>> 42ffd9f99bf9404c6147d4d66404b17ac8023602
                 print(result)
                 start_time = time.time()
 
@@ -112,11 +104,6 @@ def main():
     client.id = client.connect()
     client.run()
 
-
-<<<<<<< HEAD
-if __name__ == "_main_":
-=======
 if __name__ == "__main__":
->>>>>>> 42ffd9f99bf9404c6147d4d66404b17ac8023602
     main()
 # This is the client socket that connects to the server and sends data to it.
