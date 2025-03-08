@@ -4,7 +4,7 @@ import json
 
 
 class Player:
-    def _init_(self, x,y, height, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset):
+    def _init_(self, x,y, height, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset, coins):
 
         self.x = x
         self.y = y 
@@ -19,6 +19,7 @@ class Player:
         self.players=players
         self.moving=moving
         self.move_offset = (0, 0)
+        self.coins = coins
         
         
     def convert_to_json(self):  # receives info and turns it into a json file 
