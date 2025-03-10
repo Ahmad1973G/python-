@@ -2,8 +2,33 @@ import pygame as pg
 import json
 import Pmodel1
 import ClientSocket
-import pygame
+import pytmx
 import math
+import sys
+import os
+
+
+def load_tmx_map(filename):
+    """Load TMX map file and return data."""
+    if not os.path.exists(filename):
+        print(f"❌ ERROR: TMX file not found: {filename}")
+        return None
+    try:
+        return pytmx.load_pygame(filename, pixelalpha=True)
+    except Exception as e:
+        print(f"❌ Error loading TMX file: {e} - {sys.exc_info()}")
+        return None
+
+def draw_map(screen, tmx_data, world_offset):
+    """Draw the TMX map with an offset to simulate camera movement."""
+    for layer in tmx_data.visible_layers:
+        if isinstance(layer, pytmx.TiledTileLayer):
+            for x, y, gid in layer:
+                tile = tmx_data.get_tile_image_by_gid(gid)
+                if tile:
+                    screen.blit(tile, (x * tmx_data.tilewidth + world_offset[0], 
+                                       y * tmx_data.tileheight + world_offset[1]))
+
 def print_players(players_list, screen):
     screen.fill((30, 30, 30))
     
@@ -32,6 +57,8 @@ def run_game():
 #x,y, hight, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset):
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
+    world_offset = (0, 0)
+    tmx_data = load_tmx_map(r"c:/webroot/map.tmx")
     acceleration = 0.1
     moving = False
     colision_id=[0,0,0,0,0] #id of the player that will colide
@@ -72,6 +99,8 @@ def run_game():
                 #if colision_id[i]==0:
                #     break
               # colision_id[i]=math.sqrt()
+        world_offset = (500 - x, 325 - y)
+        draw_map(screen, tmx_data, world_offset)
         print_players(players, screen)
         
         clock.tick(60)
