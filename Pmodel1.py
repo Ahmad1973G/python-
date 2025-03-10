@@ -1,4 +1,4 @@
-import pygame
+
 import pygame as pg
 
 import json
@@ -16,40 +16,20 @@ class Player:
         self.health = health
         self.maxHealth = maxHealth
         self.acceleration=acceleration
-
-    def move(self):
-        pg.init()
-        LEFT = 1
-        RED = (0, 0, 0)
-        GRAY = (148, 153, 157)
-        screen = pg.display.set_mode((640, 480))
-        clock = pg.time.Clock()
-        image = pg.Surface((30, 30))
-        image.fill(pg.Color('dodgerblue1'))
-        rect = image.get_rect(center=(self.x, self.y))  # Blit position.
-
-        while True:
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    return
-
-            mouse_pos = pg.mouse.get_pos()
-            # x and y distances to the target.
-            self.run = (mouse_pos[0] - self.x) * self.acceleration  # Scale it to the desired length.
-            self.rise = (mouse_pos[1] - self.y) * self.acceleration
-            # Update the position.
-
-            if event.type == pg.MOUSEBUTTONDOWN\
-                    and event.button == LEFT:
-                self.x += self.run
-                self.y += self.rise
-                rect.center = self.x, self.y
-
-            screen.fill((0, 0, 0))
-            screen.blit(pg.image.load('niggers.png').convert(), (0, 0))
-            screen.blit(image, rect)
-            pg.display.flip()
-            clock.tick(60)
+        
+        
+    def convert_to_json(self, x, y, width, height, id):  # receives info and turns it into a json file
+        client_loc = {
+            "x": x,
+            "y": y,
+            "width": width,
+            "height": height,
+            "id": id
+        }
+        with open('move_data.json', 'w') as json_file:
+            json.dump(client_loc, json_file)
+            
+        return client_loc
 
     def colision (self, mouse_pos):
         if self.startX_col <= self.x <= self.endX_col:
@@ -73,7 +53,6 @@ class Player:
                     self.rise = 0
 
     if __name__ == '__main__':
-        move()
         pg.quit()
 
 
