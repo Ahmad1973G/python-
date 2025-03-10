@@ -20,7 +20,9 @@ class Player:
         self.moving=moving
         self.move_offset = (0, 0)
         self.coins = coins
-        
+    def set_x_y(self,x,y):
+        self.x=x
+        self.y=y
         
     def convert_to_json(self):  # receives info and turns it into a json file 
         client_loc = {
@@ -33,7 +35,7 @@ class Player:
         
     def move(self, players, acceleration, move_offset, moving):
         if not moving:
-            return False, move_offset
+            return False, move_offset,self.x,self.y  # Stop moving if not moving
         self.x += move_offset[0] * acceleration
         self.y += move_offset[1] * acceleration
         
@@ -44,7 +46,7 @@ class Player:
         move_offset = (move_offset[0]*(1-acceleration), move_offset[1]*(1-acceleration))
         
         if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
-            return False, (0, 0)  # Stop moving when close enough
+            return False, (0, 0),self.x,self.y  # Stop moving when close enough
         
         return True, move_offset,self.x,self.y
     def colision(self,direction,players,colision_id,setup,target_pos,player_corner):

@@ -28,11 +28,11 @@ def draw_map(screen, tmx_data, world_offset):
                     screen.blit(tile, (x * tmx_data.tilewidth + world_offset[0], 
                                        y * tmx_data.tileheight + world_offset[1]))
 
-def print_players(players_list, screen, world_offset):
+def print_players(players_list, screen):
     for player in players_list:
         image = pg.Surface((player['width'], player['height']))
         image.fill(pg.Color('red'))
-        rect = image.get_rect(center=(player['x'] + world_offset[0], player['y'] + world_offset[1]))
+        rect = image.get_rect(center=(player['x'], player['y']))
         screen.blit(image, rect)
     
     # Draw the main player at the center
@@ -50,12 +50,10 @@ def run_game():
     clock = pg.time.Clock()
     my_player = {'x': 400, 'y': 400, 'width': 20, 'height': 20, 'id': 0}
     players = []
-    obj = Pmodel1.Player(400, 400, 20, 20, 1, 1, 1, 100, 100, 0.1)
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = load_tmx_map(r"c:/webroot/map.tmx")
-    acceleration = 0.1
+    acceleration = 0.5
     moving = False
     colision_id = [0, 0, 0, 0, 0]  # id of the player that will collide
     direction = 0  # like m in y=mx+b
@@ -63,7 +61,7 @@ def run_game():
     x = 400
     y = 400
     player_corner = [500 - (20 / 2), 325 - (20 / 2), 500 + (20 / 2), 325 - (20 / 2), 500 - (20 / 2), 325 + (20 / 2), 500 + (20 / 2), 325 + (20 / 2)]
-    obj.init(400, 400, 20, 20, 1, 1, 1, 100, 100, 0.1)
+    obj = Pmodel1.Player(400, 400, 20, 20, 10, 1, 1, 100, 100, 80, players, False,move_offset, 0)
     Socket = ClientSocket.ClientServer()
     Socket.connect()
     players = Socket.run_conn(obj.convert_to_json())
@@ -77,24 +75,22 @@ def run_game():
                 target_pos = pg.mouse.get_pos()
                 move_offset = (target_pos[0] - 500, target_pos[1] - 325)
                 moving = True
-                colision_id = obj.colision(direction, players, colision_id, setup, target_pos, player_corner)
-                for j in range(len(colision_id)):
-                    if colision_id[j] != 0:
-                        for i in range(len(colision_id)):
-                            if colision_id[i] == 0:
-                                colision_id[i] = colision_id[j]
-                                colision_id[j] = 0
-                                break
-        
+                #colision_id = obj.colision(direction, players, colision_id, setup, target_pos, player_corner)
+                #for j in range(len(colision_id)):
+                #    if colision_id[j] != 0:
+                 #       for i in range(len(colision_id)):
+                  #          if colision_id[i] == 0:
+                   #             colision_id[i] = colision_id[j]
+                    #            colision_id[j] = 0
+                     #           break
+
+        obj.set_x_y(x, y)
         players = Socket.run_conn(obj.convert_to_json())
-        if colision_id[0] == 0:
-            moving, move_offset, x, y = obj.move(players, acceleration, move_offset, moving)
-            Socket.send(json.dumps({'x': x, 'y': y}))
-        
-        world_offset = (500 - x, 325 - y)
+        #if colision_id[0] == 0:
+        moving, move_offset, x, y = obj.move(players, acceleration, move_offset, moving)
         screen.fill(BLACK)
-        draw_map(screen, tmx_data, world_offset)
-        print_players(players, screen, world_offset)
+        world_offset = (500 - x, 325 - y)
+        print_players(players, screen)
         
         clock.tick(60)
 

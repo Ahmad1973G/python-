@@ -17,7 +17,7 @@ class Inventory:
     
     def pickupitem(self, slots, item):
         for i in range(0, 5):
-            if slots[i] != null:
+            if slots[i] != None:
                 slots[i] = item
                 return slots
         print("you dont have enough space")
