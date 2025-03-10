@@ -4,10 +4,11 @@ import json
 
 
 class Player:
-    def init(self, x,y, hight, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset,direction,colision_id,Player_corner):
+    def _init_(self, x,y, height, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset, coins):
+
         self.x = x
         self.y = y 
-        self.hight = hight
+        self.height = height
         self.width = width
         self.speed = speed
         self.Weapon = Weapon
@@ -18,10 +19,7 @@ class Player:
         self.players=players
         self.moving=moving
         self.move_offset = (0, 0)
-        self.direction = direction
-        self.colision_id=colision_id
-        self.player_corner=Player_corner
-
+        self.coins = coins
         
         
     def convert_to_json(self):  # receives info and turns it into a json file 
@@ -35,7 +33,7 @@ class Player:
         
     def move(self, players, acceleration, move_offset, moving):
         if not moving:
-            return False, move_offset,self.x,self.y
+            return False, move_offset
         self.x += move_offset[0] * acceleration
         self.y += move_offset[1] * acceleration
         
@@ -46,12 +44,12 @@ class Player:
         move_offset = (move_offset[0]*(1-acceleration), move_offset[1]*(1-acceleration))
         
         if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
-            return False, (0, 0),self.x,self.y  # Stop moving when close enough
+            return False, (0, 0)  # Stop moving when close enough
         
         return True, move_offset,self.x,self.y
     def colision(self,direction,players,colision_id,setup,target_pos,player_corner):
         for i in range(0,5):
-            colision_id[i]=-1
+            colision_id[i]=0
         for j in [0,2,4,6]:
             direction=(325-player_corner[j+1]-(325-target_pos[1]))/(player_corner[j]-500-(target_pos[0]-500))
             setup=325-player_corner[j+1]-direction*(player_corner[j]-500)
