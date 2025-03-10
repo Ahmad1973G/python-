@@ -2,6 +2,7 @@ import pygame as pg
 import json
 import Pmodel1
 import ClientSocket
+import pytmx
 import math
 import sys
 import os
