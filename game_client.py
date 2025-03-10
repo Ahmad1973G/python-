@@ -39,11 +39,17 @@ def run_game():
     setup=0#like b in y=mx+b
     x=400
     y=400
+    players = [
+        {"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
+        {"x": 400, "y": 300, "width": 20, "height": 20, "id": 2},
+        {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
+    ]
+
     player_corner=[500-(20/2),325-(20/2),500+(20/2),325-(20/2),500-(20/2),325+(20/2),500+(20/2),325+(20/2)]
-    obj.init(400,400, 20, 20, 1, 1, 1, 100, 100, 0.1,'players','False', (500, 325),direction,colision_id,player_corner)
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
-    players = Socket.run_conn(obj.convert_to_json())
+    obj.init(400,400, 20, 20, 1, 1, 1, 100, 100, 0.1,players,'False', (500, 325),direction,colision_id,player_corner)
+    #Socket = ClientSocket.ClientServer()
+    #Socket.connect()
+    #players = Socket.run_conn(obj.convert_to_json())
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -55,23 +61,24 @@ def run_game():
                 move_offset = (target_pos[0] - 500, target_pos[1] - 325)
                 moving = True
                 colision_id=obj.colision(direction,players,colision_id,setup,target_pos,player_corner)
-                for j in range(colision_id._len_()):
-                    if colision_id[j]!=0:
-                        for i in range(colision_id._len_()):
-                            if colision_id[i]==0:
+                
+                for j in range(colision_id.__len__()):
+                    if colision_id[j]!=-1:
+                        for i in range(colision_id.__len__()):
+                            if colision_id[i]==-1:
                                 colision_id[i]=colision_id[j]
-                                colision_id[j]=0
+                                colision_id[j]=-1
                                 break
-        players = Socket.run_conn(obj.convert_to_json())
-        if colision_id[0]==0:
+        #players = Socket.run_conn(obj.convert_to_json())
+        if colision_id[0]==-1:
 
             moving, move_offset,x,y = obj.move(players, acceleration, move_offset, moving) 
-            players.send(json.dumps({'x':x,'y':y}))
-        #else:
-         #   for i in range(colision_id._len_()):
-                #if colision_id[i]==0:
-               #     break
-              # colision_id[i]=math.sqrt()
+            #players.send(json.dumps({'x':x,'y':y}))
+        else:
+            for i in range(colision_id._len_()):
+                if colision_id[i]==-1:
+                    break
+                colision_id[i]=math.sqrt()
         print_players(players, screen)
         
         clock.tick(60)
