@@ -61,7 +61,10 @@ def run_game():
     x = 400
     y = 400
     player_corner = [500 - (20 / 2), 325 - (20 / 2), 500 + (20 / 2), 325 - (20 / 2), 500 - (20 / 2), 325 + (20 / 2), 500 + (20 / 2), 325 + (20 / 2)]
+<<<<<<< HEAD
     obj = Pmodel1.Player(400, 400, 20, 20, 10, 1, 1, 100, 100, 80, players, False,move_offset, 0)
+=======
+>>>>>>> e852685485764997184aa1f3e61ac95b25765631
     Socket = ClientSocket.ClientServer()
     Socket.connect()
     players = Socket.run_conn(obj.convert_to_json())
