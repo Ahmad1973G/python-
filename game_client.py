@@ -29,19 +29,6 @@ def draw_map(screen, tmx_data, world_offset):
                                        y * tmx_data.tileheight + world_offset[1]))
 
 
-def print_players(players_list,players_sprites, screen):
-    screen.fill((30, 30, 30))
-    
-    for player in players_sprites:
-        screen.blit(player.image, player.rect)
-    
-    # Draw the main player at the center
-    image = pg.Surface((20, 20))
-    image.fill(pg.Color('blue'))
-    rect = image.get_rect(center=(500, 325))
-    screen.blit(image, rect)
-
-    pg.display.flip()
 
 def run_game():
     pg.init()
@@ -100,7 +87,7 @@ def run_game():
         moving, move_offset, x, y = obj.move(players, acceleration, move_offset, moving)
         screen.fill(BLACK)
         world_offset = (500 - x, 325 - y)
-        print_players(players,players_sprites, screen)
+        obj.print_players(players,players_sprites, screen)
         
         clock.tick(60)
 

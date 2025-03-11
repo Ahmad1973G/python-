@@ -36,6 +36,19 @@ class Player(pg.sprite.Sprite):
             "height": self.height,
         }
         return json.dumps(client_loc)
+    def print_players(players_list,players_sprites, screen):
+        screen.fill((30, 30, 30))
+        
+        for player in players_sprites:
+            screen.blit(player.image, player.rect)
+        
+        # Draw the main player at the center
+        image = pg.Surface((20, 20))
+        image.fill(pg.Color('blue'))
+        rect = image.get_rect(center=(500, 325))
+        screen.blit(image, rect)
+
+    pg.display.flip()
     def set_x_y(self, x, y):    # sets the x and y values of the player
         self.x = x
         self.y = y
