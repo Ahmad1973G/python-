@@ -28,12 +28,12 @@ def draw_map(screen, tmx_data, world_offset):
                     screen.blit(tile, (x * tmx_data.tilewidth + world_offset[0], 
                                        y * tmx_data.tileheight + world_offset[1]))
 
-def print_players(players_list, screen):
-    for player in players_list:
-        image = pg.Surface((player['width'], player['height']))
-        image.fill(pg.Color('red'))
-        rect = image.get_rect(center=(player['x'], player['y']))
-        screen.blit(image, rect)
+
+def print_players(players_list,players_sprites, screen):
+    screen.fill((30, 30, 30))
+    
+    for player in players_sprites:
+        screen.blit(player.image, player.rect)
     
     # Draw the main player at the center
     image = pg.Surface((20, 20))
@@ -49,7 +49,13 @@ def run_game():
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
     my_player = {'x': 400, 'y': 400, 'width': 20, 'height': 20, 'id': 0}
-    players = []
+    players = [
+        {"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
+        {"x": 400, "y": 300, "width": 20, "height": 20, "id": 2},
+        {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
+    ]
+
+   
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
@@ -60,15 +66,16 @@ def run_game():
     setup = 0  # like b in y=mx+b
     x = 400
     y = 400
-    player_corner = [500 - (20 / 2), 325 - (20 / 2), 500 + (20 / 2), 325 - (20 / 2), 500 - (20 / 2), 325 + (20 / 2), 500 + (20 / 2), 325 + (20 / 2)]
-<<<<<<< HEAD
-    obj = Pmodel1.Player(400, 400, 20, 20, 10, 1, 1, 100, 100, 80, players, False,move_offset, 0)
-=======
->>>>>>> e852685485764997184aa1f3e61ac95b25765631
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
-    players = Socket.run_conn(obj.convert_to_json())
     
+       #Socket = ClientSocket.ClientServer()
+    #Socket.connect()
+    #players = Socket.run_conn(obj.convert_to_json())
+    obj = Pmodel1.Player(x, y, 20, 20, 10, 1, 1, 100, 100, 80, players, False,move_offset, 0)
+     # Create PlayerSprite objects for each player
+    players_sprites = [obj.convert_to_sprite(player['x'], player['y'], player['width'], player['height'],player['id']) for player in players]
+   # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
+    #my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
+   
     running = True
     while running:
         for event in pg.event.get():
@@ -88,12 +95,12 @@ def run_game():
                      #           break
 
         obj.set_x_y(x, y)
-        players = Socket.run_conn(obj.convert_to_json())
+        #players = Socket.run_conn(obj.convert_to_json())
         #if colision_id[0] == 0:
         moving, move_offset, x, y = obj.move(players, acceleration, move_offset, moving)
         screen.fill(BLACK)
         world_offset = (500 - x, 325 - y)
-        print_players(players, screen)
+        print_players(players,players_sprites, screen)
         
         clock.tick(60)
 
