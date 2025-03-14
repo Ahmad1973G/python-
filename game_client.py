@@ -48,18 +48,17 @@ def run_game():
     world_offset = (0, 0)
     acceleration = 0.5
     moving = False
-    colision_id = [0, 0, 0, 0, 0]  # id of the player that will collide
-    direction = 0  # like m in y=mx+b
-    setup = 0  # like b in y=mx+b
+
     x = 400
     y = 400
     
        #Socket = ClientSocket.ClientServer()
     #Socket.connect()
     #players = Socket.run_conn(obj.convert_to_json())
-    obj = Pmodel1.Player(x, y, 20, 20, 10, 1, 1, 100, 100, 80, players, False,move_offset, 0)
+    obj=Pmodel1.Player
+    players_sprites = [obj.convert_to_sprite(player['x'], player['y'], player['height'], player['width'],player['id']) for player in players]
+    obj.__init__(x, y, 20, 20, 10, 1, 1, 100, 100, 80, players, False,move_offset, 0,screen,players_sprites)
      # Create PlayerSprite objects for each player
-    players_sprites = [obj.convert_to_sprite(player['x'], player['y'], player['width'], player['height'],player['id']) for player in players]
    # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     #my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
    
@@ -87,8 +86,8 @@ def run_game():
         moving, move_offset, x, y = obj.move(players, acceleration, move_offset, moving)
         screen.fill(BLACK)
         world_offset = (500 - x, 325 - y)
-        obj.print_players(players,players_sprites, screen)
-        
+        obj.print_players(players_sprites,screen)
+        pg.display.flip()
         clock.tick(60)
 
     pg.quit()

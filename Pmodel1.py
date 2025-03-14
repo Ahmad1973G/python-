@@ -2,7 +2,7 @@ import pygame as pg
 import json
 
 class Player(pg.sprite.Sprite):
-    def __init__(self, x, y, height, width, speed, weapon, power, health, max_health, acceleration, players, moving, move_offset, coins):
+    def __init__(self, x, y, height, width, speed, weapon, power, health, max_health, acceleration, players, moving, move_offset, coins,screen,players_sprites):
         super().__init__()
         self.image = pg.Surface((width, height))
         self.image.fill(pg.Color('red'))
@@ -22,12 +22,12 @@ class Player(pg.sprite.Sprite):
         self.move_offset = move_offset
         self.coins = coins
         self.player_id = None
-    def convert_to_sprite(self, x, y, height, width,player_id):  # receives info and turns it into a sprite
-        super().__init__()
-        self.image = pg.Surface((width, height))
-        self.image.fill(pg.Color('red'))
-        self.rect = self.image.get_rect(center=(x, y))
-        self.player_id = player_id
+        self.screen = screen
+        self.players_sprites = players_sprites
+
+    def convert_to_sprite(cls, x, y, height, width, player_id):
+        return cls(x, y, height, width, 0, None, None, 0, 0, 0, [], False, (0, 0), 0, None, None)
+
     def convert_to_json(self):  # receives info and turns it into a json file
         client_loc = {
             "x": self.x,
@@ -36,19 +36,19 @@ class Player(pg.sprite.Sprite):
             "height": self.height,
         }
         return json.dumps(client_loc)
-    def print_players(players_list,players_sprites, screen):
-        screen.fill((30, 30, 30))
+    def print_players(self,players_sprites,screen):
+        self.screen.fill((30, 30, 30))
         
-        for player in players_sprites:
-            screen.blit(player.image, player.rect)
+        for player in self.players_sprites:
+            self.screen.blit(player.image, player.rect)
         
         # Draw the main player at the center
         image = pg.Surface((20, 20))
         image.fill(pg.Color('blue'))
         rect = image.get_rect(center=(500, 325))
-        screen.blit(image, rect)
+        self.screen.blit(image, rect)
 
-    pg.display.flip()
+    
     def set_x_y(self, x, y):    # sets the x and y values of the player
         self.x = x
         self.y = y
