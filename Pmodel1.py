@@ -24,10 +24,12 @@ class Player(pg.sprite.Sprite):
         self.player_id = None
         self.screen = screen
         self.players_sprites = players_sprites
-
-    def convert_to_sprite(cls, x, y, height, width, player_id):
-        return cls(x, y, height, width, 0, None, None, 0, 0, 0, [], False, (0, 0), 0, None, None)
-
+    def convert_to_sprite(x, y, height, width, player_id):
+        super().__init__()
+        image = pg.Surface((width,height))
+        image.fill((255, 0, 0))  # Fill with red for visibility
+        rect = image.get_rect(topleft=(x,y))
+        id = player_id  # Store the ID if needed
     def convert_to_json(self):  # receives info and turns it into a json file
         client_loc = {
             "x": self.x,
