@@ -2,11 +2,7 @@ import pygame as pg
 import json
 
 class Player(pg.sprite.Sprite):
-    def __init__(self, x, y, height, width, speed, weapon, power, health, max_health, acceleration, players, moving, move_offset, coins,screen,players_sprites):
-        super().__init__()
-        self.image = pg.Surface((width, height))
-        self.image.fill(pg.Color('red'))
-        self.rect = self.image.get_rect(center=(x, y))
+    def __init__(self, x, y, height, width,player_id, speed, weapon, power, health, max_health, acceleration, players, moving, move_offset, coins,screen,players_sprites,my_sprite):
         self.x = x
         self.y = y
         self.height = height
@@ -21,15 +17,19 @@ class Player(pg.sprite.Sprite):
         self.moving = moving
         self.move_offset = move_offset
         self.coins = coins
-        self.player_id = None
+        self.player_id = player_id
         self.screen = screen
         self.players_sprites = players_sprites
+        self.my_sprite=my_sprite
     def convert_to_sprite(x, y, height, width, player_id):
-        super().__init__()
-        image = pg.Surface((width,height))
-        image.fill((255, 0, 0))  # Fill with red for visibility
-        rect = image.get_rect(topleft=(x,y))
-        id = player_id  # Store the ID if needed
+    # Create a simple representation of the sprite
+        sprite = {
+            "image": pg.Surface((width, height)),
+            "rect": pg.Rect(x, y, width, height),
+            "id": player_id
+        }
+        sprite["image"].fill((255, 0, 0))  # Fill with red for visibility
+        return sprite
     def convert_to_json(self):  # receives info and turns it into a json file
         client_loc = {
             "x": self.x,
@@ -42,7 +42,8 @@ class Player(pg.sprite.Sprite):
         self.screen.fill((30, 30, 30))
         
         for player in self.players_sprites:
-            self.screen.blit(player.image, player.rect)
+            player['image'].fill((255,0, 0))
+            self.screen.blit(player['image'], player['rect'])
         
         # Draw the main player at the center
         image = pg.Surface((20, 20))
@@ -59,8 +60,8 @@ class Player(pg.sprite.Sprite):
             return False, move_offset, self.x, self.y
 
         for player in players_sprites:
-            player['x'] -= move_offset[0] * acceleration
-            player['y'] -= move_offset[1] * acceleration
+            player['rect'].x -= move_offset[0] * acceleration
+            player['rect'].y -= move_offset[1] * acceleration
 
         move_offset = (move_offset[0] * (1 - acceleration), move_offset[1] * (1 - acceleration))
 

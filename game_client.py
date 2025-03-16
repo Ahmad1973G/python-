@@ -42,23 +42,56 @@ def run_game():
         {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
     ]
 
-   
+    tp=0
+    tp2=0#knockback target position
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    acceleration = 0.5
+    acceleration = 0.1
     moving = False
-
+    colision_player=0
     x = 400
     y = 400
     
        #Socket = ClientSocket.ClientServer()
     #Socket.connect()
     #players = Socket.run_conn(obj.convert_to_json())
-    obj=Pmodel1.Player
-    players_sprites = [obj.convert_to_sprite(player['x'], player['y'], player['height'], player['width'],player['id']) for player in players]
-    obj.__init__(x, y, 20, 20, 10, 1, 1, 100, 100, 80, players, False,move_offset, 0,screen,players_sprites)
-     # Create PlayerSprite objects for each player
+    #my_sprite = Pmodel1.Player.convert_to_sprite(my_player['x'], my_player['y'], my_player['height'], my_player['width'],my_player['id'])
+    #players_sprites = [
+     #   Pmodel1.Player.convert_to_sprite(player['x'], player['y'], player['height'], player['width'], player['id'])
+      #  for player in players
+    #]
+    my_sprite={
+        "image": pg.Surface((my_player["width"], my_player["height"])),
+        "rect": pg.Rect(500,325, my_player["width"], my_player["height"]),
+    }
+    players_sprites = [
+    {
+        "image": pg.Surface((player["width"], player["height"])),
+        "rect": pg.Rect(player["x"], player["y"], player["width"], player["height"]),
+    }
+    for player in players
+    ]
+    obj = Pmodel1.Player(
+        x=my_player['x'],
+        y=my_player['y'],
+        height=my_player['height'],
+        width=my_player['width'],
+        player_id=my_player['id'],
+        speed=10,
+        weapon=1,
+        power=1,
+        health=100,
+        max_health=100,
+        acceleration=0.1,
+        players=players,
+        moving=False,
+        move_offset=(0, 0),
+        coins=0,
+        screen=screen,
+        players_sprites=players_sprites,
+        my_sprite=my_sprite
+    )  # Create PlayerSprite objects for each player
    # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     #my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
    
@@ -71,19 +104,28 @@ def run_game():
                 target_pos = pg.mouse.get_pos()
                 move_offset = (target_pos[0] - 500, target_pos[1] - 325)
                 moving = True
-                #colision_id = obj.colision(direction, players, colision_id, setup, target_pos, player_corner)
-                #for j in range(len(colision_id)):
-                #    if colision_id[j] != 0:
-                 #       for i in range(len(colision_id)):
-                  #          if colision_id[i] == 0:
-                   #             colision_id[i] = colision_id[j]
-                    #            colision_id[j] = 0
-                     #           break
+        collisions = []
+        for player in players_sprites:
+            if my_sprite['rect'].colliderect(player['rect']):  # Check collision using rect
+                target_pos = (500,325)
+                # Apply knockback based on movement direction
+                if move_offset[0] > 0:  # Moving right
+                    tp=475  # Knockback to the left
+                elif move_offset[0] < 0:  # Moving left
+                    tp=525  # Knockback to the right
+                if move_offset[1] > 0:  # Moving down
+                    tp2= 300  # Knockback upward
+                elif move_offset[1] < 0:  # Moving up
+                    tp2=350  # Knockback downward
+                move_offset = (tp - 500, tp2 - 325)
+                # Stop movement in the direction of the collision
 
+        # Update player position
+        
         obj.set_x_y(x, y)
         #players = Socket.run_conn(obj.convert_to_json())
         #if colision_id[0] == 0:
-        moving, move_offset, x, y = obj.move(players, acceleration, move_offset, moving)
+        moving, move_offset, x, y = obj.move(players_sprites, acceleration, move_offset, moving)
         screen.fill(BLACK)
         world_offset = (500 - x, 325 - y)
         obj.print_players(players_sprites,screen)

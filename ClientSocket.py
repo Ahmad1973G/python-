@@ -6,7 +6,7 @@ import time
 SERVER_PORT = 5003  # Let the OS assign a port
 
 class ClientServer:
-    def __init__(self):
+    def __init__ (self):
         self.IP = self.get_ip_address()
         self.PORT = 0
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -104,6 +104,6 @@ def main():
     client.id = client.connect()
     client.run()
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     main()
 # This is the client socket that connects to the server and sends data to it.
