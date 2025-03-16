@@ -50,7 +50,7 @@ def run_game():
     clock = pg.time.Clock()
     my_player = {'x': 400, 'y': 400, 'width': 20, 'height': 20, 'id': 0}
     players = []
-    obj = Pmodel1.Player(400, 400, 20, 20, 1, 1, 1, 100, 100, 0.1)
+    obj = Pmodel1.Player(400, 400, 20, 20, 1, 1, 1, 100, 100, 0.1, False, (0,0), 0, 0)
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
@@ -100,3 +100,11 @@ def run_game():
     pg.quit()
 
 run_game()
+
+
+class A:
+    @staticmethod
+    def f():
+        print("A.f()")
+        
+A.f()

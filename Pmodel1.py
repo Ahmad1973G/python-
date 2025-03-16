@@ -4,7 +4,11 @@ import json
 
 
 class Player:
-    def __init__(self, x,y, height, width, speed, Weapon, Power, health, maxHealth,acceleration,players,moving,move_offset, coins):
+    def __init__(
+        self, x, y, height, width, speed, 
+        Weapon, Power, health, maxHealth,acceleration,
+        players, moving, move_offset, coins):
+
         self.x = x
         self.y = y 
         self.height = height
@@ -14,10 +18,11 @@ class Player:
         self.Power = Power
         self.health = health
         self.maxHealth = maxHealth
-        self.acceleration=acceleration
+        self.acceleration = acceleration
         
         
-    def convert_to_json(self, x, y, width, height, id):  # receives info and turns it into a json file
+    @classmethod
+    def convert_to_json(cls, x, y, width, height, id):  # receives info and turns it into a json file
         client_loc = {
             "x": x,
             "y": y,
@@ -30,34 +35,6 @@ class Player:
             
         return client_loc
 
-    def colision (self, mouse_pos):
-        if self.startX_col <= self.x <= self.endX_col:
-            if mouse_pos[1] > self.y:
-                if self.startY_col <= self.y + 20 <= self.endY_col:
-                    self.rise = 0
-                    self.run = 0
-            elif mouse_pos[1] < self.y:
-                if self.startY_col <= self.y - 20 <= self.endY_col:
-                    self.rise = 0
-                    self.run = 0
-
-        elif self.startY_col <= self.y <= self.endY_col:
-            if mouse_pos[0] > self.x:
-                if self.startX_col <= self.x + 20 <= self.endX_col:
-                    self.run = 0
-                    self.rise = 0
-            elif mouse_pos[0] < self.x:
-                if self.startX_col <= self.x - 20 <= self.endX_col:
-                    self.run = 0
-                    self.rise = 0
-
-    if __name__ == '__main__':
-        pg.quit()
-        self.players=players
-        self.moving=moving
-        self.move_offset = (0, 0)
-        self.coins = coins
-        
         
     def convert_to_json(self):  # receives info and turns it into a json file 
         client_loc = {
@@ -83,21 +60,22 @@ class Player:
         if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
             return False, (0, 0)  # Stop moving when close enough
         
-        return True, move_offset,self.x,self.y
+        return True, move_offset, self.x, self.y
+
     def colision(self,direction,players,colision_id,setup,target_pos,player_corner):
-        for i in range(0,5):
-            colision_id[i]=0
+        for i in range(5):
+            colision_id[i] = 0
         for j in [0,2,4,6]:
-            direction=(325-player_corner[j+1]-(325-target_pos[1]))/(player_corner[j]-500-(target_pos[0]-500))
-            setup=325-player_corner[j+1]-direction*(player_corner[j]-500)
-            c=0
+            direction = (325-player_corner[j+1]-(325-target_pos[1]))/(player_corner[j]-500-(target_pos[0]-500))
+            setup = 325-player_corner[j+1]-direction*(player_corner[j]-500)
+            c = 0
 
             for player in players:
-                c+=1
-                for i in range(0,player['width']):
+                c += 1
+                for i in range(player['width']):
                     if int((player['x']-(player['width']/2)+i-500)*direction+setup)==int(325-(player['y']+player['height']/2)):
                         colision_id[c]=player['id']
-                for i in range(0,player['width']):
+                for i in range(player['width']):
                     if int((player['x']-(player['width']/2)+i-500)*direction+setup)==int(325-(player['y']-player['height']/2)):
                         colision_id[c]=player['id']
                 for i in range(0,player['height']):
@@ -109,5 +87,7 @@ class Player:
         return colision_id
 
 
-    if __name__ == '_main_':
-        pg.quit()
+if __name__ == '_main_':
+    pg.quit()
+    
+
