@@ -2,13 +2,14 @@ import socket
 import json
 import threading
 import time
+import random
 from typing import Union
 
 class LoadBalancer:
     def __init__(self):
         self.IP = self.get_ip_address()
         self.PORT = 5002
-        self.servers = []
+        self.servers = {} # Store connected servers (ID -> socket)
         self.map_width, self.map_height = 38400, 34560
         self.max_attack = 300
         self.server_borders = (self.map_width / 2, self.map_height / 2)
@@ -31,15 +32,19 @@ class LoadBalancer:
         packet = "SYNC CODE 1, IP;" + self.IP + ",PORT;" + str(self.PORT)
         return packet.encode()
 
-    def read_sa_send_ack(self, conn, id):
+    def read_sa_send_ack(self, conn):
         data = conn.recv(1024)
         str_data = data.decode()
         if str_data == 'SYNC+ACK CODE 1':
+            id = random.randint(1, 1000)
+            while id in self.servers.keys():
+                id = random.randint(1, 1000)
+            self.servers[id] = conn
             conn.send(f"ACK CODE 2;{id}".encode())
             print("Received the SYNC+ACK packet successfully")
             print("Sent the ACK packet")
-            return True
-        return False
+            return True, id
+        return False, id
 
     
     def MoveServer(self, packet_info, server_borders) -> Union[dict, dict]:
@@ -94,19 +99,18 @@ class LoadBalancer:
             return None
 
     def start_protocol(self):
-        count = 0
-        while count < 5:
+        while self.servers.__len__() <= 5:
             self.broadcast_packet(self.createSYNCpacket(),  self.udp_socket.getsockname()[1])
             print("Sent SYNC packet again")
             
             try:
                 conn, _ = self.socket.accept()  # Will timeout after 2 seconds
-                if self.read_sa_send_ack(conn, count + 1):
-                    count += 1
-                    self.servers.append(conn)
+                tr, id = self.read_sa_send_ack(conn)
+                if tr:
                     print("Sent id to server")
-                    print(f"{count} Servers connected")
-
+                    print(f"{self.servers.__len__()} Servers connected")
+                    server_thread = threading.Thread(target=self.handle_server, args=(id,))
+                    server_thread.start()
                 else:
                     conn.close()
 
@@ -119,6 +123,36 @@ class LoadBalancer:
     def run(self):
         self.start_protocol()
 
+    def handle_server(self, id):
+        count = 0
+        conn = self.servers[id]
+        conn.settimeout(5)
+        while True:
+            try:
+                data = conn.recv(1024)
+                if not data:
+                    break
+                count = 0
+                packet_info = self.packet_info(data)
+                if packet_info:
+                    right_servers, server_to_send = self.MoveServer(packet_info, self.server_borders)
+                    for id, server in server_to_send.items():
+                        for s in server:
+                            self.servers[s - 1].send(json.dumps({id: packet_info[id]}).encode())
+                    conn.send(json.dumps(right_servers).encode())
+            except socket.timeout:
+                print("No data received within timeout period")
+                count += 1
+                if count == 50:
+                    print("Server disconnected")
+                    break
+            
+            except Exception as e:
+                print(f"Error handling server: {e}")
+                break
+
+        print("Server disconnected")
+        del self.servers[id]
 
 if __name__ == "__main__":
     lb = LoadBalancer()

@@ -13,6 +13,7 @@ SYN = "SYNC CODE 1"
 SYN_ACK = "SYNC+ACK CODE 1"
 ACK = "ACK CODE 2"
 
+
 class SubServer:
     def __init__(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Changed to TCP
@@ -161,16 +162,22 @@ class SubServer:
                 del self.players_data[client_id]
             conn.close()
 
-    def process_player_data(self, client_id, player_data_str):
-        """
-        Receives player data, updates the player data dictionary,
-        and sends a list of other players' information to the client.
-        """
+    def process_move(self, data, id):
+        str_data = data.decode()
+        str_data = str_data.split(" ")[-1]
         try:
-            player_data = json.loads(player_data_str)
-            # Update player data in the dictionary
-            self.players_data[client_id] = player_data
-        
+            str_data = str_data.split(";")
+            data_x = int(str_data[0]); data_y = int(str_data[1])
+            self.players_data[id]["x"] = data_x; self.players_data[id]["y"] = data_y
+
+        except Exception as e:
+            print(f"Error processing move data for {id}: {e}")
+
+
+
+
+    def process_player_data(self, client_id):
+        try:
             # Prepare data of other players to send to the client (excluding the client's own data)
             other_players_data = []
             for id, data in self.players_data.items():
@@ -182,8 +189,6 @@ class SubServer:
             other_players_data_str = json.dumps(other_players_data)
             self.connected_clients[client_id][1].send(other_players_data_str.encode())
             print(f"Sent other players' data to client {client_id}")
-        except json.JSONDecodeError:
-            print(f"Error decoding player data from {client_id}")
         except Exception as e:
             print(f"Error processing player data for {client_id}: {e}")
 
