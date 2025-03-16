@@ -3,11 +3,13 @@ import json
 
 
 class Player(pg.sprite.Sprite):
-    def _init_(self, x, y, height, width,player_id, speed, weapon, power, health, max_health, acceleration, players, moving, move_offset, coins,screen,players_sprites,my_sprite):
+    def __init__(self,x,y,height, width, player_id, speed, weapon, power, health, max_health, acceleration, players, moving, move_offset, coins, screen, players_sprites, my_sprite, *groups):
+        super().__init__(*groups)  # Pass groups to the Sprite initializer
         self.x = x
         self.y = y
         self.height = height
         self.width = width
+        self.player_id = player_id
         self.speed = speed
         self.weapon = weapon
         self.power = power
@@ -18,10 +20,12 @@ class Player(pg.sprite.Sprite):
         self.moving = moving
         self.move_offset = move_offset
         self.coins = coins
-        self.player_id = player_id
         self.screen = screen
         self.players_sprites = players_sprites
-        self.my_sprite=my_sprite
+        self.my_sprite = my_sprite
+        self.image = pg.Surface((width, height))
+        self.image.fill((255, 0, 0))  # Fill with red for visibility
+        self.rect = self.image.get_rect(topleft=(500, 325))  # Set initial position
         
         
     def convert_to_sprite(x, y, height, width, player_id):

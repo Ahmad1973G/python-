@@ -36,8 +36,11 @@ def run_game():
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
     my_player = {'x': 400, 'y': 400, 'width': 20, 'height': 20, 'id': 0}
-    players = []
-    obj = Pmodel1.Player(400, 400, 20, 20, 1, 1, 1, 100, 100, 0.1)
+    players = [
+        {"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
+        {"x": 400, "y": 300, "width": 20, "height": 20, "id": 2},
+        {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
+    ]
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
@@ -59,6 +62,7 @@ def run_game():
         "image": pg.Surface((my_player["width"], my_player["height"])),
         "rect": pg.Rect(500,325, my_player["width"], my_player["height"]),
     }
+    
     players_sprites = [
     {
         "image": pg.Surface((player["width"], player["height"])),
@@ -67,24 +71,24 @@ def run_game():
     for player in players
     ]
     obj = Pmodel1.Player(
-        x=my_player['x'],
-        y=my_player['y'],
-        height=my_player['height'],
-        width=my_player['width'],
-        player_id=my_player['id'],
-        speed=10,
-        weapon=1,
-        power=1,
-        health=100,
-        max_health=100,
-        acceleration=0.1,
-        players=players,
-        moving=False,
-        move_offset=(0, 0),
-        coins=0,
-        screen=screen,
-        players_sprites=players_sprites,
-        my_sprite=my_sprite
+        x,
+        y,
+        my_player['height'],
+        my_player['width'],
+        my_player['id'],
+        10,
+        1,
+        1,
+        100,
+        100,
+        0.1,
+        players,
+        False,
+        (0, 0),
+        0,
+        screen,
+        players_sprites,
+        my_sprite
     )  # Create PlayerSprite objects for each player
    # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     #my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
