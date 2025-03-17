@@ -65,13 +65,13 @@ class Player(pg.sprite.Sprite):
     def move(self, players_sprites, acceleration, move_offset, moving):
         if not moving:
             return False, move_offset, self.x, self.y
-
         for player in players_sprites:
             player['rect'].x -= move_offset[0] * acceleration
             player['rect'].y -= move_offset[1] * acceleration
 
         move_offset = (move_offset[0] * (1 - acceleration), move_offset[1] * (1 - acceleration))
-
+        self.x+=move_offset[0]*acceleration
+        self.y+=move_offset[1]*acceleration
         if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
             return False, (0, 0),self.x,self.y # Stop moving when close enough
 

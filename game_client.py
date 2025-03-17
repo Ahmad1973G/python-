@@ -20,7 +20,7 @@ def load_tmx_map(filename):
 
 def draw_map(screen, tmx_data, world_offset):
     """Draw the TMX map with an offset to simulate camera movement."""
-    for layer in tmx_data.visible_layers:
+    for layer in tmx_data.layers:
         if isinstance(layer, pytmx.TiledTileLayer):
             for x, y, gid in layer:
                 tile = tmx_data.get_tile_image_by_gid(gid)
@@ -52,6 +52,7 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
+    #tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
     acceleration = 0.1
     moving = False
     colision_player=0
@@ -61,9 +62,6 @@ def run_game():
     x = 400
     y = 400
     
-       #Socket = ClientSocket.ClientServer()
-    #Socket.connect()
-    #players = Socket.run_conn(obj.convert_to_json())
     #my_sprite = Pmodel1.Player.convert_to_sprite(my_player['x'], my_player['y'], my_player['height'], my_player['width'],my_player['id'])
     #players_sprites = [
      #   Pmodel1.Player.convert_to_sprite(player['x'], player['y'], player['height'], player['width'], player['id'])
@@ -103,7 +101,10 @@ def run_game():
     )  # Create PlayerSprite objects for each player
    # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     #my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
-   
+    Socket = ClientSocket.ClientServer()
+    Socket.connect()
+    players = Socket.run_conn(obj.convert_to_json())
+    #print (players)
     running = True
     while running:
         for event in pg.event.get():
@@ -141,12 +142,23 @@ def run_game():
 
         # Update player position
         
-        obj.set_x_y(x, y)
-        #players = Socket.run_conn(obj.convert_to_json())
+        
+        players = Socket.run_conn(obj.convert_to_json())
+
+        for i in range (0,3):
+            #players [i]['x']=players [i]['x']+1
+            #players [i]['y']=players [i]['y']+1
+            players_sprites[i]['rect'].x=players[i]['x']
+            players_sprites[i]['rect'].y=players[i]['y']
+        #print(players)
+        #print (my_player)
         #if colision_id[0] == 0:
-        moving, move_offset, x, y = obj.move(players_sprites, acceleration, move_offset, moving)
+        moving, move_offset, x, y = obj.move(players_sprites, acceleration, move_offset, moving) 
+
+        obj.set_x_y(x, y)
         screen.fill(BLACK)
         world_offset = (500 - x, 325 - y)
+        #draw_map(screen, tmx_data, world_offset)
         obj.print_players(players_sprites,screen)
         pg.display.flip()
         clock.tick(60)
@@ -154,11 +166,3 @@ def run_game():
     pg.quit()
 
 run_game()
-
-
-class A:
-    @staticmethod
-    def f():
-        print("A.f()")
-        
-A.f()

@@ -82,11 +82,11 @@ class ClientServer:
         return data.decode()
     
     def run_conn(self, data):
-        print("Sending data...")
+        #print("Sending data...")
         self.send_data(data)
-        print("Data sent.")
+        #print("Data sent.")
         response = self.receive_data()
-        print("Received data.")
+        #print("Received data.")
         response = json.loads(response)
         return response
 
