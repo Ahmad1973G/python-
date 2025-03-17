@@ -35,14 +35,15 @@ class Power:
         player (Player): The player object to apply the shield to.
         duration (int): The duration of the invulnerability in milliseconds.
         """
-        # add invulnerability
+        original_health = player.health
+        player.health = 9999999999 # temporary solution to invlunerablity
         
         pygame.time.set_timer(pygame.USEREVENT, duration)  # Set a timer for the duration
         
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.USEREVENT:
-                      # Remove invulnerability
+                    player.health = original.health  # Remove invulnerability
                     return  # End the power-up effect
             
             # Your game loop code here
