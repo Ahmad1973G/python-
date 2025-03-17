@@ -117,9 +117,7 @@ def run_game():
                 weapons[used_weapon]['amo']-=1
                 target_pos2 = pg.mouse.get_pos()
                 shot_offset = (target_pos2[0] - 500, target_pos2[1] - 325)
-                while shot_offset[0]>0:
-                    shot_offset = (shot_offset[0] - 1, shot_offset[1]-1)
-                    direction = (0- (325 - target_pos2[1])) / (0- (target_pos2[0] - 500))
+                direction = (0- (325 - target_pos2[1])) / (0- (target_pos2[0] - 500))
                 obj.shoot(used_weapon)
         collisions = []
         for player in players_sprites:

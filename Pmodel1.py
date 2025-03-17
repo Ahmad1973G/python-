@@ -76,8 +76,30 @@ class Player(pg.sprite.Sprite):
             return False, (0, 0),self.x,self.y # Stop moving when close enough
 
         return True, move_offset, self.x, self.y
-    
-   
+
+    def colision(self, direction, players, colision_id, setup, target_pos, player_corner):
+        for i in range(0, 5):
+            colision_id[i] = 0
+        for j in [0, 2, 4, 6]:
+            direction = (325 - player_corner[j + 1] - (325 - target_pos[1])) / (player_corner[j] - 500 - (target_pos[0] - 500))
+            setup = 325 - player_corner[j + 1] - direction * (player_corner[j] - 500)
+            c = 0
+
+            for player in players:
+                c += 1
+                for i in range(0, player.rect.width):
+                    if int((player.rect.x - (player.rect.width / 2) + i - 500) * direction + setup) == int(325 - (player.rect.y + player.rect.height / 2)):
+                        colision_id[c] = player.id
+                for i in range(0, player.rect.width):
+                    if int((player.rect.x - (player.rect.width / 2) + i - 500) * direction + setup) == int(325 - (player.rect.y - player.rect.height / 2)):
+                        colision_id[c] = player.id
+                for i in range(0, player.rect.height):
+                    if int(((player.rect.x - player.rect.width / 2) - 500) * direction + setup) == int(325 - (player.rect.y - (player.rect.height / 2)) + i):
+                        colision_id[c] = player.id
+                for i in range(0, player.rect.height):
+                    if int((player.rect.x + player.rect.width / 2 - 500) * direction + setup) == int(325 - (player.rect.y - player.rect.height / 2) + i):
+                        colision_id[c] = player.id
+        return colision_id
 
 if __name__ == '__main__':
     pg.quit()
