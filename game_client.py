@@ -132,8 +132,8 @@ def run_game():
         #players = Socket.run_conn(obj.convert_to_json())
 
         for i in range (0,3):
-            #players [i]['x']=players [i]['x']-1
-            #players [i]['y']=players [i]['y']-1
+            players [i]['x']+=1
+            players [i]['y']+=1
             players_sprites[i]['rect'].x=players[i]['x']
             players_sprites[i]['rect'].y=players[i]['y']
         #print(players)
