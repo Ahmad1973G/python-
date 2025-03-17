@@ -118,6 +118,10 @@ def run_game():
                 target_pos2 = pg.mouse.get_pos()
                 shot_offset = (target_pos2[0] - 500, target_pos2[1] - 325)
                 direction = (0- (325 - target_pos2[1])) / (0- (target_pos2[0] - 500))
+                shot_offset[0]=(shot_offset/abs(shot_offset))*math.sqrt(weapons[used_weapon]['range']/2-direction*direction/2)
+                shot_offset[1]=direction*shot_offset[0]
+                 
+
                 obj.shoot(used_weapon)
         collisions = []
         for player in players_sprites:
@@ -125,7 +129,7 @@ def run_game():
                 target_pos = (500,325)
                 # Apply knockback based on movement direction
                 if move_offset[0] > 0:  # Moving right
-                    tp=475  # Knockback to the left
+                    tp=475  # Knockback to the left)
                 elif move_offset[0] < 0:  # Moving left
                     tp=525  # Knockback to the right
                 if move_offset[1] > 0:  # Moving down
