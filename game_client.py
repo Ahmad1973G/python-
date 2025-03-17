@@ -41,12 +41,23 @@ def run_game():
         {"x": 400, "y": 300, "width": 20, "height": 20, "id": 2},
         {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
     ]
+    used_weapon=0
+    weapons= [
+        {"damage":25, "range": 50,'bulet_speed':0.2,'amo':50,'weapon_id':1},
+        {"damage":20,"range": 100,'bulet_speed':0.3,'amo':20,'weapon_id':2},
+        {"damage":15, "range": 200,'bulet_speed':0.5,'amo':7,'weapon_id':3}
+        
+        
+    ]
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
     acceleration = 0.1
     moving = False
     colision_player=0
+    direction = 0 #like m in y=mx+b
+    setup=0#like b in y=mx+b
+
     x = 400
     y = 400
     
@@ -102,6 +113,14 @@ def run_game():
                 target_pos = pg.mouse.get_pos()
                 move_offset = (target_pos[0] - 500, target_pos[1] - 325)
                 moving = True
+            elif event.type == pg.MOUSEBUTTONUP and event.button == 3:
+                weapons[used_weapon]['amo']-=1
+                target_pos2 = pg.mouse.get_pos()
+                shot_offset = (target_pos2[0] - 500, target_pos2[1] - 325)
+                while shot_offset[0]>0:
+                    shot_offset = (shot_offset[0] - 1, shot_offset[1]-1)
+                    direction = (0- (325 - target_pos2[1])) / (0- (target_pos2[0] - 500))
+                obj.shoot(used_weapon)
         collisions = []
         for player in players_sprites:
             if my_sprite['rect'].colliderect(player['rect']):  # Check collision using rect
