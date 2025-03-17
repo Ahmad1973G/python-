@@ -57,7 +57,6 @@ def run_game():
     moving = False
     colision_player=0
     direction = 0 #like m in y=mx+b
-    setup=0#like b in y=mx+b
 
     x = 400
     y = 400
@@ -101,9 +100,9 @@ def run_game():
     )  # Create PlayerSprite objects for each player
    # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     #my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
-    players = Socket.run_conn(obj.convert_to_json())
+    #Socket = ClientSocket.ClientServer()
+    #Socket.connect()
+    #players = Socket.run_conn(obj.convert_to_json())
     #print (players)
     running = True
     while running:
@@ -125,9 +124,28 @@ def run_game():
 
                 obj.shoot(used_weapon)
         collisions = []
+                # Stop movement in the direction of the collision
+
+        # Update player position
+        
+        
+        #players = Socket.run_conn(obj.convert_to_json())
+
+        for i in range (0,3):
+            #players [i]['x']=players [i]['x']-1
+            #players [i]['y']=players [i]['y']-1
+            players_sprites[i]['rect'].x=players[i]['x']
+            players_sprites[i]['rect'].y=players[i]['y']
+        #print(players)
+        #print (my_player)
+        #if colision_id[0] == 0:
         for player in players_sprites:
             if my_sprite['rect'].colliderect(player['rect']):  # Check collision using rect
+                move_offset = (player['rect'].x - 500, 325-player['rect'].y)
                 target_pos = (500,325)
+                moving = True
+                tp=500
+                tp2=325
                 # Apply knockback based on movement direction
                 if move_offset[0] > 0:  # Moving right
                     tp=475  # Knockback to the left)
@@ -138,23 +156,10 @@ def run_game():
                 elif move_offset[1] < 0:  # Moving up
                     tp2=350  # Knockback downward
                 move_offset = (tp - 500, tp2 - 325)
-                # Stop movement in the direction of the collision
-
-        # Update player position
-        
-        
-        players = Socket.run_conn(obj.convert_to_json())
-
-        for i in range (0,3):
-            #players [i]['x']=players [i]['x']+1
-            #players [i]['y']=players [i]['y']+1
-            players_sprites[i]['rect'].x=players[i]['x']
-            players_sprites[i]['rect'].y=players[i]['y']
-        #print(players)
-        #print (my_player)
-        #if colision_id[0] == 0:
         moving, move_offset, x, y = obj.move(players_sprites, acceleration, move_offset, moving) 
-
+        for i in range (0,3):
+            players[i]['x']=players_sprites[i]['rect'].x
+            players[i]['y']=players_sprites[i]['rect'].y 
         obj.set_x_y(x, y)
         screen.fill(BLACK)
         world_offset = (500 - x, 325 - y)
