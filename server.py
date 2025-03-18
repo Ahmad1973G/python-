@@ -176,8 +176,9 @@ class SubServer:
 
 
 
-    def process_player_data(self, client_id):
+    def process_player_data(self, client_id, message):
         try:
+            self.players_data[client_id] = json.loads(message)
             # Prepare data of other players to send to the client (excluding the client's own data)
             other_players_data = []
             for id, data in self.players_data.items():
