@@ -115,17 +115,20 @@ def run_game():
                 moving = True
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
                 weapons[used_weapon]['amo']-=1
-                shot_offset = pg.mouse.get_pos()
-                direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
-                shot_offset[0]=(shot_offset[0]/abs(shot_offset[0]))*math.sqrt(weapons[used_weapon]['range']/2-direction*direction/2)
+                shot_offset = list(pg.mouse.get_pos())
+                shot_offset[0]-=500
+                shot_offset[1]=325-shot_offset[1]
+                #direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
+                direction = (0- shot_offset[1]) / (0- shot_offset[0])
+                shot_offset[0]=(shot_offset[0]/abs(shot_offset[0]))*math.sqrt(weapons[used_weapon]['range']/(direction*direction*2))
                 shot_offset[1]=direction*shot_offset[0]# shot offset is the x,y of the max distance of shot
                  # Create a surface to draw the line
                 image = pg.Surface((1,1), pg.SRCALPHA)  # Transparent background
-                rect =image.get_rect(topleft=(min(shot_offset[0],500), min(shot_offset[1],325)))
-                pg.draw.line(image,RED, (shot_offset[0]- rect.x,shot_offset[1] - rect.y), (500-rect.x, 325-rect.y), 1)
+                rect =image.get_rect(topleft=(min(shot_offset[0]+500,500), min(325-shot_offset[1],325)))
+                pg.draw.line(screen,RED, (rect.x,rect.y), (500, 325), 5)
+                print(f"Start: {rect.x,rect.y}, End: {500, 325}")
 
-
-                obj.shoot(used_weapon)
+                #obj.shoot(used_weapon)
         collisions = []
                 # Stop movement in the direction of the collision
 
