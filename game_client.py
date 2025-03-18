@@ -22,7 +22,7 @@ def load_tmx_map(filename):
 
 def draw_map(screen, tmx_data, world_offset):
     """Draw the TMX map with an offset to simulate camera movement."""
-    for layer in tmx_data.layers:
+    for layer in tmx_data.visible_layers:
         if isinstance(layer, pytmx.TiledTileLayer):
             for x, y, gid in layer:
                 tile = tmx_data.get_tile_image_by_gid(gid)
@@ -52,7 +52,7 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    # tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
+    tmx_data = load_tmx_map("c:/webroot/map.tmx")
     acceleration = 0.05
     moving = False
     colision_player = 0
@@ -94,9 +94,9 @@ def run_game():
     )  # Create PlayerSprite objects for each player
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
-    players = Socket.run_conn(obj.convert_to_json())
+    #Socket = ClientSocket.ClientServer()
+    #Socket.connect()
+    #players = Socket.run_conn(obj.convert_to_json())
     # print (players)
     running = True
     while running:
@@ -129,7 +129,7 @@ def run_game():
         # Stop movement in the direction of the collisio
         # Update player position
 
-        players = Socket.run_conn(obj.convert_to_json())
+        #players = Socket.run_conn(obj.convert_to_json())
         for player in players:
             player['x'] = player['x'] - obj.my_player['x'] + 500
             player['y'] = player['y'] - obj.my_player['y'] + 325
@@ -176,7 +176,7 @@ def run_game():
         obj.update_players_sprites(players, players_sprites)
         screen.fill(BLACK)
         world_offset = (500 - x, 325 - y)
-        # draw_map(screen, tmx_data, world_offset)
+        draw_map(screen, tmx_data, world_offset)
         obj.print_players(players_sprites, screen)
         pg.display.flip()
         clock.tick(60)
