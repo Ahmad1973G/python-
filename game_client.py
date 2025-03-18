@@ -57,8 +57,7 @@ def run_game():
     moving = False
     colision_player=0
     direction = 0 #like m in y=mx+b
-    setup=0#like b in y=mx+b
-
+    RED=(255,0,0)
     x = 400
     y = 400
     
@@ -101,9 +100,9 @@ def run_game():
     )  # Create PlayerSprite objects for each player
    # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     #my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
-    players = Socket.run_conn(obj.convert_to_json())
+    #Socket = ClientSocket.ClientServer()
+    #Socket.connect()
+    #players = Socket.run_conn(obj.convert_to_json())
     #print (players)
     running = True
     while running:
@@ -114,47 +113,59 @@ def run_game():
                 target_pos = pg.mouse.get_pos()
                 move_offset = (target_pos[0] - 500, target_pos[1] - 325)
                 moving = True
-            elif event.type == pg.MOUSEBUTTONUP and event.button == 3:
+            elif event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
                 weapons[used_weapon]['amo']-=1
-                target_pos2 = pg.mouse.get_pos()
-                shot_offset = (target_pos2[0] - 500, target_pos2[1] - 325)
-                direction = (0- (325 - target_pos2[1])) / (0- (target_pos2[0] - 500))
-                shot_offset[0]=(shot_offset/abs(shot_offset))*math.sqrt(weapons[used_weapon]['range']/2-direction*direction/2)
-                shot_offset[1]=direction*shot_offset[0]
-                 
+                shot_offset = list(pg.mouse.get_pos())
+                shot_offset[0]-=500
+                shot_offset[1]=325-shot_offset[1]
+                #direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
+                direction = (0- shot_offset[1]) / (0- shot_offset[0])
+                shot_offset[0]=(shot_offset[0]/abs(shot_offset[0]))*math.sqrt(weapons[used_weapon]['range']/(direction*direction*2))
+                shot_offset[1]=direction*shot_offset[0]# shot offset is the x,y of the max distance of shot
+                 # Create a surface to draw the line
+                image = pg.Surface((1,1), pg.SRCALPHA)  # Transparent background
+                rect =image.get_rect(topleft=(min(shot_offset[0]+500,500), min(325-shot_offset[1],325)))
+                pg.draw.line(screen,RED, (rect.x,rect.y), (500, 325), 5)
+                print(f"Start: {rect.x,rect.y}, End: {500, 325}")
 
-                obj.shoot(used_weapon)
+                #obj.shoot(used_weapon)
         collisions = []
-        for player in players_sprites:
-            if my_sprite['rect'].colliderect(player['rect']):  # Check collision using rect
-                target_pos = (500,325)
-                # Apply knockback based on movement direction
-                if move_offset[0] > 0:  # Moving right
-                    tp=475  # Knockback to the left)
-                elif move_offset[0] < 0:  # Moving left
-                    tp=525  # Knockback to the right
-                if move_offset[1] > 0:  # Moving down
-                    tp2= 300  # Knockback upward
-                elif move_offset[1] < 0:  # Moving up
-                    tp2=350  # Knockback downward
-                move_offset = (tp - 500, tp2 - 325)
                 # Stop movement in the direction of the collision
 
         # Update player position
         
         
-        players = Socket.run_conn(obj.convert_to_json())
+        #players = Socket.run_conn(obj.convert_to_json())
 
         for i in range (0,3):
-            #players [i]['x']=players [i]['x']+1
-            #players [i]['y']=players [i]['y']+1
+            #players [i]['x']+=1
+            #players [i]['y']+=1
             players_sprites[i]['rect'].x=players[i]['x']
             players_sprites[i]['rect'].y=players[i]['y']
         #print(players)
         #print (my_player)
         #if colision_id[0] == 0:
+        for player in players_sprites:
+            if my_sprite['rect'].colliderect(player['rect']):  # Check collision using rect
+                move_offset = (500-player['rect'].x,player['rect'].y-325)
+                target_pos = (500,325)
+                moving = True
+                tp=500
+                tp2=325
+                # Apply knockback based on movement direction
+                if move_offset[0] > 0:  # Moving right
+                    tp=465  # Knockback to the left)
+                elif move_offset[0] < 0:  # Moving left
+                    tp=535  # Knockback to the right
+                if move_offset[1] > 0:  # Moving down
+                    tp2= 290  # Knockback upward
+                elif move_offset[1] < 0:  # Moving up
+                    tp2=360  # Knockback downward
+                move_offset = (tp - 500, tp2 - 325)
         moving, move_offset, x, y = obj.move(players_sprites, acceleration, move_offset, moving) 
-
+        for i in range (0,3):
+            players[i]['x']=players_sprites[i]['rect'].x
+            players[i]['y']=players_sprites[i]['rect'].y 
         obj.set_x_y(x, y)
         screen.fill(BLACK)
         world_offset = (500 - x, 325 - y)
