@@ -104,7 +104,7 @@ class LoadBalancer:
             print("Sent SYNC packet again")
             
             try:
-                conn, _ = self.socket.accept()  # Will timeout after 2 seconds
+                conn, _ = self.socket.accept()  # Will time out after 2 seconds
                 tr, id = self.read_sa_send_ack(conn)
                 if tr:
                     print("Sent id to server")

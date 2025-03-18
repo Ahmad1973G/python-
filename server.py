@@ -94,7 +94,7 @@ class SubServer:
         try:
             conn, addr = self.server_socket.accept()
             print("Accepted connection from client")
-            id = 0
+            id = random.randint(1, 1000)
             while id in self.ids:
                 id = random.randint(1, 1000)
             self.ids.append(id)
@@ -156,9 +156,9 @@ class SubServer:
         finally:
             # Clean up when client disconnects
             print(f"Client {client_address} disconnected.")
-            if client_address[1] in self.connected_clients:
-                del self.connected_clients[client_id]  # Remove the socket
-            if client_address[1] in self.players_data:
+            if id in self.connected_clients.keys():
+                del self.connected_clients[client_id]
+            if id in self.players_data.keys():
                 del self.players_data[client_id]
             conn.close()
 
