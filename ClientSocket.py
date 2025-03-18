@@ -7,12 +7,13 @@ SERVER_PORT = 5003  # Let the OS assign a port
 
 class ClientServer:
     def __init__ (self):
+        self.server = None
         self.IP = self.get_ip_address()
         self.PORT = 0
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.time = time.time()
+        self.udp_socket.settimeout(5)
         self.id = 0
 
     def broadcast_packet(self, packet, port):
@@ -38,20 +39,30 @@ class ClientServer:
             return False
 
     def recSYNCACK_sendACK(self):
-        data, addr = self.udp_socket.recvfrom(1024)
-        str_data = data.decode()
-        if str_data.startswith("SYNC+ACK CODE 69"):
-            self.server = (str_data.split(" ")[-1].split(";")[0],
-                            int(str_data.split(" ")[-1].split(";")[1]))
-            try:
-                self.socket.connect(self.server)
-                print(f"Connected to {self.server[0]} on port {self.server[1]}")
-                self.PORT = self.socket.getsockname()[1]
-                self.socket.send("ACK CODE 584".encode())
-                return True
-            except Exception as e:
-                print("Error connecting to server:", e)
-        return False
+        while True:
+            while True:
+                try:
+                    data, addr = self.udp_socket.recvfrom(1024)
+                    str_data = data.decode()
+                    break
+                except socket.timeout:
+                    print("Sending SYNC packet again...")
+                    self.broadcast_packet(self.createSYNCpacket(), SERVER_PORT)
+                except Exception as e:
+                    print("Error receiving SYNC+ACK packet:", e)
+
+            if str_data.startswith("SYNC+ACK CODE 69"):
+                self.server = (str_data.split(" ")[-1].split(";")[0],
+                               int(str_data.split(" ")[-1].split(";")[1]))
+                try:
+                    self.socket.connect(self.server)
+                    print(f"Connected to {self.server[0]} on port {self.server[1]}")
+                    self.PORT = self.socket.getsockname()[1]
+                    self.socket.send("ACK CODE 584".encode())
+                    return True
+                except Exception as e:
+                    print("Error connecting to server:", e)
+            return False
 
     def recv_ID(self):
         data = self.socket.recv(1024)
