@@ -29,7 +29,7 @@ class SubServer:
         self.connected_clients = {}  # Store connected clients' addresses (ID -> ((IP, port), socket))
         self.is_connected_to_lb = False
         self.players_data = {}  # Dictionary to store player information (ID -> data))
-        self.udp_socket.settimeout(4) # Set a timeout for UDP socket
+        self.udp_socket.settimeout(4)  # Set a timeout for UDP socket
         self.id = 0
         self.ids = []
 
@@ -55,12 +55,12 @@ class SubServer:
             except Exception as e:
                 print(f"Error receiving UDP packet: {e}")
                 self.lb_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            
-    
+
     def readSYNcLB(self, data):
         str_data = data.decode()
         if str_data.startswith(SYN):
-            lb_ip, lb_port = str_data.split(" ")[-1].split(",")[0].split(";")[1], int(str_data.split(" ")[-1].split(",")[1].split(";")[1])
+            lb_ip, lb_port = str_data.split(" ")[-1].split(",")[0].split(";")[1], int(
+                str_data.split(" ")[-1].split(",")[1].split(";")[1])
             if lb_port == LB_PORT:
                 try:
                     self.load_balancer_address = (lb_ip, lb_port)
@@ -121,8 +121,6 @@ class SubServer:
             print(f"Error receiving UDP packet: {e}")
             return -1
 
-        
-
     def client_connect_protocol(self):
         """Handles the connection protocol with clients."""
         print("Listening for clients on", self.server_address)
@@ -148,6 +146,7 @@ class SubServer:
                 if not data:  # Client disconnected
                     break
                 message = data.decode()
+                print(message)
                 print(f"Received message from client {client_address}: {message}")
                 # Process the client message (Update player data and send other player info)
                 self.process_player_data(client_id, message)  # Pass the socket object
@@ -156,10 +155,8 @@ class SubServer:
         finally:
             # Clean up when client disconnects
             print(f"Client {client_address} disconnected.")
-            if id in self.connected_clients.keys():
-                del self.connected_clients[client_id]
-            if id in self.players_data.keys():
-                del self.players_data[client_id]
+            del self.connected_clients[client_id]
+            del self.players_data[client_id]
             conn.close()
 
     def process_move(self, data, id):
@@ -167,18 +164,18 @@ class SubServer:
         str_data = str_data.split(" ")[-1]
         try:
             str_data = str_data.split(";")
-            data_x = int(str_data[0]); data_y = int(str_data[1])
-            self.players_data[id]["x"] = data_x; self.players_data[id]["y"] = data_y
+            data_x = int(str_data[0])
+            data_y = int(str_data[1])
+            self.players_data[id]["x"] = data_x
+            self.players_data[id]["y"] = data_y
 
         except Exception as e:
             print(f"Error processing move data for {id}: {e}")
 
-
-
-
     def process_player_data(self, client_id, message):
         try:
             self.players_data[client_id] = json.loads(message)
+            print(self.players_data)
             # Prepare data of other players to send to the client (excluding the client's own data)
             other_players_data = []
             for id, data in self.players_data.items():
@@ -198,13 +195,13 @@ class SubServer:
         # Start load balancer connection
         lb_thread = threading.Thread(target=self.lb_connect_protocol)
         lb_thread.start()
-        lb_thread.join() #Wait for the thread to establish a connection with the load balancer
+        lb_thread.join()  # Wait for the thread to establish a connection with the load balancer
 
         if self.is_connected_to_lb:
-            client_thread = threading.Thread(target=self.client_connect_protocol)
-            client_thread.start()
+            self.client_connect_protocol()
         else:
             print("Load balancer not properly connected, not listening to clients.")
+
 
 if __name__ == "__main__":
     server = SubServer()

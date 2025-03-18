@@ -5,11 +5,12 @@ import time
 import random
 from typing import Union
 
+
 class LoadBalancer:
     def __init__(self):
         self.IP = self.get_ip_address()
         self.PORT = 5002
-        self.servers = {} # Store connected servers (ID -> socket)
+        self.servers = {}  # Store connected servers (ID -> socket)
         self.map_width, self.map_height = 38400, 34560
         self.max_attack = 300
         self.server_borders = (self.map_width / 2, self.map_height / 2)
@@ -46,7 +47,6 @@ class LoadBalancer:
             return True, id
         return False, id
 
-    
     def MoveServer(self, packet_info, server_borders) -> Union[dict, dict]:
         right_servers = {}
         server_to_send = {}
@@ -100,9 +100,9 @@ class LoadBalancer:
 
     def start_protocol(self):
         while self.servers.__len__() <= 5:
-            self.broadcast_packet(self.createSYNCpacket(),  self.udp_socket.getsockname()[1])
+            self.broadcast_packet(self.createSYNCpacket(), self.udp_socket.getsockname()[1])
             print("Sent SYNC packet again")
-            
+
             try:
                 conn, _ = self.socket.accept()  # Will time out after 2 seconds
                 tr, id = self.read_sa_send_ack(conn)
@@ -146,7 +146,7 @@ class LoadBalancer:
                 if count == 50:
                     print("Server disconnected")
                     break
-            
+
             except Exception as e:
                 print(f"Error handling server: {e}")
                 break
@@ -154,6 +154,7 @@ class LoadBalancer:
         print("Server disconnected")
         del self.servers[id]
 
+
 if __name__ == "__main__":
     lb = LoadBalancer()
-    lb.run() # Start listening and handling connections
+    lb.run()  # Start listening and handling connections
