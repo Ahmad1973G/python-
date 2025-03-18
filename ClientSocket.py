@@ -5,8 +5,9 @@ import time
 
 SERVER_PORT = 5003  # Let the OS assign a port
 
+
 class ClientServer:
-    def __init__ (self):
+    def __init__(self):
         self.server = None
         self.IP = self.get_ip_address()
         self.PORT = 0
@@ -18,12 +19,12 @@ class ClientServer:
 
     def broadcast_packet(self, packet, port):
         self.udp_socket.sendto(packet, ('255.255.255.255', port))
-    
+
     def get_ip_address(self):
         hostname = socket.gethostname()
         ip_address = socket.gethostbyname(hostname)
         return ip_address
-    
+
     def createSYNCpacket(self):
         packet = "SYNC CODE 69"
         return packet.encode()
@@ -32,7 +33,8 @@ class ClientServer:
         data = conn.recv(1024)
         str_data = data.decode()
         if str_data == 'ACK CODE 584':
-            print("Received the ACK packet successfully from IP: ", conn.getpeername()[0], " Port: ", conn.getpeername()[1])
+            print("Received the ACK packet successfully from IP: ", conn.getpeername()[0], " Port: ",
+                  conn.getpeername()[1])
             self.server = conn.getpeername()
             return True
         else:
@@ -58,7 +60,6 @@ class ClientServer:
                     self.socket.connect(self.server)
                     print(f"Connected to {self.server[0]} on port {self.server[1]}")
                     self.PORT = self.socket.getsockname()[1]
-                    self.socket.send("ACK CODE 584".encode())
                     return True
                 except Exception as e:
                     print("Error connecting to server:", e)
@@ -80,30 +81,29 @@ class ClientServer:
             self.id = self.recv_ID()
             print("Received the ID packet, ID:", self.id)
             return self.id
-            
 
     def send_data(self, data):
         try:
             self.socket.send(data.encode())
         except socket.error as e:
             print(f"Error sending data: {e}")
-    
+
     def receive_data(self):
         data = self.socket.recv(1024)
         return data.decode()
-    
+
     def run_conn(self, data):
-        #print("Sending data...")
+        # print("Sending data...")
         self.send_data(data)
-        #print("Data sent.")
+        # print("Data sent.")
         response = self.receive_data()
-        #print("Received data.")
+        # print("Received data.")
         response = json.loads(response)
         return response
 
     def run(self, data):
         start_time = time.time()
-        while True: 
+        while True:
             if time.time() - start_time > 2:
                 result = self.run_conn(json.dumps(data))
                 print(result)
@@ -114,6 +114,7 @@ def main():
     client = ClientServer()
     client.id = client.connect()
     client.run()
+
 
 if __name__ == "__main__":
     main()
