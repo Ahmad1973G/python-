@@ -6,7 +6,7 @@ c = conn.cursor()
 
 c.execute("""CREATE TABLE players (
       PlayerID INTEGER PRIMARY KEY,
-      PlayerModel TEXT,
+      PlayerModel INTEGER,
       PlayerLifecount INTEGER,
       PlayerMoney INTEGER,
       Playerslot1 INTEGER,
@@ -16,9 +16,8 @@ c.execute("""CREATE TABLE players (
       Playerslot5 INTEGER
     )""")
 
-c.execute("""CREATE TABLE items (
-      ItemID INTEGER PRIMARY KEY,
-      ItemName TEXT,
-      ItemPrice INTEGER
-    )""")
+conn.commit()
+
+
+conn.close()
 
