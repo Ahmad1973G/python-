@@ -94,9 +94,9 @@ def run_game():
     )  # Create PlayerSprite objects for each player
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
-    #Socket = ClientSocket.ClientServer()
-    #Socket.connect()
-    #players = Socket.run_conn(obj.convert_to_json())
+    Socket = ClientSocket.ClientServer()
+    Socket.connect()
+    players = Socket.run_conn(obj.convert_to_json())
     # print (players)
     running = True
     while running:
@@ -129,7 +129,13 @@ def run_game():
         # Stop movement in the direction of the collisio
         # Update player position
 
-        #players = Socket.run_conn(obj.convert_to_json())
+        updated_players = Socket.run_conn(obj.convert_to_json())
+        for player in updated_players:
+            for key in player.keys():
+                if player[key] is None:
+                    continue
+                players[player['id']][key] = player[key]
+
         for player in players:
             player['x'] = player['x'] - obj.my_player['x'] + 500
             player['y'] = player['y'] - obj.my_player['y'] + 325
