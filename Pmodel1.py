@@ -1,7 +1,6 @@
 import pygame as pg
 import json
 
-
 class Player(pg.sprite.Sprite):
     def __init__(self, my_player, speed, weapon, power, health, max_health, acceleration, players, moving,
                  move_offset, coins, screen, players_sprites, my_sprite, *groups):
@@ -48,7 +47,6 @@ class Player(pg.sprite.Sprite):
         return json.dumps(client_loc)
 
     def print_players(self, players_sprites, screen):
-
         for player in players_sprites:
             player['image'].fill((255, 0, 0))
             self.screen.blit(player['image'], player['rect'])
