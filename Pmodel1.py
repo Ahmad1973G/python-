@@ -47,6 +47,7 @@ class Player(pg.sprite.Sprite):
         return json.dumps(client_loc)
 
     def print_players(self, players_sprites, screen):
+
         for player in players_sprites:
             player['image'].fill((255, 0, 0))
             self.screen.blit(player['image'], player['rect'])

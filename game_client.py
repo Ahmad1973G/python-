@@ -21,11 +21,8 @@ def load_tmx_map(filename):
         return None
 
 
-def render_map(tmx_data):
-    """Render the TMX map onto a surface once to improve performance."""
-    map_surface = pg.Surface((tmx_data.width * tmx_data.tilewidth, 
-                              tmx_data.height * tmx_data.tileheight))
-    
+def draw_map(screen, tmx_data, world_offset):
+    """Draw the TMX map with an offset to simulate camera movement."""
     for layer in tmx_data.visible_layers:
         if isinstance(layer, pytmx.TiledTileLayer):
             for x, y, gid in layer:
@@ -42,29 +39,25 @@ def run_game():
     # Screen and game settings
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    
     my_player = {'x': 400, 'y': 400, 'width': 20, 'height': 20, 'id': 0}
-    players = []  # Other players
-
+    players = [
+        # {"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
+        # {"x": 400, "y": 300, "width": 20, "height": 20, "id": 2},
+        # {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
+    ]
     used_weapon = 2
     weapons = [
         {"damage": 25, "range": 50, 'bulet_speed': 0.2, 'ammo': 50, 'weapon_id': 1},
         {"damage": 20, "range": 100, 'bulet_speed': 0.3, 'ammo': 20, 'weapon_id': 2},
         {"damage": 15, "range": 1900, 'bulet_speed': 0.5, 'ammo': 7, 'weapon_id': 3}
+
     ]
 
     BLACK = (0, 0, 0)
     
     move_offset = (0, 0)
     world_offset = (0, 0)
-
-    # Load and pre-render the map
     tmx_data = load_tmx_map("c:/webroot/map.tmx")
-    if not tmx_data:
-        return  # Exit if map loading fails
-
-    map_surface = render_map(tmx_data)  # Pre-render the map
-
     acceleration = 0.05
     moving = False
 
@@ -98,14 +91,13 @@ def run_game():
         screen,
         players_sprites,
         my_sprite
-    )
-
-    # Initialize socket connection
+    )  # Create PlayerSprite objects for each player
+    # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
+    # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
     #Socket = ClientSocket.ClientServer()
     #Socket.connect()
 
     running = True
-
     while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -122,19 +114,20 @@ def run_game():
                 direction = (0 - shot_offset[1]) / (0 - shot_offset[0])
                 shot_offset[0] = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
                     weapons[used_weapon]['range'] / (direction * direction + 1))
-                shot_offset[1] = direction * shot_offset[0]
-                print(f"Shot Start: {shot_offset[0] + 500, 325 - shot_offset[1]}, End: {500, 325}")
+                shot_offset[1] = direction * shot_offset[0]  # shot offset is the x,y of the max distance of shot
+                # Create a surface to draw the line
+                image = pg.Surface((1, 1), pg.SRCALPHA)  # Transparent background
+                rect = image.get_rect(topleft=(min(shot_offset[0] + 500, 500), min(325 - shot_offset[1], 325)))
+                print(rect)
+                # line = LineSprite((100, 150), (400, 300), (0, 255, 0), 5)
+                print(f"Start: {shot_offset[0] + 500, 325 - shot_offset[1]}, End: {500, 325}")
 
-        # Update movement
-        moving, move_offset, x, y = obj.move(players_sprites, acceleration, move_offset, moving)
+                # obj.shoot(used_weapon)
+        collisions = []
+        # Stop movement in the direction of the collisio
+        # Update player position
 
-        # Update world offset so the map moves with the player
-        world_offset = (500 - x, 325 - y)
-
-        # Send player position to the server and get updated player data
         #players = Socket.run_conn(obj.convert_to_json())
-
-        # Update other players' positions relative to the world offset
         for player in players:
             player['x'] = player['x'] - my_player['x'] + 500
             player['y'] = player['y'] - my_player['y'] + 325
@@ -151,9 +144,9 @@ def run_game():
 
         # Render the frame
         screen.fill(BLACK)
-        screen.blit(map_surface, world_offset)  # Efficient map rendering
-        obj.print_players(players_sprites, screen)  # Draw other players
-
+        world_offset = (500 - x, 325 - y)
+        draw_map(screen, tmx_data, world_offset)
+        obj.print_players(players_sprites, screen)
         pg.display.flip()
         clock.tick(60)
 
