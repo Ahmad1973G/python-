@@ -59,7 +59,9 @@ def run_game():
     world_offset = (0, 0)
 
     # Load and pre-render the map
-    tmx_data = load_tmx_map("c:/webroot/map.tmx")
+    tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
+
+
     if not tmx_data:
         return  # Exit if map loading fails
 
@@ -101,8 +103,8 @@ def run_game():
     )
 
     # Initialize socket connection
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
+    #Socket = ClientSocket.ClientServer()
+    #Socket.connect()
 
     running = True
 
@@ -132,8 +134,11 @@ def run_game():
         world_offset = (500 - x, 325 - y)
 
         # Send player position to the server and get updated player data
-        players = Socket.run_conn(obj.convert_to_json())
-
+        #players = Socket.run_conn(obj.convert_to_json())
+        players = [
+            {"x": 300, "y": 300, "width": 20, "height": 20, "id": 2},
+            {"x": 200, "y": 200, "width": 20, "height": 20, "id": 3},
+        ]
         # Update other players' positions relative to the world offset
         for player in players:
             player['x'] = player['x'] - my_player['x'] + 500
