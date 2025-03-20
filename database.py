@@ -17,18 +17,18 @@ class database:
     self.id = 0
 
 
-    self.c.execute("""  CREATE TABLE players (
-  PlayerID INTEGER PRIMARY KEY,
-  PlayerModel INTEGER,
-  PlayerLifecount INTEGER,
-  PlayerMoney INTEGER,
-  Playerslot1 INTEGER,
-  Playerslot2 INTEGER,
-  Playerslot3 INTEGER,
-  Playerslot4 INTEGER,
-  Playerslot5 INTEGER
-)""")
-  
+    self.c.execute("""CREATE TABLE IF NOT EXISTS players (
+      PlayerID INTEGER PRIMARY KEY,
+      PlayerModel INTEGER,
+      PlayerLifecount INTEGER,
+      PlayerMoney INTEGER,
+      Playerammo INTEGER,
+      Playerslot1 INTEGER,
+      Playerslot2 INTEGER,
+      Playerslot3 INTEGER,
+      Playerslot4 INTEGER,
+      Playerslot5 INTEGER
+    )""")
 
    
 
@@ -39,13 +39,17 @@ class database:
 
   def createplayer(self, PlayerModel):
     id = self.id
-    self.c.execute("INSERT INTO players (PlayerID, PlayerModel, PlayerLifecount, PlayerMoney, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, PlayerModel, 100, 0, None, None, None, None, None))
-    self.id+=1
+    self.c.execute("INSERT INTO players (PlayerID, PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, PlayerModel, 100, 0, 0, None, None, None, None, None)
+    )
+    self.id += 1
 
 
-  def updateplayer(self, PlayerID, PlayerModel, PlayerLifecount, PlayerMoney, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5):
-    self.c.execute("UPDATE players SET PlayerModel = ?, PlayerLifecount = ?, PlayerMoney = ?, Playerslot1 = ?, Playerslot2 = ?, Playerslot3 = ?, Playerslot4 = ?, Playerslot5 = ? WHERE PlayerID = ?", (PlayerModel, PlayerLifeself.count, PlayerMoney, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5, PlayerID))
-
+  def updateplayer(self, PlayerID, PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5):
+    self.c.execute(
+      "UPDATE players SET PlayerModel = ?, PlayerLifecount = ?, PlayerMoney = ?, Playerammo = ?, Playerslot1 = ?, Playerslot2 = ?, Playerslot3 = ?, Playerslot4 = ?, Playerslot5 = ? WHERE PlayerID = ?",
+      (PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5, PlayerID)
+    )
+    
   def deleteplayer(self, PlayerID):
     self.c.execute("DELETE FROM players WHERE PlayerID = ?", (PlayerID,))
 
@@ -116,6 +120,11 @@ class database:
     self.c.execute("UPDATE players SET Playerslot1 = ?, Playerslot2 = ?, Playerslot3 = ?, Playerslot4 = ?, Playerslot5 = ? WHERE PlayerID = ?", (Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5, PlayerID))
 
 
+  def updateplayerammo(self, PlayerID, Playerammo):
+    self.c.execute("UPDATE players SET Playerammo = ? WHERE PlayerID = ?", (Playerammo, PlayerID))
 
+  def getplayerammo(self, PlayerID):
+    self.c.execute("SELECT Playerammo FROM players WHERE PlayerID = ?", (PlayerID,))
+    return self.c.fetchall()
 
 

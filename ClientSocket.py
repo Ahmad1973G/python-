@@ -100,22 +100,4 @@ class ClientServer:
         # print("Received data.")
         response = json.loads(response)
         return response
-
-    def run(self, data):
-        start_time = time.time()
-        while True:
-            if time.time() - start_time > 2:
-                result = self.run_conn(json.dumps(data))
-                print(result)
-                start_time = time.time()
-
-
-def main():
-    client = ClientServer()
-    client.id = client.connect()
-    client.run()
-
-
-if __name__ == "__main__":
-    main()
 # This is the client socket that connects to the server and sends data to it.

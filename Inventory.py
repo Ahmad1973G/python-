@@ -1,36 +1,14 @@
 import pygame
+import database
+players = database.database()
 
 class Inventory:
-    def __init__(self, gold=0, slots=None, ammo=0):
-        if slots is None:
-            slots = [None] * 5
-        self.gold = gold
+    def __init__(self, money=players.getplayermoney, slots=players.getplayerslots, ammo=players.getplayerammo):
+        self.money = money
         self.slots = slots
         self.ammo = ammo
 
-<<<<<<< HEAD
-
-    def dropitem(slots, index):
-
-        
-        slots [index] = null
-
-        return slots
-    
-    def pickupitem(slots, item):
-        for i in range(0, 5):
-            if slots[i] == null:
-                slots[i] = item
-                return slots
-
-        return slots
-    
-    def buy(self, gold, slots, cost, wanteditem):
-        if gold >= cost:
-            gold -= cost
-            pickupitem(slots, wanteditem)
-=======
-    def dropitem(self, index):
+    def dropitem(self, slots, index, players):
         self.slots[index] = None
         return self.slots
     
@@ -43,10 +21,9 @@ class Inventory:
         return self.slots
     
     def buy(self, cost, wanteditem):
-        if self.gold >= cost:
-            self.gold -= cost
+        if self.money >= cost:
+            self.money -= cost
             self.pickupitem(wanteditem)
->>>>>>> b59e435e9847ed542dc1cad5e47c5b65495a0274
         else:
-            print("You don't have enough gold")
-        return self.gold, self.slots
+            print("You don't have enough money")
+        return self.money, self.slots
