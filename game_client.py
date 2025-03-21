@@ -95,8 +95,8 @@ def run_game():
     )
 
     # Initialize socket connection
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
+    #Socket = ClientSocket.ClientServer()
+    #Socket.connect()
 
     running = True
 
@@ -118,13 +118,13 @@ def run_game():
         world_offset = (500 - x, 325 - y)
 
         # Send player position to the server and get updated player data
-        players = Socket.run_conn(obj.convert_to_json())
-        updated_players = Socket.run_conn(obj.convert_to_json())
-        for player in updated_players:
-            for key in player.keys():
-                if player[key] is None:
-                    continue
-                players[player['id']][key] = player[key]
+        #players = Socket.run_conn(obj.convert_to_json())
+        #updated_players = Socket.run_conn(obj.convert_to_json())
+        #for player in updated_players:
+        #    for key in player.keys():
+        #        if player[key] is None:
+        #            continue
+        #        players[player['id']][key] = player[key]
 
         # Update player sprites
         players_sprites = [

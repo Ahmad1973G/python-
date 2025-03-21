@@ -26,8 +26,10 @@ class Player(pg.sprite.Sprite):
     def update_players_sprites(self, players, players_sprites):
         self.players = players
         self.players_sprites = players_sprites
+        
     def you_dead(self):
         print ('dead')
+        
     def convert_to_sprite(x, y, height, width, player_id):
         # Create a simple representation of the sprite
         sprite = {
