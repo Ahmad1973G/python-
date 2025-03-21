@@ -48,7 +48,8 @@ class Player(pg.sprite.Sprite):
             "height": self.my_player['height'],
         }
         return json.dumps(client_loc)
-
+    
+                       
     def print_players(self, players_sprites, screen):
 
         for player in players_sprites:
@@ -66,8 +67,10 @@ class Player(pg.sprite.Sprite):
             return False, move_offset, self.my_player['x'], self.my_player['y']
 
         move_offset = (move_offset[0] * (1 - acceleration), move_offset[1] * (1 - acceleration))
-        self.my_player['x'] += move_offset[0] * acceleration
-        self.my_player['y'] += move_offset[1] * acceleration
+        added_dis1=move_offset[0] * 0.05
+        added_dis2=move_offset[1] * 0.05
+        self.my_player['x'] += added_dis1
+        self.my_player['y'] += added_dis2
         if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
             return False, (0, 0), self.my_player['x'], self.my_player['y']  # Stop moving when close enough
 

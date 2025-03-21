@@ -2,6 +2,7 @@ import pygame as pg
 import json
 import Pmodel1
 import ClientSocket
+import time
 import pytmx
 import math
 import sys
@@ -18,7 +19,13 @@ def load_tmx_map(filename):
     except Exception as e:
         print(f"❌ Error loading TMX file: {e} - {sys.exc_info()}")
         return None
-
+def big_boom_boom(players,screen,red,range):
+        pg.draw.circle(screen,red,(500,325),range, width=0)
+        pg.display.flip() 
+        time.sleep(2)
+        for player in players:
+            if math.sqrt((player['x']-500)**2+(325-player['y'])**2)<=range+10:
+                print('player', str(player['id']) ,'got hit by big boom boom')
 
 def draw_map(screen, tmx_data, world_offset):
     """Draw the TMX map with an offset to simulate camera movement."""
@@ -42,11 +49,11 @@ def run_game():
         {"x": 300, "y": 400, "width": 20, "height": 20, "id": 2},
         {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
     ]
-    used_weapon = 0
+    used_weapon = 2
     weapons = [
-        {"damage": 25, "range": 10000, 'bulet_speed': 0.2, 'ammo': 50, 'weapon_id': 1},
-        {"damage": 20, "range": 70000, 'bulet_speed': 0.3, 'ammo': 20, 'weapon_id': 2},
-        {"damage": 15, "range": 120000, 'bulet_speed': 0.5, 'ammo': 7, 'weapon_id': 3}
+        {"damage": 25, "range": 10000, 'bulet_speed': 40, 'ammo': 50, 'weapon_id': 1},
+        {"damage": 20, "range": 70000, 'bulet_speed': 50, 'ammo': 20, 'weapon_id': 2},
+        {"damage": 15, "range": 120000, 'bulet_speed': 70, 'ammo': 7, 'weapon_id': 3}
 
     ]
     granade_range=200
@@ -110,23 +117,42 @@ def run_game():
                 target_pos = pg.mouse.get_pos()
                 move_offset = (target_pos[0] - 500, target_pos[1] - 325)
                 moving = True
-            elif event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
-                weapons[used_weapon]['ammo'] -= 1
-                shot_offset = list(pg.mouse.get_pos())
-                shot_offset[0] -= 500
-                shot_offset[1] = 325 - shot_offset[1]
-                # direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
-                direction = (0 - shot_offset[1]) / (0 - shot_offset[0])
-                shot_offset[0] = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
-                    weapons[used_weapon]['range'] / (direction * direction + 1))
-                shot_offset[1] = direction * shot_offset[0]  # shot offset is the x,y of the max distance of shot
-                h=shot_offset[0]+500
-                g=325-shot_offset[1]
-                # Create a surface to draw the line
-                
-                image = pg.Surface((1, 1), pg.SRCALPHA)  # Transparent background
-                rect = image.get_rect(topleft=(min(shot_offset[0] + 500, 500), min(325 - shot_offset[1], 325)))
-                # line = LineSprite((100, 150), (400, 300), (0, 255, 0), 5)
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
+                if weapons[used_weapon]['ammo']==0:
+                    print ('out of ammo')
+                else:
+                    hit=False
+                    range1=1
+                    weapons[used_weapon]['ammo'] -= 1
+                    shot_offset = list(pg.mouse.get_pos())
+                    shot_offset[0] -= 500
+                    shot_offset[1] = 325 - shot_offset[1]
+                    added_dis=range1*weapons[used_weapon]['bulet_speed']
+                    while abs(range1) < weapons[used_weapon]['range']-1 and not hit:
+                        range1+=added_dis+range1*0.002
+                        # direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
+                        try:
+                            direction = (0 - shot_offset[1]) / (0 - shot_offset[0])
+                            shot_offset[0] = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
+                                range1 / (direction * direction + 1))
+                            shot_offset[1] = direction * shot_offset[0]  # shot offset is the x,y of the max distance of shot
+                        except ZeroDivisionError:
+                            shot_offset[1]=(shot_offset[1] / abs(shot_offset[1])*math.sqrt(range1))
+                            shot_offset[0]=0
+                        endpos1=shot_offset[0]+500
+                        endpos2=325-shot_offset[1]
+                        startpos1=500
+                        startpos2=325
+                        # Create a surface to draw the line
+                       # line = LineSprite((100, 150), (400, 300), (0, 255, 0), 5)
+                        pg.draw.line(screen,RED,(startpos1,startpos2), (endpos1,endpos2), width=5)
+                        # pg.draw.circle(screen,RED,(500,325),granade_range, width=0)
+                        pg.display.flip()
+                        for i in range (0,players_sprites.__len__()):
+                            if players_sprites[i]['rect'].clipline((500,325),(endpos1,endpos2)):
+                                print("hit" + " "+str(i)+' '+'with weapon'+ ' '+str(used_weapon+1))
+                                hit =True
+
             elif event.type == pg.KEYDOWN:  # Check if a key was pressed
                 if event.key == pg.K_1:
                     used_weapon=0
@@ -135,14 +161,9 @@ def run_game():
                 elif event.key == pg.K_3:
                     used_weapon=2
                 # obj.shoot(used_weapon)
-        if h!=None:
-            pg.draw.line(screen,RED,(500,325), (h,g), width=5)
-       # pg.draw.circle(screen,RED,(500,325),granade_range, width=0)
-            pg.display.flip()
-            for i in range (0,players_sprites.__len__()):
-                if players_sprites[i]['rect'].clipline((500,325),(h,g)):
-                    print("hit" + " "+str(i)+' '+'with weapon'+ ' '+str(used_weapon+1))
-            h=None
+                elif event.key == pg.K_q:
+                    big_boom_boom(players,screen,RED,granade_range)
+                       
         # Stop movement in the direction of the collisio
         # Update player position
         #players = Socket.run_conn(obj.convert_to_json())
@@ -198,6 +219,7 @@ def run_game():
                     tp2 = 360  # Knockback downward
                 move_offset = (tp - 500, tp2 - 325)
         moving, move_offset, x, y = obj.move(players_sprites, acceleration, move_offset, moving)
+        time.sleep(0.0001)
         for i in range(0, players.__len__() - 1):
             players[i]['x'] = players_sprites[i]['rect'].x
             players[i]['y'] = players_sprites[i]['rect'].y
