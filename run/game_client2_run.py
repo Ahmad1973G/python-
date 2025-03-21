@@ -1,6 +1,6 @@
 import pygame as pg
 import json
-import Pmodel1
+import Pmodel1_run
 import ClientSocket
 import pytmx
 import math
@@ -42,9 +42,9 @@ def run_game():
     clock = pg.time.Clock()
     my_player = {'x': 400, 'y': 500, 'width': 20, 'height': 20, 'id': 0,'hp':100}
     players = [
-        {"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
-        {"x": 400, "y": 500, "width": 20, "height": 20, "id": 2},
-        {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
+        #{"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
+        #{"x": 400, "y": 500, "width": 20, "height": 20, "id": 2},
+        #{"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
     ]
     used_weapon = 0
     weapons = [
@@ -82,7 +82,7 @@ def run_game():
         }
         for player in players
     ]
-    obj = Pmodel1.Player(
+    obj = Pmodel1_run.Player(
         my_player,
         10,
         1,
@@ -99,8 +99,8 @@ def run_game():
     )
 
     # Initialize socket connection
-    #Socket = ClientSocket.ClientServer()
-    #Socket.connect()
+    Socket = ClientSocket.ClientServer()
+    Socket.connect()
 
     running = True
     h=0
@@ -147,7 +147,7 @@ def run_game():
         world_offset = (500 - my_player['x'], 325 - my_player['y'])
 
         # Send player position to the server and get updated player data
-        #players = Socket.run_conn(obj.convert_to_json())
+        players = Socket.run_conn(obj.convert_to_json())
         #updated_players = Socket.run_conn(obj.convert_to_json())
         #for player in updated_players:
         #    for key in player.keys():
