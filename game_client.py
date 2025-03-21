@@ -22,7 +22,7 @@ def load_tmx_map(filename):
 
 def draw_map(screen, tmx_data, world_offset):
     """Draw the TMX map with an offset to simulate camera movement."""
-    for layer in tmx_data.layers:
+    for layer in tmx_data.visible_layers:
         if isinstance(layer, pytmx.TiledTileLayer):
             for x, y, gid in layer:
                 tile = tmx_data.get_tile_image_by_gid(gid)
@@ -83,6 +83,7 @@ def run_game():
         1,
         1,
         100,
+        100,
         0.1,
         players,
         False,
@@ -123,12 +124,12 @@ def run_game():
                 h=shot_offset[0]+500
                 g=325-shot_offset[1]
                 # Create a surface to draw the line
-                
+
                 image = pg.Surface((1, 1), pg.SRCALPHA)  # Transparent background
                 rect = image.get_rect(topleft=(min(shot_offset[0] + 500, 500), min(325 - shot_offset[1], 325)))
                 print(rect)
                 # line = LineSprite((100, 150), (400, 300), (0, 255, 0), 5)
-                
+
                 # obj.shoot(used_weapon)
         pg.draw.circle(screen,RED,(500,325),granade_range, width=0)
         pg.display.flip()
