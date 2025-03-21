@@ -146,14 +146,30 @@ def run_game():
                 moving = True
                 
                 # Apply knockback effect
-                if move_offset[0] > 0:  # Moving right
-                    move_offset = (-20, move_offset[1])
-                elif move_offset[0] < 0:  # Moving left
-                    move_offset = (20, move_offset[1])
-                if move_offset[1] > 0:  # Moving down
-                    move_offset = (move_offset[0], -20)
-                elif move_offset[1] < 0:  # Moving up
-                    move_offset = (move_offset[0], 20)
+                if my_sprite['rect'].colliderect(player['rect']):  # Check collision using rect
+                    move_offset = (500 - player['rect'].x, player['rect'].y - 325)
+                    target_pos = (500, 325)
+                    moving = True
+                    tp = 500
+                    tp2 = 325
+                    # Apply knockback based on movement direction
+                    if move_offset[0] > 0:  # Moving right
+                        tp = 465  # Knockback to the left)
+                    elif move_offset[0] < 0:  # Moving left
+                        tp = 535  # Knockback to the right
+                    if move_offset[1] > 0:  # Moving down
+                        tp2 = 290  # Knockback upward
+                    elif move_offset[1] < 0:  # Moving up
+                        tp2 = 360  # Knockback downward
+                    move_offset = (tp - 500, tp2 - 325)
+                    
+        moving, move_offset, x, y = obj.move(players_sprites, acceleration, move_offset, moving)
+        for i in range(0, players.len() - 1):
+            players[i]['x'] = players_sprites[i]['rect'].x
+            players[i]['y'] = players_sprites[i]['rect'].y
+        obj.update_players_sprites(players, players_sprites)
+        screen.fill(BLACK)
+        world_offset = (500 - my_player['x'], 325 - my_player['y'])
 
         # Render the frame
         screen.fill(BLACK)

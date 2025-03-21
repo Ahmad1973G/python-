@@ -2,14 +2,14 @@ import pygame as pg
 import json
 
 class Player(pg.sprite.Sprite):
-    def __init__(self, my_player, speed, weapon, power, health, max_health, acceleration, players, moving,
+    def __init__(self, my_player, speed, weapon, power,max_health, acceleration, players, moving,
                  move_offset, coins, screen, players_sprites, my_sprite, *groups):
         super().__init__(*groups)  # Pass groups to the Sprite initializer
         self.my_player = my_player
         self.speed = speed
         self.weapon = weapon
         self.power = power
-        self.health = health
+        self.health = my_player['hp']
         self.max_health = max_health
         self.acceleration = acceleration
         self.players = players
@@ -26,7 +26,8 @@ class Player(pg.sprite.Sprite):
     def update_players_sprites(self, players, players_sprites):
         self.players = players
         self.players_sprites = players_sprites
-
+    def you_dead(self):
+        print ('dead')
     def convert_to_sprite(x, y, height, width, player_id):
         # Create a simple representation of the sprite
         sprite = {
