@@ -36,10 +36,10 @@ def run_game():
 
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 500, 'y': 500, 'width': 20, 'height': 20, 'id': 0,'hp':100}
+    my_player = {'x': 400, 'y': 500, 'width': 20, 'height': 20, 'id': 0,'hp':100}
     players = [
         {"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
-        {"x": 400, "y": 300, "width": 20, "height": 20, "id": 2},
+        {"x": 400, "y": 500, "width": 20, "height": 20, "id": 2},
         {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
     ]
     used_weapon = 0
@@ -49,6 +49,7 @@ def run_game():
         {"damage": 15, "range": 120000, 'bulet_speed': 0.5, 'ammo': 7, 'weapon_id': 3}
 
     ]
+    granade_range=200
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
@@ -94,9 +95,9 @@ def run_game():
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
     #--------------------------------------------------------------------------------
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
-    players = Socket.run_conn(obj.convert_to_json())
+    #Socket = ClientSocket.ClientServer()
+    #Socket.connect()
+    #players = Socket.run_conn(obj.convert_to_json())
     # print (players)
     running = True
     h=0
@@ -129,22 +130,28 @@ def run_game():
                 # line = LineSprite((100, 150), (400, 300), (0, 255, 0), 5)
                 
                 # obj.shoot(used_weapon)
+        pg.draw.circle(screen,RED,(500,325),granade_range, width=0)
+        pg.display.flip()
         start_pos=(0,0)
         end_pos=(0,0)
-        if player.clipline(start_pos,end_pos):
+        if my_sprite['rect'].clipline(start_pos,end_pos):
             my_player['hp']-=weapons[1]['damage']
             if my_player['hp']<1:
                 obj.you_dead()
 
         # Stop movement in the direction of the collisio
         # Update player position
-
-        updated_players = Socket.run_conn(obj.convert_to_json())
-        for player in updated_players:
-            for key in player.keys():
-                if player[key] is None:
-                    continue
-                players[player['id']][key]=player[key]
+        players=[
+            {"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
+            {"x": 400, "y": 300, "width": 20, "height": 20, "id": 2},
+            {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
+        ]
+        #updated_players = None#Socket.run_conn(obj.convert_to_json())
+        #for player in updated_players:
+        #    for key in player.keys():
+        #        if player[key] is None:
+        #            continue
+        #        players[player['id']][key]=player[key]
         for player in players:
             player['x'] = player['x'] - obj.my_player['x'] + 500
             player['y'] = player['y'] - obj.my_player['y'] + 325
@@ -190,7 +197,7 @@ def run_game():
             players[i]['y'] = players_sprites[i]['rect'].y
         obj.update_players_sprites(players, players_sprites)
         screen.fill(BLACK)
-        world_offset = (500 - x, 325 - y)
+        world_offset = (500 - my_player['x'], 325 - my_player['y'])
         # draw_map(screen, tmx_data, world_offset)
         obj.print_players(players_sprites, screen)
         pg.display.flip()
