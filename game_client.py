@@ -21,13 +21,12 @@ def load_tmx_map(filename):
         return None
 
 def big_boom_boom(players,screen,red,range):
-    pg.draw.circle(screen,red,(500,325),range, width=0)
-    pg.display.flip()
-    time.sleep(0.5)
-    for player in players:
-        if math.sqrt((player['x']-500)**2+(325-player['y'])**2)<=range+10:
-            print('player', str(player['id']) ,'got hit by big boom boom')
-
+        pg.draw.circle(screen,red,(500,325),range, width=0)
+        pg.display.flip() 
+        time.sleep(0.5)
+        for player in players:
+            if math.sqrt((player['x']-500)**2+(325-player['y'])**2)<=range+10:
+                print('player', str(player['id']) ,'got hit by big boom boom')
 def shoot(weapons,players_sprites,bullet_sprite,screen):
     while True:
         if shared_data['fire']:
@@ -41,6 +40,10 @@ def shoot(weapons,players_sprites,bullet_sprite,screen):
                 shot_offset[0] -= 500
                 shot_offset[1] = 325 - shot_offset[1]
                 added_dis=range1*weapons[shared_data['used_weapon']]['bulet_speed']
+                end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(weapons[shared_data['used_weapon']]['range']/ (direction * direction + 1))
+                end2 = direction * end1
+                ClientSocket.ClientServer.sendSHOOT(my_player['x'],my_player['y'],end1,end2)
+                ClientSocket.ClientServer.sendDAMAGE(weapons[shared_data['used_weapon']]['damage'])
                 while abs(range1) < weapons[shared_data['used_weapon']]['range']-1 and not hit:
                     range1+=added_dis
                     # direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
@@ -147,9 +150,8 @@ def run_game():
     ammo_pack = Pmodel1.AmmoPack()
 
     running = True
-    fire = False
-    h = None
-    g = None
+    h=None
+    g=None 
     thread_shooting = threading.Thread(target=shoot, args=(weapons,players_sprites, bullet_sprite, screen))
     thread_shooting.daemon = True
     thread_shooting.start()
