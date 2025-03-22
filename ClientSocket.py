@@ -97,5 +97,13 @@ class ClientServer:
     def requestDATA(self):
         self.socket.send("REQUEST".encode())
         data = self.socket.recv(1024)
-        return json.loads(data.decode())
+        if data.decode().startswith("DATA"):
+            return json.loads(data.decode().split(" ")[-1])
+
+        elif data.decode().startswith("WARNING"):
+            return "WARNING"
+
+        elif data.decode().startswith("END"):
+            socket.close()
+            return "END"
 # This is the client socket that connects to the server and sends data to it.
