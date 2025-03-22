@@ -61,7 +61,7 @@ def shoot(weapons,players_sprites,bullet_sprite,screen):
                         if players_sprites[i]['rect'].colliderect(bullet_sprite['rect']):
                             print("hit" + " "+str(i)+' '+'with weapon'+ ' '+str(shared_data['used_weapon']+1))
                             hit =True
-        shared_data['fire']=False
+            shared_data['fire']=False
 def draw_map(screen, tmx_data, world_offset):
     """Draw the TMX map with an offset to simulate camera movement."""
     for layer in tmx_data.layers:
@@ -85,11 +85,10 @@ def run_game():
         {"x": 300, "y": 400, "width": 20, "height": 20, "id": 2},
         {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
     ]
-    used_weapon = 2
     weapons = [
-        {"damage": 25, "range": 10000, 'bulet_speed': 70, 'ammo': 50, 'weapon_id': 1},
-        {"damage": 20, "range": 70000, 'bulet_speed': 80, 'ammo': 20, 'weapon_id': 2},
-        {"damage": 15, "range": 120000, 'bulet_speed': 100, 'ammo': 7, 'weapon_id': 3}
+        {"damage": 25, "range": 10000, 'bulet_speed': 70, 'ammo': 50,'max_ammo':50, 'weapon_id': 1},
+        {"damage": 20, "range": 70000, 'bulet_speed': 80, 'ammo': 20,'max_ammo':20, 'weapon_id': 2},
+        {"damage": 15, "range": 120000, 'bulet_speed': 100, 'ammo': 7,'max_ammo':7, 'weapon_id': 3}
 
     ]
     granade_range=200
@@ -147,7 +146,6 @@ def run_game():
     #players = Socket.run_conn(obj.convert_to_json())
     # print (players)
     running = True
-    fire =False
     h=None
     g=None 
     thread_shooting = threading.Thread(target=shoot, args=(weapons,players_sprites, bullet_sprite, screen))
@@ -174,7 +172,8 @@ def run_game():
                 # obj.shoot(used_weapon)
                 elif event.key == pg.K_q:
                     big_boom_boom(players,screen,RED,granade_range)
-                       
+                elif event.key == pg.K_r:
+                    weapons[shared_data['used_weapon']]['ammo']=weapons[shared_data['used_weapon']]['max_ammo']        
         # Stop movement in the direction of the collisio
         # Update player position
         #players = Socket.run_conn(obj.convert_to_json())
@@ -229,12 +228,8 @@ def run_game():
                 elif move_offset[1] < 0:  # Moving up
                     tp2 = 360  # Knockback downward
                 move_offset = (tp - 500, tp2 - 325)
-        moving, move_offset, x, y = obj.move(players_sprites, acceleration, move_offset, moving)
+        moving, move_offset,my_player['x'], my_player['y'] = obj.move(acceleration, move_offset, moving)
         time.sleep(0.0001)
-        for i in range(0, players.__len__() - 1):
-            players[i]['x'] = players_sprites[i]['rect'].x
-            players[i]['y'] = players_sprites[i]['rect'].y
-        obj.update_players_sprites(players, players_sprites)
         screen.fill(BLACK)
         world_offset = (500 - my_player['x'], 325 - my_player['y'])
         # draw_map(screen, tmx_data, world_offset)

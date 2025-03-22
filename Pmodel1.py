@@ -54,23 +54,24 @@ class Player(pg.sprite.Sprite):
 
         for player in players_sprites:
             player['image'].fill((255, 0, 0))
-            self.screen.blit(player['image'], player['rect'])
+            screen.blit(player['image'], player['rect'])
 
         # Draw the main player at the center
         image = pg.Surface((20, 20))
         image.fill(pg.Color('blue'))
         rect = image.get_rect(center=(500, 325))
-        self.screen.blit(image, rect)
+        screen.blit(image, rect)
 
-    def move(self, players_sprites, acceleration, move_offset, moving):
+    def move(self, acceleration, move_offset, moving):
         if not moving:
             return False, move_offset, self.my_player['x'], self.my_player['y']
 
         move_offset = (move_offset[0] * (1 - acceleration), move_offset[1] * (1 - acceleration))
-        added_dis1=move_offset[0] * 0.05
-        added_dis2=move_offset[1] * 0.05
+        added_dis1=move_offset[0] * acceleration
+        added_dis2=move_offset[1] * acceleration
         self.my_player['x'] += added_dis1
         self.my_player['y'] += added_dis2
+        
         if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
             return False, (0, 0), self.my_player['x'], self.my_player['y']  # Stop moving when close enough
 
