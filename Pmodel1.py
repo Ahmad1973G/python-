@@ -139,15 +139,15 @@ class Player(pg.sprite.Sprite):
     def print_players(self, players_sprites, screen):
         for player in players_sprites:
             player['image'].fill((255, 0, 0))
-            self.screen.blit(player['image'], player['rect'])
+            screen.blit(player['image'], player['rect'])
 
         # Draw the main player at the center
         image = pg.Surface((20, 20))
         image.fill(pg.Color('blue'))
         rect = image.get_rect(center=(500, 325))
-        self.screen.blit(image, rect)
+        screen.blit(image, rect)
 
-    def move(self, players_sprites, acceleration, move_offset, moving):
+    def move(self, acceleration, move_offset, moving):
         if not moving:
             return False, move_offset, self.my_player['x'], self.my_player['y']
 
