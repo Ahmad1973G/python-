@@ -142,6 +142,10 @@ def run_game():
         my_sprite
     )  # Create PlayerSprite objects for each player
 
+    # Initialize Items
+    health_kit = Pmodel1.HealthKit()
+    ammo_pack = Pmodel1.AmmoPack()
+
     running = True
     fire = False
     h = None
@@ -169,10 +173,19 @@ def run_game():
                     shared_data['used_weapon'] = 2
                 elif event.key == pg.K_q:
                     obj.power.UsePower1(obj, 5000)  # Speed boost for 5 seconds
+                    print("Speed boost activated")
                 elif event.key == pg.K_w:
                     obj.power.UsePower2(obj, 5000)  # Shield for 5 seconds
+                    print("Shield activated")
                 elif event.key == pg.K_e:
                     obj.power.UsePower3(obj)  # Replenish
+                    print("Replenish activated")
+                elif event.key == pg.K_4:  # Use Health Kit
+                    health_kit.use(obj)
+                    print("Health Kit used")
+                elif event.key == pg.K_5:  # Use Ammo Pack
+                    ammo_pack.use(obj)
+                    print("Ammo Pack used")
 
         # Stop movement in the direction of the collision
         # Update player position

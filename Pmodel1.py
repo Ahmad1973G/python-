@@ -48,6 +48,25 @@ class Power:
     def UsePower5(self):
         pass
 
+class HealthKit:
+    def __init__(self):
+        self.name = "Health Kit"
+        self.heal_amount = 25
+
+    def use(self, player):
+        player.health = min(player.health + self.heal_amount, player.max_health)
+        print(f"Used {self.name}. Health: {player.health}")
+
+
+class AmmoPack:
+    def __init__(self):
+        self.name = "Ammo Pack"
+        self.ammo_amount = 50
+
+    def use(self, player):
+        player.ammo = min(player.ammo + self.ammo_amount, player.max_ammo)
+        print(f"Used {self.name}. Ammo: {player.ammo}")
+
 class Player(pg.sprite.Sprite):
     def __init__(self, my_player, speed, weapon, power, max_health, acceleration, players, moving,
                  move_offset, coins, screen, players_sprites, my_sprite, *groups):
