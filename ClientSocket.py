@@ -82,22 +82,28 @@ class ClientServer:
             print("Received the ID packet, ID:", self.id)
             return self.id
 
-    def send_data(self, data):
-        try:
-            self.socket.send(data.encode())
-        except socket.error as e:
-            print(f"Error sending data: {e}")
+    def sendMOVE(self, x, y):
+        self.socket.send(f"MOVE {x};{y}".encode())
 
-    def receive_data(self):
+    def sendSHOOT(self, start_x, start_y, end_x, end_y):
+        self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y}".encode())
+
+    def sendDAMAGE(self, damage):
+        self.socket.send(f"DAMAGE {damage}".encode())
+
+    def sendPOWER(self, power):
+        self.socket.send(f"POWER {power}".encode())
+
+    def requestDATA(self):
+        self.socket.send("REQUEST".encode())
         data = self.socket.recv(1024)
-        return data.decode()
+        if data.decode().startswith("DATA"):
+            return json.loads(data.decode().split(" ")[-1])
 
-    def run_conn(self, data):
-        # print("Sending data...")
-        self.send_data(data)
-        # print("Data sent.")
-        response = self.receive_data()
-        # print("Received data.")
-        response = json.loads(response)
-        return response
+        elif data.decode().startswith("WARNING"):
+            return "WARNING"
+
+        elif data.decode().startswith("KICK"):
+            socket.close()
+            return "KICK"
 # This is the client socket that connects to the server and sends data to it.
