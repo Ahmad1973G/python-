@@ -25,7 +25,7 @@ class Power:
         Shield: Makes the player invulnerable for a few seconds
         Args:
             player (Player): The player object to apply the shield to.
-            duration (int): The duration of the invulnerability in milliseconds.
+        duration (int): The duration of the invulnerability in milliseconds.
         """
         player.original_health = player.health
         player.health = 9999999999  # temporary solution to invlunerablity
@@ -139,15 +139,15 @@ class Player(pg.sprite.Sprite):
     def print_players(self, players_sprites, screen):
         for player in players_sprites:
             player['image'].fill((255, 0, 0))
-            screen.blit(player['image'], player['rect'])
+            self.screen.blit(player['image'], player['rect'])
 
         # Draw the main player at the center
         image = pg.Surface((20, 20))
         image.fill(pg.Color('blue'))
         rect = image.get_rect(center=(500, 325))
-        screen.blit(image, rect)
+        self.screen.blit(image, rect)
 
-    def move(self, acceleration, move_offset, moving):
+    def move(self, players_sprites, acceleration, move_offset, moving):
         if not moving:
             return False, move_offset, self.my_player['x'], self.my_player['y']
 
