@@ -103,7 +103,7 @@ class ClientServer:
         elif data.decode().startswith("WARNING"):
             return "WARNING"
 
-        elif data.decode().startswith("END"):
+        elif data.decode().startswith("KICK"):
             socket.close()
-            return "END"
+            return "KICK"
 # This is the client socket that connects to the server and sends data to it.
