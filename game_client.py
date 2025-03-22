@@ -141,11 +141,14 @@ def run_game():
                             shot_offset[0]=0
                         endpos1=shot_offset[0]+500
                         endpos2=325-shot_offset[1]
-                        startpos1=500
-                        startpos2=325
+                        #startpos1=(shot_offset[0]+direction*shot_offset[1]+shot_offset[0]/abs(shot_offset[0])*math.sqrt(abs(2*shot_offset[1]*shot_offset[0]*direction+9-shot_offset[1]+9*direction**2-direction**2*shot_offset[0]**2)))/direction**2+1
+                        #tartpos1+=500
+                        #startpos2=325-startpos2
+                        #print (endpos1,endpos2,startpos1,startpos2)
+                        #-------------------------------------------------------------
                         # Create a surface to draw the line
                        # line = LineSprite((100, 150), (400, 300), (0, 255, 0), 5)
-                        pg.draw.line(screen,RED,(startpos1,startpos2), (endpos1,endpos2), width=5)
+                        pg.draw.line(screen,RED,(500,325), (endpos1,endpos2), width=5)
                         # pg.draw.circle(screen,RED,(500,325),granade_range, width=0)
                         pg.display.flip()
                         for i in range (0,players_sprites.__len__()):
