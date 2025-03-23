@@ -95,16 +95,25 @@ class ClientServer:
         self.socket.send(f"POWER {power}".encode())
 
     def requestDATA(self):
-        self.socket.send("REQUEST".encode())
-        data = self.socket.recv(1024)
-        data = data.decode()
-        if data.startswith("DATA"):
-            return json.loads(data.split(" ")[-1])
+        try:
+            self.socket.send("REQUEST".encode())
+            data = self.socket.recv(1024)
+            if not data:
+                return None
 
-        elif data.startswith("WARNING"):
-            return "WARNING"
+            data = data.decode()
+            if data == "WARNING":
+                return "WARNING"
+            elif data == "KICK":
+                self.socket.close()
+                return "KICK"
+            else:
+                # Assuming the data is just JSON without prefix
+                return json.loads(data)
 
-        elif data.startswith("KICK"):
-            socket.close()
-            return "KICK"
-# This is the client socket that connects to the server and sends data to it.
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+            return None
+        except socket.error as e:
+            print(f"Socket error: {e}")
+            return None
