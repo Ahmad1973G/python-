@@ -40,10 +40,10 @@ def shoot(weapons,players_sprites,bullet_sprite,screen,my_player):
                 shot_offset[0] -= 500
                 shot_offset[1] = 325 - shot_offset[1]
                 added_dis=range1*weapons[shared_data['used_weapon']]['bulet_speed']
-                end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(weapons[shared_data['used_weapon']]['range']/ (direction * direction + 1))
-                end2 = direction * end1
-                ClientSocket.ClientServer.sendSHOOT(my_player['x'],my_player['y'],end1,end2)
-                ClientSocket.ClientServer.sendDAMAGE(weapons[shared_data['used_weapon']]['damage'])
+                #end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(weapons[shared_data['used_weapon']]['range']/ (direction * direction + 1))
+                #nd2 = direction * end1
+                #ClientSocket.ClientServer.sendSHOOT(my_player['x'],my_player['y'],end1,end2)
+                #ClientSocket.ClientServer.sendDAMAGE(weapons[shared_data['used_weapon']]['damage'])
                 while abs(range1) < weapons[shared_data['used_weapon']]['range']-1 and not hit:
                     range1+=added_dis
                     # direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
