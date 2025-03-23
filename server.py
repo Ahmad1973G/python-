@@ -197,7 +197,7 @@ class SubServer:
             self.players_counter[client_id] += 1
             if self.players_counter[client_id] == 500:
                 self.connected_clients[client_id][1].send("WARNING".encode())
-                return
+                return 0
             elif self.players_counter[client_id] == 1000:
                 self.connected_clients[client_id][1].send("KICK".encode())
                 self.connected_clients[client_id][1].close()
@@ -223,7 +223,7 @@ class SubServer:
             elif message.startswith("POWER"):
                 self.process_power(client_id, message.split(" ")[-1])
             elif message.startswith("REQUEST"):
-                self.process_request(client_id)
+                return self.process_request(client_id)
 
             if self.updated_elements != {}:
                 self.players_counter[client_id] = 0
