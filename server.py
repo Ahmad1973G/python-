@@ -138,6 +138,7 @@ class SubServer:
     def handle_client(self, client_id):
         conn = self.connected_clients[client_id][1]
         client_address = self.connected_clients[client_id][0]
+        self.players_counter[client_id] = 0
         print(f"Connected to client {client_id} at {client_address}")
         try:
             while True:
@@ -205,7 +206,7 @@ class SubServer:
 
             other_players_data = {player_id: data for player_id, data in self.updated_elements.items() if player_id != client_id}
             other_players_data_str = json.dumps(other_players_data)
-            self.connected_clients[client_id][1].send(("DATA " + other_players_data_str).encode())
+            self.connected_clients[client_id][1].send(other_players_data_str.encode())
         except Exception as e:
             print(f"Error processing request for {client_id}: {e}")
         finally:
