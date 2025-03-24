@@ -11,7 +11,7 @@ class Inventory:
     def dropitem(self, index):
         self.slots[index] = None
         return self.slots
-    
+
     def pickupitem(self, item):
         for i in range(5):
             if self.slots[i] is None:
@@ -19,7 +19,7 @@ class Inventory:
                 return self.slots
         print("You don't have enough space")
         return self.slots
-    
+
     def buy(self, cost, wanteditem):
         if self.gold >= cost:
             self.gold -= cost
