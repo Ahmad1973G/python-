@@ -19,6 +19,8 @@ class database:
 
     self.c.execute("""CREATE TABLE IF NOT EXISTS players (
       PlayerID INTEGER PRIMARY KEY,
+      Username TEXT,
+      Password TEXT,
       PlayerModel INTEGER,
       PlayerLifecount INTEGER,
       PlayerMoney INTEGER,
@@ -37,9 +39,9 @@ class database:
 
     return(self.c.fetchall())
 
-  def createplayer(self, PlayerModel):
+  def createplayer(self, PlayerModel, Username, Password):
     id = self.id
-    self.c.execute("INSERT INTO players (PlayerID, PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, PlayerModel, 100, 0, 0, None, None, None, None, None)
+    self.c.execute("INSERT INTO players (PlayerID, Username, Password, PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, Username, Password, PlayerModel, 100, 0, 0, None, None, None, None, None)
     )
     self.id += 1
 
@@ -125,6 +127,51 @@ class database:
 
   def getplayerammo(self, PlayerID):
     self.c.execute("SELECT Playerammo FROM players WHERE PlayerID = ?", (PlayerID,))
+    return self.c.fetchall()
+  
+  def updateplayerusername(self, PlayerID, Username):
+    self.c.execute("UPDATE players SET Username = ? WHERE PlayerID = ?", (Username, PlayerID))
+    
+
+  def getplayerusername(self, PlayerID):
+    self.c.execute("SELECT Username FROM players WHERE PlayerID = ?", (PlayerID,))
+    return self.c.fetchall()
+  
+  def updateplayerpassword(self, PlayerID, Password):
+    self.c.execute("UPDATE players SET Password = ? WHERE PlayerID = ?", (Password, PlayerID))
+
+  def getplayerpassword(self, PlayerID):
+    self.c.execute("SELECT Password FROM players WHERE PlayerID = ?", (PlayerID,))
+    return self.c.fetchall()
+  
+  def getplayerid(self, Username):
+    self.c.execute("SELECT PlayerID FROM players WHERE Username = ?", (Username,))
+    return self.c.fetchall()
+  
+
+
+
+  def login(self, Username, Password):
+    self.c.execute("SELECT Password FROM players WHERE Username = ?", (Username,))
+    result = self.c.fetchone()
+    if result is None:
+        return "Username not found"
+    if result[0] == Password:
+        return True
+    return False
+  
+
+  def getusernames(self):
+    self.c.execute("SELECT Username FROM players")
+    return self.c.fetchall()
+  
+  def getpasswords(self):
+    self.c.execute("SELECT Password FROM players")
+    return self.c.fetchall()
+  
+
+  def getusernamesandpasswords(self):
+    self.c.execute("SELECT Username, Password FROM players")
     return self.c.fetchall()
 
 
