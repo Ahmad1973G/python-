@@ -1,58 +1,41 @@
 import pygame
 
 class Power:
-    def __init__(self, range, damage, radius): # this is useless for now
-        self.range = range
-        self.damage = damage
-        self.radius = radius
+    def __init__(self):
+        pass
 
-    def UsePower1(self, player, duration):
-        """
-        SuperSpeed: Doubles the player's speed for a few seconds.
-        Args:
-            player (Player): The player object to apply the speed boost to.
-            duration (int): The duration of the speed boost in milliseconds.
-        """
+    def power1(self, player):
+        """Speed boost: Doubles the player's speed for 5 seconds."""
         original_speed = player.speed
         player.speed *= 2  # Double the speed
-        pygame.time.set_timer(pygame.USEREVENT, duration)  # Set a timer for the duration
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.USEREVENT:
-                    player.speed = original_speed  # Reset speed to original value
-                    return  # End the power-up effect
-            # Your game loop code here
-            pygame.time.delay(10)  # Small delay to prevent the loop from running too fast
+        pygame.time.set_timer(pygame.USEREVENT + 1, 5000)  # Set a timer for 5 seconds
 
-    def UsePower2(self, player, duration):
-        """
-        Shield: Makes the player invulnerable for a few seconds
-        Args:
-            player (Player): The player object to apply the shield to.
-            duration (int): The duration of the invulnerability in milliseconds.
-        """
-        original_health = player.health
-        player.health = 9999999999  # temporary solution to invlunerablity
-        pygame.time.set_timer(pygame.USEREVENT, duration)  # Set a timer for the duration
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.USEREVENT:
-                    player.health = original.health  # Remove invulnerability
-                    return  # End the power-up effect
-            # Your game loop code here
-            pygame.time.delay(10)  # Small delay to prevent the loop from running too fast
+        def reset_speed():
+            player.speed = original_speed  # Reset speed to original value
+            pygame.time.set_timer(pygame.USEREVENT + 1, 0)  # Stop the timer
 
-    def UsePower3(self, player):
-        """
-        Replenish: Restores the player's health and ammo to maximum.
-        Args:
-            player (Player): The player object to replenish health and ammo for.
-        """
-        player.health = player.max_health
-        player.ammo = player.max_ammo
+        player.event_handlers[pygame.USEREVENT + 1] = reset_speed
 
-    def UsePower4(self):
-        pass
+    def power2(self, player):
+        """Shield: Makes the player invulnerable for 5 seconds."""
+        player.invulnerable = True  # Set invulnerability
+        pygame.time.set_timer(pygame.USEREVENT + 2, 5000)  # Set a timer for 5 seconds
 
-    def UsePower5(self):
-        pass
+        def disable_shield():
+            player.invulnerable = False  # Remove invulnerability
+            pygame.time.set_timer(pygame.USEREVENT + 2, 0)  # Stop the timer
+
+        player.event_handlers[pygame.USEREVENT + 2] = disable_shield
+
+    def power3(self, player):
+        """Regeneration: Adds 5 HP every second for 5 seconds."""
+        def regenerate():
+            if player.health < player.max_health:
+                player.health = min(player.health + 5, player.max_health)  # Add 5 HP
+            player.regen_ticks += 1
+            if player.regen_ticks >= 5:  # Stop after 5 ticks
+                pygame.time.set_timer(pygame.USEREVENT + 3, 0)  # Stop the timer
+
+        player.regen_ticks = 0
+        pygame.time.set_timer(pygame.USEREVENT + 3, 1000)  # Set a timer for 1 second intervals
+        player.event_handlers[pygame.USEREVENT + 3] = regenerate
