@@ -3,6 +3,9 @@ import json
 
 from pygame.examples.music_drop_fade import starting_pos
 import random
+
+from pygame.examples.music_drop_fade import starting_pos
+import random
 import Pmodel1
 import ClientSocket
 import threading
@@ -11,6 +14,7 @@ import pytmx
 import math
 import sys
 import os
+
 
 
 def load_tmx_map(filename):
@@ -24,6 +28,9 @@ def load_tmx_map(filename):
         print(f"❌ Error loading TMX file: {e} - {sys.exc_info()}")
         return None
 
+
+def big_boom_boom(players, screen, red, range):
+    pg.draw.circle(screen, red, (500, 325), range, width=0)
 
 def big_boom_boom(players, screen, red, range):
     pg.draw.circle(screen, red, (500, 325), range, width=0)
@@ -41,17 +48,27 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
     hit = False
     while True:
         shot_offset = (0, 0)
+        shot_offset = (0, 0)
         if shared_data['fire']:
+
+            if weapons[shared_data['used_weapon']]['ammo'] == 0:
+                print('out of ammo')
 
             if weapons[shared_data['used_weapon']]['ammo'] == 0:
                 print('out of ammo')
             else:
                 hit = False
                 range1 = 1
+                hit = False
+                range1 = 1
                 weapons[shared_data['used_weapon']]['ammo'] -= 1
                 shot_offset = list(pg.mouse.get_pos())
                 shot_offset[0] -= 500
                 shot_offset[1] = 325 - shot_offset[1]
+                added_dis = range1 * weapons[shared_data['used_weapon']]['bulet_speed']
+
+                while abs(range1) < weapons[shared_data['used_weapon']]['range'] - 1 and not hit:
+                    range1 += added_dis
                 added_dis = range1 * weapons[shared_data['used_weapon']]['bulet_speed']
 
                 while abs(range1) < weapons[shared_data['used_weapon']]['range'] - 1 and not hit:
@@ -63,7 +80,13 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                             range1 / (direction * direction + 1))
                         shot_offset[1] = direction * shot_offset[
                             0]  # shot offset is the x,y of the max distance of shot
+                        shot_offset[1] = direction * shot_offset[
+                            0]  # shot offset is the x,y of the max distance of shot
                     except ZeroDivisionError:
+                        shot_offset[1] = (shot_offset[1] / abs(shot_offset[1]) * math.sqrt(range1))
+                        shot_offset[0] = 0
+                    bullet_sprite['rect'].x = shot_offset[0] + 500
+                    bullet_sprite['rect'].y = 325 - shot_offset[1]
                         shot_offset[1] = (shot_offset[1] / abs(shot_offset[1]) * math.sqrt(range1))
                         shot_offset[0] = 0
                     bullet_sprite['rect'].x = shot_offset[0] + 500
@@ -71,6 +94,9 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                     bullet_sprite['image'].fill((0, 255, 0))
                     screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
                     pg.display.flip()
+
+                    # --------------------------------------------------------------
+                    for i in range(0, players_sprites.__len__()):
 
                     # --------------------------------------------------------------
                     for i in range(0, players_sprites._len_()):
@@ -143,8 +169,10 @@ moving = False
 lock = threading.Lock()
 
 
+
 def run_game():
     pg.init()
+
 
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
@@ -154,8 +182,15 @@ def run_game():
         # {"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
         # {"x": 300, "y": 400, "width": 20, "height": 20, "id": 2},
         # {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
+        # {"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
+        # {"x": 300, "y": 400, "width": 20, "height": 20, "id": 2},
+        # {"x": 700, "y": 500, "width": 20, "height": 20, "id": 3}
     ]
     weapons = [
+        {"damage": 25, "range": 10000, 'bulet_speed': 70, 'ammo': 50, 'max_ammo': 50, 'weapon_id': 1},
+        {"damage": 20, "range": 70000, 'bulet_speed': 80, 'ammo': 20, 'max_ammo': 20, 'weapon_id': 2},
+        {"damage": 15, "range": 120000, 'bulet_speed': 100, 'ammo': 7, 'max_ammo': 7, 'weapon_id': 3}
+
         {"damage": 25, "range": 10000, 'bulet_speed': 70, 'ammo': 50, 'max_ammo': 50, 'weapon_id': 1},
         {"damage": 20, "range": 70000, 'bulet_speed': 80, 'ammo': 20, 'max_ammo': 20, 'weapon_id': 2},
         {"damage": 15, "range": 120000, 'bulet_speed': 100, 'ammo': 7, 'max_ammo': 7, 'weapon_id': 3}
@@ -172,6 +207,14 @@ def run_game():
     direction = 0  # like m in y=mx+b
     RED = (255, 0, 0)
     sum_offset = [0, 0]
+    # my_sprite = Pmodel1.Player.convert_to_sprite(my_player['x'], my_player['y'], my_player['height'], my_player['width'],my_player['id'])
+    # players_sprites = [
+    #   Pmodel1.Player.convert_to_sprite(player['x'], player['y'], player['height'], player['width'], player['id'])
+    #  for player in players
+    # ]
+    bullet_sprite = {
+        "image": pg.Surface((10, 10)),
+        "rect": pg.Rect(500, 325, 10, 10),
     # my_sprite = Pmodel1.Player.convert_to_sprite(my_player['x'], my_player['y'], my_player['height'], my_player['width'],my_player['id'])
     # players_sprites = [
     #   Pmodel1.Player.convert_to_sprite(player['x'], player['y'], player['height'], player['width'], player['id'])
@@ -229,6 +272,7 @@ def run_game():
     #thread_movement.start()
     while running:
 
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
@@ -246,7 +290,12 @@ def run_game():
                 elif event.key == pg.K_3:
                     shared_data['used_weapon'] = 2
                 # obj.shoot(used_weapon)
+                # obj.shoot(used_weapon)
                 elif event.key == pg.K_q:
+                    big_boom_boom(players, screen, RED, granade_range)
+                elif event.key == pg.K_r:
+                    weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
+                    # Stop movement in the direction of the collisio
                     big_boom_boom(players, screen, RED, granade_range)
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
@@ -335,9 +384,11 @@ def run_game():
         #world_offset = (500 - my_player['x'], 325 - my_player['y'])
         # draw_map(screen, tmx_data, world_offset)
 
+
         pg.display.flip()
         clock.tick(60)
     pg.quit()
+
 
 
 run_game()
