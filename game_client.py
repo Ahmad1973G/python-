@@ -7,6 +7,7 @@ import pytmx
 import math
 import sys
 import os
+import time
 
 
 def load_tmx_map(filename):

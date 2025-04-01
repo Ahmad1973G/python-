@@ -22,7 +22,22 @@ class Player(pg.sprite.Sprite):
         self.image = pg.Surface((my_player['width'], my_player['height']))
         self.image.fill((255, 0, 0))  # Fill with red for visibility
         self.rect = self.image.get_rect(topleft=(500, 325))  # Set initial position
+        self.invulnerability = False # is the player invlunerable?
+        self.invlunerability_time = None # Time when invlunerability ends.
 
+#-------------------------------------Powerups-------------------------------------#
+    def activate_invlunerability(self, duration):
+        """ Activate invulnerability for a certain duration """
+        self.invulnerability = True
+        self.invlunerability_time = pg.time.get_ticks() + duration
+    
+    def check_invlunerability(self):
+        """ Check if the invulnerability period is over """
+        if self.invulnerability and time.time() > self.invlunerability_time:
+            self.invulnerability = False
+#-------------------------------------Powerups-------------------------------------#
+
+#-------------------------------------Items----------------------------------------#
     def update_players_sprites(self, players, players_sprites):
         self.players = players
         self.players_sprites = players_sprites
