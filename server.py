@@ -2,6 +2,7 @@ import socket
 import json
 import threading
 import random
+from re import match
 
 # Configuration
 LB_PORT = 5002
@@ -213,6 +214,25 @@ class SubServer:
         finally:
             return 0
 
+    def process_requestFull(self, client_id):
+        try:
+            self.players_counter[client_id] += 1
+            if self.players_counter[client_id] == 10000:
+                self.connected_clients[client_id][1].send("WARNING".encode())
+                return 0
+            elif self.players_counter[client_id] == 100000:
+                self.connected_clients[client_id][1].send("KICK".encode())
+                self.connected_clients[client_id][1].close()
+                return 1
+
+            other_players_data = {player_id: data for player_id, data in self.players_data.items() if player_id != client_id}
+            other_players_data_str = json.dumps(other_players_data)
+            self.connected_clients[client_id][1].send(other_players_data_str.encode())
+        except Exception as e:
+            print(f"Error processing request for {client_id}: {e}")
+        finally:
+            return 0
+
     def process_player_data(self, client_id, message: str):
         try:
             self.updated_elements[client_id] = {}
@@ -224,8 +244,12 @@ class SubServer:
                 self.process_damage_taken(client_id, message.split(" ")[-1])
             elif message.startswith("POWER"):
                 self.process_power(client_id, message.split(" ")[-1])
+            elif message.startswith("REQUESTFULL"):
+                return self.process_requestFull(client_id)
             elif message.startswith("REQUEST"):
                 return self.process_request(client_id)
+            else:
+                print("Unknown protocol, ignoring")
 
             if self.updated_elements != {}:
                 self.players_counter[client_id] = 0
