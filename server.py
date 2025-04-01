@@ -26,7 +26,7 @@ class SubServer:
         self.lb_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.udp_socket.bind(('0.0.0.0', UDP_PORT))
+        self.udp_socket.bind((get_ip_address(), UDP_PORT))
         self.server_address = (get_ip_address(), SERVER_PORT)
         self.server_socket.bind(self.server_address)
         self.server_socket.listen()
