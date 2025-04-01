@@ -42,6 +42,8 @@ def draw_map(screen, tmx_data, world_offset):
 def run_game():
     pg.init()
 
+    powerup_cooldown = 10  # Cooldown duration in seconds
+    last_powerup_use_time = 0  # Time when powerup was last used
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
     font = pg.font.Font(None, 36)
@@ -174,8 +176,15 @@ def run_game():
                     big_boom_boom(players,screen,RED,granade_range)
                 # Powerups and Items activation
                 elif event.key == pg.K_w:
-                    obj.activate_invulnerability(5)  # Activate invulnerability for 5 seconds
-                    print("Invulnerability activated")
+                    current_time = time.time()
+                    if current_time - last_powerup_use_time >= powerup_cooldown:
+                        obj.activate_invulnerability(5)  # Activate invulnerability
+                        last_powerup_use_time = current_time  # Update last used time
+                        print("Vulnerability activated")
+                    else:
+                        time_left = powerup_cooldown - (current_time - last_powerup_use_time)
+                        print(f"Powerup on cooldown. {time_left:.2f} seconds left.")
+
                 elif event.key == pg.K_4:
                     obj.heal(50)  # Heal with medkit
                     print("Restored 50 health")
