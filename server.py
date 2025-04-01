@@ -174,7 +174,8 @@ class SubServer:
             start_y = message.split(';')[1]
             end_x = message.split(';')[2]
             end_y = message.split(';')[3]
-            self.updated_elements[client_id]['shoot'] = (start_x, start_y, end_x, end_y)
+            weapon = message.split(';')[4]
+            self.updated_elements[client_id]['shoot'] = [start_x, start_y, end_x, end_y, weapon]
         except Exception as e:
             print(f"Error processing shoot for {client_id}: {e}")
 
@@ -196,10 +197,10 @@ class SubServer:
     def process_request(self, client_id):
         try:
             self.players_counter[client_id] += 1
-            if self.players_counter[client_id] == 500:
+            if self.players_counter[client_id] == 10000:
                 self.connected_clients[client_id][1].send("WARNING".encode())
                 return 0
-            elif self.players_counter[client_id] == 1000:
+            elif self.players_counter[client_id] == 100000:
                 self.connected_clients[client_id][1].send("KICK".encode())
                 self.connected_clients[client_id][1].close()
                 return 1
