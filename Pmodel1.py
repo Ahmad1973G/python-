@@ -1,9 +1,10 @@
+import time  # Import time for managing powerup durations
 import pygame as pg
 import json
 
 class Player(pg.sprite.Sprite):
-    def __init__(self, my_player, speed, weapon, power,max_health, acceleration, players, moving,
-                 move_offset, coins, screen, players_sprites, my_sprite, *groups):
+    def __init__(self, my_player, speed, weapon, power, max_health, acceleration, players, moving,
+             move_offset, coins, screen, players_sprites, my_sprite, weapons, *groups):
         super().__init__(*groups)  # Pass groups to the Sprite initializer
         self.my_player = my_player
         self.speed = speed
@@ -22,30 +23,54 @@ class Player(pg.sprite.Sprite):
         self.image = pg.Surface((my_player['width'], my_player['height']))
         self.image.fill((255, 0, 0))  # Fill with red for visibility
         self.rect = self.image.get_rect(topleft=(500, 325))  # Set initial position
-        self.invulnerability = False # is the player invlunerable?
-        self.invlunerability_time = None # Time when invlunerability ends.
+        self.weapons = weapons
+        # New attributes for powerups and items
+        self.invulnerability = False  # Tracks if the player is invulnerable
+        self.invulnerability_end_time = None  # Time when invulnerability ends
 
-#-------------------------------------Powerups-------------------------------------#
-    def activate_invlunerability(self, duration):
-        """ Activate invulnerability for a certain duration """
+    def activate_invulnerability(self, duration):
         self.invulnerability = True
-        self.invlunerability_time = pg.time.get_ticks() + duration
-    
-    def check_invlunerability(self):
-        """ Check if the invulnerability period is over """
-        if self.invulnerability and time.time() > self.invlunerability_time:
-            self.invulnerability = False
-#-------------------------------------Powerups-------------------------------------#
+        self.original_health = self.health
+        self.health = 9999999  # Set health to a very high value to simulate invulnerability
+        self.invulnerability_end_time = time.time() + duration
+        print("Invulnerability activated")
 
-#-------------------------------------Items----------------------------------------#
+            
+    def check_invulnerability(self):
+        """Check if the invulnerability period has ended."""
+        if self.invulnerability and time.time() > self.invulnerability_end_time:
+            self.invulnerability = False
+            self.health = self.original_health  # Restore original health
+
+    def update(self):
+        """Update player state (e.g., check if invulnerability has expired)."""
+        self.check_invulnerability()
+
+
+    def heal(self, amount):
+        """Heal the player by a specified amount."""
+        if(self.health + amount > 0):
+            self.health = min(self.health + amount, self.max_health)  # Cap at max_health
+        else:
+            self.health = 0
+
+    def add_ammo(self, weapon_id, amount):
+        for weapon in self.weapons:
+            if weapon['weapon_id'] == weapon_id:
+                if (weapon['ammo'] + amount > 0):
+                    weapon['ammo'] += amount
+                else:
+                    weapon['ammo'] = 0
+
+
     def update_players_sprites(self, players, players_sprites):
         self.players = players
         self.players_sprites = players_sprites
-        
+
     def you_dead(self):
-        print ('dead')
-        
-    def convert_to_sprite(x, y, height, width, player_id):
+        print('dead')
+
+    def convert_to_sprite(self, x, y, height, width, player_id):
         # Create a simple representation of the sprite
         sprite = {
             "image": pg.Surface((width, height)),
@@ -65,11 +90,9 @@ class Player(pg.sprite.Sprite):
         return json.dumps(client_loc)
 
     def print_players(self, players_sprites, screen):
-
         for player in players_sprites:
             player['image'].fill((255, 0, 0))
             self.screen.blit(player['image'], player['rect'])
-
         # Draw the main player at the center
         image = pg.Surface((20, 20))
         image.fill(pg.Color('blue'))
@@ -79,15 +102,10 @@ class Player(pg.sprite.Sprite):
     def move(self, players_sprites, acceleration, move_offset, moving):
         if not moving:
             return False, move_offset, self.my_player['x'], self.my_player['y']
-
         move_offset = (move_offset[0] * (1 - acceleration), move_offset[1] * (1 - acceleration))
         self.my_player['x'] += move_offset[0] * acceleration
         self.my_player['y'] += move_offset[1] * acceleration
         if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
             return False, (0, 0), self.my_player['x'], self.my_player['y']  # Stop moving when close enough
-
         return True, move_offset, self.my_player['x'], self.my_player['y']
 
-
-if __name__ == '__main__':
-    pg.quit()

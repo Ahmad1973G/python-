@@ -44,6 +44,7 @@ def run_game():
 
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
+    font = pg.font.Font(None, 36)
     my_player = {'x': 400, 'y': 500, 'width': 20, 'height': 20, 'id': 0,'hp':100}
     players = [
         {"x": 300, "y": 200, "width": 20, "height": 20, "id": 1},
@@ -98,8 +99,9 @@ def run_game():
         0,
         screen,
         players_sprites,
-        my_sprite
-    )  # Create PlayerSprite objects for each player
+        my_sprite,
+        weapons)
+  # Create PlayerSprite objects for each player
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
     #--------------------------------------------------------------------------------
@@ -170,6 +172,22 @@ def run_game():
                 # obj.shoot(used_weapon)
                 elif event.key == pg.K_q:
                     big_boom_boom(players,screen,RED,granade_range)
+                # Powerups and Items activation
+                elif event.key == pg.K_w:
+                    obj.activate_invulnerability(5)  # Activate invulnerability for 5 seconds
+                    print("Invulnerability activated")
+                elif event.key == pg.K_4:
+                    obj.heal(50)  # Heal with medkit
+                    print("Restored 50 health")
+                elif event.key == pg.K_5:
+                    obj.add_ammo(weapon_id=used_weapon+1, amount=10)  # Add ammo
+                    print("Added 10 ammo to weapon")
+                elif event.key == pg.K_6:
+                    obj.add_ammo(weapon_id=used_weapon+1, amount=-10)
+                    print("Removed 10 ammo from weapon")
+                elif event.key == pg.K_7:
+                    obj.heal(-50) #remove health
+                    print("Removed 50 health")
                        
         # Stop movement in the direction of the collisio
         # Update player position
@@ -231,7 +249,21 @@ def run_game():
             players[i]['x'] = players_sprites[i]['rect'].x
             players[i]['y'] = players_sprites[i]['rect'].y
         obj.update_players_sprites(players, players_sprites)
+
+        obj.update() # Add this line here
+        
         screen.fill(BLACK)
+
+        # Render Health and ammo text on the map
+        health_text = font.render(f"Health: {obj.health}", True, (255,255,255)) # White color
+        ammo_text = font.render(f"Ammo: {weapons[used_weapon]['ammo']}", True, (255, 255, 255))
+
+        screen.blit(health_text, (10, 10))  # Position at the top-left corner
+        screen.blit(ammo_text, (10, 50))  # Position below the health text
+
+        obj.print_players(players_sprites, screen)
+        pg.display.flip()
+
         world_offset = (500 - my_player['x'], 325 - my_player['y'])
         # draw_map(screen, tmx_data, world_offset)
         obj.print_players(players_sprites, screen)

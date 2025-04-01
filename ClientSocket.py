@@ -85,8 +85,8 @@ class ClientServer:
     def sendMOVE(self, x, y):
         self.socket.send(f"MOVE {x};{y}".encode())
 
-    def sendSHOOT(self, start_x, start_y, end_x, end_y):
-        self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y}".encode())
+    def sendSHOOT(self, start_x, start_y, end_x, end_y, weapon):
+        self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y};{weapon}".encode())
 
     def sendDAMAGE(self, damage):
         self.socket.send(f"DAMAGE {damage}".encode())
@@ -97,6 +97,30 @@ class ClientServer:
     def requestDATA(self):
         try:
             self.socket.send("REQUEST".encode())
+            data = self.socket.recv(1024)
+            if not data:
+                return None
+
+            data = data.decode()
+            if data == "WARNING":
+                return "WARNING"
+            elif data == "KICK":
+                self.socket.close()
+                return "KICK"
+            else:
+                # Assuming the data is just JSON without prefix
+                return json.loads(data)
+
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+            return None
+        except socket.error as e:
+            print(f"Socket error: {e}")
+            return None
+
+    def requestDATAFULL(self):
+        try:
+            self.socket.send("REQUESTFULL".encode())
             data = self.socket.recv(1024)
             if not data:
                 return None
