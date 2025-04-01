@@ -86,6 +86,9 @@ class Player(pg.sprite.Sprite):
             "y": self.my_player['y'],
             "width": self.my_player['width'],
             "height": self.my_player['height'],
+            "invulnerability": self.invulnerability,
+            "health": self.health,
+            "weapons": self.weapons
         }
         return json.dumps(client_loc)
 
