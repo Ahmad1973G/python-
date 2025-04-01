@@ -85,8 +85,8 @@ class ClientServer:
     def sendMOVE(self, x, y):
         self.socket.send(f"MOVE {x};{y}".encode())
 
-    def sendSHOOT(self, start_x, start_y, end_x, end_y):
-        self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y}".encode())
+    def sendSHOOT(self, start_x, start_y, end_x, end_y, weapon):
+        self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y};{weapon}".encode())
 
     def sendDAMAGE(self, damage):
         self.socket.send(f"DAMAGE {damage}".encode())
