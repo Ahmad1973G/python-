@@ -191,7 +191,8 @@ class SubServer:
     def process_power(self, client_id, message: str):
         try:
             power = message.split(';')
-            self.updated_elements[client_id]['power'] = power, self.players_data['x'], self.players_data['y']
+            self.updated_elements[client_id]['power'] = power, self.players_data['x'], self.players_data['y'], self.players_data['invlulnerability']
+            self.players_data[client_id]['power'] = power, self.players_data['x'], self.players_data['y'], self.players_data['invlulnerability']
         except Exception as e:
             print(f"Error processing power for {client_id}: {e}")
 
