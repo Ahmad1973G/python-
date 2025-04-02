@@ -92,6 +92,22 @@ class SubServer:
             return True
         return False
 
+    #def sendID(self):
+    #    try:
+    #        conn, addr = self.server_socket.accept()
+    #        print("Accepted connection from client")
+    #        client_id = random.randint(1, 1000)
+     #       while client_id in self.connected_clients.keys():
+      #          client_id = random.randint(1, 1000)
+       #     self.connected_clients[client_id] = (addr, conn)
+       #     self.players_data[client_id] = {}
+       #     conn.send(f"ID CODE 69 {client_id}".encode())
+       #     print("Sent ID to client")
+       #     self.connected_clients[client_id] = (addr, conn)
+       #     return client_id
+       # except Exception as e:
+       #     print(f"Error accepting connection from client: {e}")
+
     def sendID(self):
         try:
             conn, addr = self.server_socket.accept()
@@ -103,10 +119,10 @@ class SubServer:
             self.players_data[client_id] = {}
             conn.send(f"ID CODE 69 {client_id}".encode())
             print("Sent ID to client")
-            self.connected_clients[client_id] = (addr, conn)
             return client_id
         except Exception as e:
             print(f"Error accepting connection from client: {e}")
+            return None  # Return None if an error occurs
 
     def client_start_protocol(self):
         print("Listening for clients")

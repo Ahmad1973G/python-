@@ -21,7 +21,6 @@ class LoadBalancer:
         self.socket.settimeout(5)
         print(f"Load Balancer on {self.IP}:{self.PORT}")
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udp_socket.bind((self.IP, self.PORT + 1))
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     def get_ip_address(self):
@@ -100,7 +99,7 @@ class LoadBalancer:
 
     def start_protocol(self):
         while self.servers.__len__() <= 5:
-            self.broadcast_packet(self.createSYNCpacket(), self.udp_socket.getsockname()[1])
+            self.broadcast_packet(self.createSYNCpacket(), self.PORT + 1)
             print("Sent SYNC packet again")
 
             try:
