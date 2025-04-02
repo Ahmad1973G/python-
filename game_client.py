@@ -123,15 +123,19 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
         #      p
 
 
-def draw_map(screen, tmx_data, world_offset):
-    """Draw the TMX map with an offset to simulate camera movement."""
-    for layer in tmx_data.layers:
+def render_map(tmx_data):
+    """Render the TMX map onto a surface once."""
+    map_surface = pg.Surface((tmx_data.width * tmx_data.tilewidth,
+                              tmx_data.height * tmx_data.tileheight))
+
+    for layer in tmx_data.visible_layers:
         if isinstance(layer, pytmx.TiledTileLayer):
             for x, y, gid in layer:
                 tile = tmx_data.get_tile_image_by_gid(gid)
                 if tile:
-                    screen.blit(tile, (x * tmx_data.tilewidth + world_offset[0],
-                                       y * tmx_data.tileheight + world_offset[1]))
+                    map_surface.blit(tile, (x * tmx_data.tilewidth, y * tmx_data.tileheight))
+
+    return map_surface
 
 
 shared_data = {"fire": False, "used_weapon": 0, 'move_offset': (500, 325), 'got_shot': False, 'recived': {}}
@@ -161,7 +165,7 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    # tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
+    tmx_data = load_tmx_map("c:/webroot/map.tmx")
     acceleration = 0.1
 
     moving = False
@@ -214,6 +218,7 @@ def run_game():
     players = [
     ]
     # print (players)
+    map_surface = render_map(tmx_data)
     running = True
     h = None
     g = None
@@ -316,7 +321,7 @@ def run_game():
                     elif move_offset[1] < 0:  # Moving up
                         tp2 = 360  # Knockback downward
                     move_offset = (tp - 500, tp2 - 325)
-            moving, move_offset, my_player['x'], my_player['y'] = obj.move(acceleration, move_offset, moving)
+            moving, move_offset, my_player['x'], my_player['y'] = obj.move(moving, acceleration, move_offset, moving)
             print(my_player['x'], my_player['y'])
 
             time.sleep(0.0001)
@@ -329,7 +334,8 @@ def run_game():
             screen.blit(image, rect)
         Socket.sendMOVE(my_player['x'], my_player['y'])
         world_offset = (500 - my_player['x'], 325 - my_player['y'])
-        # draw_map(screen, tmx_data, world_offset)
+        screen.blit(map_surface, world_offset)
+        obj.print_players(players_sprites, screen)
 
         pg.display.flip()
         clock.tick(60)
