@@ -152,15 +152,19 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
         #      p
 
 
-def draw_map(screen, tmx_data, world_offset):
-    """Draw the TMX map with an offset to simulate camera movement."""
-    for layer in tmx_data.layers:
+def render_map(tmx_data):
+    """Render the TMX map onto a surface once."""
+    map_surface = pg.Surface((tmx_data.width * tmx_data.tilewidth,
+                              tmx_data.height * tmx_data.tileheight))
+
+    for layer in tmx_data.visible_layers:
         if isinstance(layer, pytmx.TiledTileLayer):
             for x, y, gid in layer:
                 tile = tmx_data.get_tile_image_by_gid(gid)
                 if tile:
-                    screen.blit(tile, (x * tmx_data.tilewidth + world_offset[0],
-                                       y * tmx_data.tileheight + world_offset[1]))
+                    map_surface.blit(tile, (x * tmx_data.tilewidth, y * tmx_data.tileheight))
+
+    return map_surface
 
 
 shared_data = {"fire": False, "used_weapon": 0, 'move_offset': (500, 325), 'got_shot': False, 'recived': {}}
@@ -201,7 +205,7 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    # tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
+    #tmx_data = load_tmx_map("c:/webroot/map.tmx")
     acceleration = 0.1
     colision_player = 0
     direction = 0  # like m in y=mx+b
@@ -270,6 +274,7 @@ def run_game():
     thread_shooting.daemon = True
     thread_shooting.start()
     #thread_movement.start()
+    #map_surface = render_map(tmx_data)  # Render the map once
     while running:
 
 
@@ -379,7 +384,7 @@ def run_game():
             image = pg.Surface((20, 20))
             image.fill(pg.Color('blue'))
             rect = image.get_rect(center=(500, 325))
-            screen.blit(image, rect)
+            screen.blit(image, rect)            
 
         #world_offset = (500 - my_player['x'], 325 - my_player['y'])
         # draw_map(screen, tmx_data, world_offset)
