@@ -80,16 +80,17 @@ class Player(pg.sprite.Sprite):
         sprite["image"].fill((255, 0, 0))  # Fill with red for visibility
         return sprite
  
+    
     def convert_to_json(self):  # receives info and turns it into a json file
-    client_loc = {
-        "x": self.my_player['x'],
-        "y": self.my_player['y'],
-        "width": self.my_player['width'],
-        "height": self.my_player['height'],
-        "invulnerability": self.invulnerability,  # Add invulnerability status
-        "health": self.health, # Add health status
-    }
-    return json.dumps(client_loc)
+        client_loc = {
+            "x": self.my_player['x'],
+            "y": self.my_player['y'],
+            "width": self.my_player['width'],
+            "height": self.my_player['height'],
+            "invulnerability": self.invulnerability,  # Add invulnerability status
+            "health": self.health, # Add health status
+        }
+        return json.dumps(client_loc)
 
  
     def print_players(self, players_sprites, screen):
