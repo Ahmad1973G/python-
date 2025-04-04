@@ -2,6 +2,7 @@ import socket
 import json
 import threading
 import random
+import time
 
 # Configuration
 LB_PORT = 5002
@@ -26,7 +27,7 @@ class SubServer:
         self.lb_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.udp_socket.bind(('0.0.0.0', UDP_PORT))
+        self.udp_socket.bind((get_ip_address(), UDP_PORT))
         self.server_address = (get_ip_address(), SERVER_PORT)
         self.server_socket.bind(self.server_address)
         self.server_socket.listen()
@@ -139,6 +140,8 @@ class SubServer:
         conn = self.connected_clients[client_id][1]
         client_address = self.connected_clients[client_id][0]
         self.players_counter[client_id] = 0
+        self.updated_elements[client_id] = {}
+        self.players_data[client_id] = {}
         print(f"Connected to client {client_id} at {client_address}")
         try:
             while True:
@@ -155,7 +158,13 @@ class SubServer:
             print(f"Client {client_address} disconnected.")
             del self.connected_clients[client_id]
             del self.players_data[client_id]
-            del self.updated_elements[client_id]
+            del self.players_counter[client_id]
+            self.updated_elements[client_id] = {'dead': True}
+            start_time = time.time()
+            while True:
+                if time.time() - start_time > 10:
+                    del self.updated_elements[client_id]
+                    break
             conn.close()
 
     def process_move(self, client_id, message: str):
@@ -166,6 +175,7 @@ class SubServer:
             self.updated_elements[client_id]['y'] = y
             self.players_data[client_id]['x'] = x
             self.players_data[client_id]['y'] = y
+            self.connected_clients[client_id][1].send("ACK".encode())
         except Exception as e:
             print(f"Error processing move for {client_id}: {e}")
 
@@ -175,7 +185,9 @@ class SubServer:
             start_y = message.split(';')[1]
             end_x = message.split(';')[2]
             end_y = message.split(';')[3]
-            self.updated_elements[client_id]['shoot'] = (start_x, start_y, end_x, end_y)
+            weapon = message.split(';')[4]
+            self.updated_elements[client_id]['shoot'] = [start_x, start_y, end_x, end_y, weapon]
+            self.connected_clients[client_id][1].send("ACK".encode())
         except Exception as e:
             print(f"Error processing shoot for {client_id}: {e}")
 
@@ -184,6 +196,7 @@ class SubServer:
             damage = message
             self.updated_elements[client_id]['health'] -= damage
             self.players_data[client_id]['health'] -= damage
+            self.connected_clients[client_id][1].send("ACK".encode())
         except Exception as e:
             print(f"Error processing damage taken for {client_id}: {e}")
 
@@ -191,21 +204,41 @@ class SubServer:
         try:
             power = message.split(';')
             self.updated_elements[client_id]['power'] = power, self.players_data['x'], self.players_data['y']
+            self.connected_clients[client_id][1].send("ACK".encode())
         except Exception as e:
             print(f"Error processing power for {client_id}: {e}")
 
     def process_request(self, client_id):
         try:
             self.players_counter[client_id] += 1
-            if self.players_counter[client_id] == 500:
+            if self.players_counter[client_id] == 10000:
                 self.connected_clients[client_id][1].send("WARNING".encode())
                 return 0
-            elif self.players_counter[client_id] == 1000:
+            elif self.players_counter[client_id] == 100000:
                 self.connected_clients[client_id][1].send("KICK".encode())
                 self.connected_clients[client_id][1].close()
                 return 1
 
-            other_players_data = {player_id: data for player_id, data in self.updated_elements.items() if player_id != client_id}
+            other_players_data = {player_id: data for player_id, data in self.updated_elements.items() if data != {}}
+            other_players_data_str = json.dumps(other_players_data)
+            self.connected_clients[client_id][1].send(other_players_data_str.encode())
+        except Exception as e:
+            print(f"Error processing request for {client_id}: {e}")
+        finally:
+            return 0
+
+    def process_requestFull(self, client_id):
+        try:
+            self.players_counter[client_id] += 1
+            if self.players_counter[client_id] == 10000:
+                self.connected_clients[client_id][1].send("WARNING".encode())
+                return 0
+            elif self.players_counter[client_id] == 100000:
+                self.connected_clients[client_id][1].send("KICK".encode())
+                self.connected_clients[client_id][1].close()
+                return 1
+
+            other_players_data = {player_id: data for player_id, data in self.players_data.items() if data != {}}
             other_players_data_str = json.dumps(other_players_data)
             self.connected_clients[client_id][1].send(other_players_data_str.encode())
         except Exception as e:
@@ -215,19 +248,26 @@ class SubServer:
 
     def process_player_data(self, client_id, message: str):
         try:
-            self.updated_elements[client_id] = {}
             if message.startswith("MOVE"):
                 self.process_move(client_id, message.split(" ")[-1])
+                print("recived move!")
+                print(self.updated_elements)
             elif message.startswith("SHOOT"):
                 self.process_shoot(client_id, message.split(" ")[-1])
             elif message.startswith("DAMAGE"):
                 self.process_damage_taken(client_id, message.split(" ")[-1])
             elif message.startswith("POWER"):
                 self.process_power(client_id, message.split(" ")[-1])
+            elif message.startswith("REQUESTFULL"):
+                self.updated_elements[client_id] = {}
+                return self.process_requestFull(client_id)
             elif message.startswith("REQUEST"):
+                self.updated_elements[client_id] = {}
                 return self.process_request(client_id)
+            else:
+                print("Unknown protocol, ignoring")
 
-            if self.updated_elements != {}:
+            if client_id in self.players_counter.keys():
                 self.players_counter[client_id] = 0
             else:
                 self.players_counter[client_id] = 0
