@@ -215,13 +215,7 @@ def run_game():
         "rect": pg.Rect(500, 325, my_player["width"], my_player["height"]),
     }
 
-    players_sprites = [
-        {
-            "image": pg.Surface((data["width"], data["height"])),
-            "rect": pg.Rect(data["x"], data["y"], data["width"], data["height"]),
-        }
-        for key, data in players.items()
-    ]
+    players_sprites = {}
 
     obj = Pmodel1.Player(
         my_player,
@@ -236,15 +230,35 @@ def run_game():
         0,
         screen,
         players_sprites,
-        my_sprite
+        my_sprite,
+        weapons
     )  # Create PlayerSprite objects for each player
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
     # --------------------------------------------------------------------------------
     Socket.connect()
+    shared_data['recived'] = Socket.requestDATAFULL()
+    if shared_data['recived'] != {}:
+        for key, data in shared_data['recived'].items():
+            old_player = {
+                'x': int(float(data['x']) - float(obj.my_player['x']) + 500),
+                'y': int(float(data['y']) - float(obj.my_player['y']) + 325),
+                'width': 20,
+                'height': 20,
+                'hp': 100
+            }
+            players[key] = old_player
+            old_player = {
+                'image': pg.Surface((players[key]['width'], players[key]['height'])),
+                'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])
+            }
+            players_sprites[key] = old_player
+    else:
+        players = {}
+        players_sprites = {}
+
     Socket.sendMOVE(my_player['x'], my_player['y'])
-    bla = Socket.requestDATAFULL()
-    players = shared_data['recived']
+
     # print (players)
     running = True
     h = None
@@ -301,39 +315,33 @@ def run_game():
         for key, data in shared_data['recived'].items():
             if key in players:
                 if 'x' in data:
-                    players[key]['x'] = data['x']
-                    players[key]['y'] = data['y']
-                    players[key]['x'] = int(float(players[key]['x']) - float(obj.my_player['x']) + 500)
-                    players[key]['y'] = int(float(players[key]['y']) - float(obj.my_player['y']) + 325)
+                    players[key]['x'] = int(float(data['x']) - float(obj.my_player['x']) + 500)+sum_offset[0]
+                    players[key]['y'] = int(float(data['y']) - float(obj.my_player['y']) + 325)+sum_offset[1]
 
                 if 'hp' in data:
                     players[key]['hp'] = data['hp']
                     # check_if_they_dead(players[key]['hp'])
             elif 'x' in data and 'y' in data:
                 new_player = {
-                    'x': data['x'],
-                    'y': data['y'],
+                    'x': int(float(data['x']) - float(obj.my_player['x']) + 500),
+                    'y': int(float(data['y']) - float(obj.my_player['y']) + 325),
                     'width': 20,
-                    'height': 20
+                    'height': 20,
+                    'hp': 100
                 }
                 players[key] = new_player
-                players[key]['x'] = int(
-                    float(players[key]['x']) - float(obj.my_player['x']) + 500)
-                players[key]['y'] = int(
-                    float(players[key]['y']) - float(obj.my_player['y']) + 325)
+                new_player = {
+                    'image': pg.Surface((players[key]['width'], players[key]['height'])),
+                    'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])
+                }
+                players_sprites[key] = new_player
 
         if players != {}:
-
-            players_sprites = [
-                {
-                    "image": pg.Surface((data["width"], data["height"])),
-                    "rect": pg.Rect(data["x"], data["y"], data["width"], data["height"]),
-                }
-                for key, data in players.items()
-            ]
+            for key, data in players.items():
+                players_sprites[key]["image"] = pg.Surface((players[key]['width'],players[key]['height']))
+                players_sprites[key]["rect"] = pg.Rect(int(data["x"]-(data['width']/2)), int(data["y"]-(data['height']/2)),players[key]['width'],players[key]['height'])
             sum_offset[0] -= move_offset[0] * acceleration
             sum_offset[1] -= move_offset[1] * acceleration
-            obj.update_players_sprites(players, players_sprites)
             # for i in range(0,players._len_()-1):
             # players [i]['x']+=1
             # players [i]['y']+=1
@@ -342,14 +350,17 @@ def run_game():
             # print(players)
             # print (my_player)
             # if colision_id[0] == 0:
-            for player in players_sprites:
-                if my_sprite['rect'].colliderect(player['rect']):  # Check collision using rect
-                    move_offset, moving, target_pos = knockback(player['rect'].x, player['rect'].y, move_offset, moving,
+            for key, data in players_sprites.items():
+                if my_sprite['rect'].colliderect(data['rect']):  # Check collision using rect
+                    move_offset, moving, target_pos = knockback(data['rect'].x, data['rect'].y, move_offset, moving,
                                                                 35, 35)
 
         # world_offset = (500 - my_player['x'], 325 - my_player['y'])
         # draw_map(screen, tmx_data, world_offset)
         moving, move_offset, my_player['x'], my_player['y'] = obj.move(acceleration, move_offset, moving)
+        for key, data in players_sprites.items():
+            players_sprites[key]['rect'].x += sum_offset[0]
+            players_sprites[key]['rect'].y += sum_offset[1]
         if moving is True:
             Socket.sendMOVE(my_player['x'], my_player['y'])
         screen.fill(BLACK)

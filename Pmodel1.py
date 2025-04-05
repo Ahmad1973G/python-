@@ -20,13 +20,13 @@ class Player(pg.sprite.Sprite):
         self.screen = screen
         self.players_sprites = players_sprites
         self.my_sprite = my_sprite
-        self.image = pg.Surface((my_player['width'], my_player['height']))
-        self.image.fill((255, 0, 0))  # Fill with red for visibility
-        self.rect = self.image.get_rect(topleft=(500, 325))  # Set initial position
         self.weapons = weapons
         # New attributes for powerups and items
         self.invulnerability = False  # Tracks if the player is invulnerable
         self.invulnerability_end_time = None  # Time when invulnerability ends
+        self.players_image=pg.Surface((20, 20))
+        self.players_image.fill(pg.Color((255,0,0)))
+        self.players_rect=self.players_image.get_rect(center=(0,0))
 
     def activate_invulnerability(self, duration):
         self.invulnerability = True
@@ -93,16 +93,16 @@ class Player(pg.sprite.Sprite):
         return json.dumps(client_loc)
 
     def print_players(self, players_sprites, screen):
-        for player in players_sprites:
-            player['image'].fill((255, 0, 0))
-            self.screen.blit(player['image'], player['rect'])
+        for key,data in players_sprites.items():
+            data['image'].fill([255,0,0])
+            self.screen.blit(data['image'],data['rect'])
         # Draw the main player at the center
         image = pg.Surface((20, 20))
         image.fill(pg.Color('blue'))
         rect = image.get_rect(center=(500, 325))
         self.screen.blit(image, rect)
 
-    def move(self, players_sprites, acceleration, move_offset, moving):
+    def move(self, acceleration, move_offset, moving):
         if not moving:
             return False, move_offset, self.my_player['x'], self.my_player['y']
         move_offset = (move_offset[0] * (1 - acceleration), move_offset[1] * (1 - acceleration))
