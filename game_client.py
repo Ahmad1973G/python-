@@ -75,15 +75,16 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                             print(
                                 "hit" + " " + str(i) + ' ' + 'with weapon' + ' ' + str(shared_data['used_weapon'] + 1))
                             hit = True
-                end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
+                end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
+                    weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
                 end2 = direction * end1
-                ClientSocket.ClientServer.sendSHOOT(int(my_player['x']), int(my_player['y']), int (end1), int(end2))
-                shared_data['fire']=False
+                ClientSocket.ClientServer.sendSHOOT(int(my_player['x']), int(my_player['y']), int(end1), int(end2))
+                shared_data['fire'] = False
         for key, data in shared_data['recived'].items():
             if 'shoot' in data:
-                start_pos=data['shoot']['shot'][0]
-                end_pos=data['shoot']['shot'][1]
-                #--------------------------------------------------------------------------------
+                start_pos = data['shoot']['shot'][0]
+                end_pos = data['shoot']['shot'][1]
+                # --------------------------------------------------------------------------------
                 hit = False
                 range1 = 1
                 weapons[shared_data['used_weapon']]['ammo'] -= 1
@@ -105,7 +106,7 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                         end_pos[0] = 0
                     bullet_sprite['rect'].x = end_pos[0] + 500
                     bullet_sprite['rect'].y = 325 - end_pos[1]
-                    bullet_sprite['image'].fill((255,0, 255))
+                    bullet_sprite['image'].fill((255, 0, 255))
                     screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
                     pg.display.flip()
                     image = pg.Surface((20, 20))
@@ -113,14 +114,33 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                     rect = image.get_rect(center=(500, 325))
                     # --------------------------------------------------------------
                     if rect.colliderect(bullet_sprite['rect']):
-                            print(
-                                "hit me with weapon" + ' ' + str(shared_data['used_weapon'] + 1))
-                            hit = True
-
+                        print(
+                            "hit me with weapon" + ' ' + str(shared_data['used_weapon'] + 1))
+                        hit = True
 
         # for key, data in shared_data['recived'].items():
         #   if "shoot" in data:
         #      p
+
+
+def get_collision_rects(tmx_data):
+    collision_rects = []
+    tile_width = tmx_data.tilewidth
+    tile_height = tmx_data.tileheight
+
+    for layer in tmx_data.visible_layers:
+        if isinstance(layer, pytmx.TiledTileLayer):
+            if layer.properties.get('collidable'):  # This is what matters!
+                for x, y, gid in layer:
+                    if gid != 0:
+                        rect = pg.Rect(x * tile_width, y * tile_height, tile_width, tile_height)
+                        collision_rects.append(rect)
+    return collision_rects
+
+
+def draw_map(screen, map_surface, world_offset):
+    """Draw the TMX map onto the screen."""
+    screen.blit(map_surface, world_offset)
 
 
 def render_map(tmx_data):
@@ -141,6 +161,23 @@ def render_map(tmx_data):
 shared_data = {"fire": False, "used_weapon": 0, 'move_offset': (500, 325), 'got_shot': False, 'recived': {}}
 server_connection = ClientSocket.ClientServer
 lock = threading.Lock()
+
+
+def get_no_walk_no_shoot_collision_rects(tmx_data):
+    collision_rects = []
+    for layer in tmx_data.layers:
+        if layer.name.lower() == "no walk no shoot":
+            if isinstance(layer, pytmx.TiledObjectGroup):
+                for obj in layer:
+                    rect = pg.Rect(int(obj.x), int(obj.y), int(obj.width), int(obj.height))
+                    collision_rects.append(rect)
+            elif isinstance(layer, pytmx.TiledTileLayer):
+                for x, y, gid in layer:
+                    if gid != 0:
+                        rect = pg.Rect(x * tmx_data.tilewidth, y * tmx_data.tileheight,
+                                       tmx_data.tilewidth, tmx_data.tileheight)
+                        collision_rects.append(rect)
+    return collision_rects
 
 
 def run_game():
@@ -166,6 +203,9 @@ def run_game():
     move_offset = (0, 0)
     world_offset = (0, 0)
     tmx_data = load_tmx_map("c:/webroot/map.tmx")
+    no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
+
+    collision_rects = get_collision_rects(tmx_data)
     acceleration = 0.1
 
     moving = False
@@ -207,7 +247,8 @@ def run_game():
         0,
         screen,
         players_sprites,
-        my_sprite
+        my_sprite,
+        0
     )  # Create PlayerSprite objects for each player
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
@@ -225,6 +266,7 @@ def run_game():
     thread_shooting = threading.Thread(target=shoot, args=(weapons, players_sprites, bullet_sprite, screen, my_player))
     thread_shooting.daemon = True
     thread_shooting.start()
+
     while running:
 
         for event in pg.event.get():
@@ -321,7 +363,29 @@ def run_game():
                     elif move_offset[1] < 0:  # Moving up
                         tp2 = 360  # Knockback downward
                     move_offset = (tp - 500, tp2 - 325)
+            # Save original position
+            # Save current position
+            prev_x, prev_y = my_player['x'], my_player['y']
+
+            # Attempt move
             moving, move_offset, my_player['x'], my_player['y'] = obj.move(moving, acceleration, move_offset, moving)
+
+            # Update player's on-screen rect (centered)
+            my_sprite['rect'].x = 500
+            my_sprite['rect'].y = 325
+
+            # Calculate camera offset
+            offset_x = my_player['x'] - 500
+            offset_y = my_player['y'] - 325
+
+            # Check for collisions
+
+            for tile_rect in no_walk_no_shoot_rects:
+                tile_rect_screen = tile_rect.move(-offset_x, -offset_y)
+                if my_sprite['rect'].colliderect(tile_rect_screen):
+                    my_player['x'], my_player['y'] = prev_x, prev_y
+                    break
+
             print(my_player['x'], my_player['y'])
 
             time.sleep(0.0001)
@@ -333,6 +397,7 @@ def run_game():
             rect = image.get_rect(center=(500, 325))
             screen.blit(image, rect)
         Socket.sendMOVE(my_player['x'], my_player['y'])
+
         world_offset = (500 - my_player['x'], 325 - my_player['y'])
         screen.blit(map_surface, world_offset)
         obj.print_players(players_sprites, screen)
