@@ -236,6 +236,12 @@ def run_game():
     move_offset = (0, 0)
     world_offset = (0, 0)
     tmx_data = load_tmx_map("c:/webroot/map.tmx")
+    if tmx_data is None:
+        print("Failed to load map, exiting...")
+    else:
+        print(f"Map loaded successfully! Size: {tmx_data.width}x{tmx_data.height} tiles")
+        print(f"Tile size: {tmx_data.tilewidth}x{tmx_data.tileheight}")
+        print(f"Layers: {[layer.name for layer in tmx_data.layers]}")
     no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
     map_surface = render_map(tmx_data)
     acceleration = 0.1
@@ -428,6 +434,7 @@ def run_game():
         Socket.sendMOVE(my_player['x'], my_player['y'])
 
         world_offset = (500 - my_player['x'], 325 - my_player['y'])
+        print(f"World offset: {world_offset}")  # <-- Add this debug line here
         screen.blit(map_surface, world_offset)
         for key, data in players_sprites.items():
             if my_sprite['rect'].colliderect(data['rect']):  # Check collision using rect
