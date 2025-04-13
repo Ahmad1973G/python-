@@ -348,21 +348,20 @@ def run_game():
         shared_data['recived'] = recived
         if type(shared_data['recived']) is str:
             shared_data['recived'] = json.loads(recived)
-        # shared_data['recived'] = {'268': {'x': 500, 'y': 325}, '2648': {'x': 50, 'y': 40}}
         found = False
         for key, data in shared_data['recived'].items():
             if key in players:
                 if 'x' in data:
-                    players[key]['x'] = int(float(data['x']) - float(obj.my_player['x']) + 500)+sum_offset[0]
-                    players[key]['y'] = int(float(data['y']) - float(obj.my_player['y']) + 325)+sum_offset[1]
+                    players[key]['x'] = int(float(data['x']) - float(500 - 500))
+                    players[key]['y'] = int(float(data['y']) - float(500 - 325))
 
                 if 'hp' in data:
                     players[key]['hp'] = data['hp']
                     # check_if_they_dead(players[key]['hp'])
             elif 'x' in data and 'y' in data:
                 new_player = {
-                    'x': int(float(data['x']) - float(obj.my_player['x']) + 500),
-                    'y': int(float(data['y']) - float(obj.my_player['y']) + 325),
+                    'x': int(float(data['x']) - float(my_player['x']) + 500),
+                    'y': int(float(data['y']) - float(my_player['y']) + 325),
                     'width': 20,
                     'height': 20,
                     'hp': 100
@@ -383,7 +382,9 @@ def run_game():
 
             # world_offset = (500 - my_player['x'], 325 - my_player['y'])
             # draw_map(screen, tmx_data, world_offset)
-
+        for key, data in players_sprites.items():
+            if data['rect'].x >= (500 - my_player['width']) and data['rect'].x <= (500 + my_player['width']) and data['rect'].y >= (325 - my_player['height']) and data['rect'].y <= (325 + my_player['height']):
+                print(key)
         if move_x!=0 or move_y!=0:
             Socket.sendMOVE(my_player['x'], my_player['y'])
             move_x = 0
