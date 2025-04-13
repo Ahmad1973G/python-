@@ -222,6 +222,7 @@ def run_game():
     clock = pg.time.Clock()
     my_player = {'x': 500, 'y': 500, 'width': 20, 'height': 20, 'id': 0,
                  'hp': 100}
+    dis_to_mid = [my_player['x']-500,my_player['y'] - 325]
     players = {}
 
     weapons = [
@@ -285,8 +286,8 @@ def run_game():
     if shared_data['recived'] != {}:
         for key, data in shared_data['recived'].items():
             old_player = {
-                'x': int(float(data['x']) - float(obj.my_player['x']) + 500),
-                'y': int(float(data['y']) - float(obj.my_player['y']) + 325),
+                'x': int(float(data['x']) -float(dis_to_mid[0])),
+                'y': int(float(data['y']) - float(dis_to_mid[1])),
                 'width': 20,
                 'height': 20,
                 'hp': 100
@@ -352,16 +353,16 @@ def run_game():
         for key, data in shared_data['recived'].items():
             if key in players:
                 if 'x' in data:
-                    players[key]['x'] = int(float(data['x']) - float(500 - 500))
-                    players[key]['y'] = int(float(data['y']) - float(500 - 325))
+                    players[key]['x'] = int(float(data['x']) - float(dis_to_mid[0]))
+                    players[key]['y'] = int(float(data['y']) - float(dis_to_mid[1]))
 
                 if 'hp' in data:
                     players[key]['hp'] = data['hp']
                     # check_if_they_dead(players[key]['hp'])
             elif 'x' in data and 'y' in data:
                 new_player = {
-                    'x': int(float(data['x']) - float(my_player['x']) + 500),
-                    'y': int(float(data['y']) - float(my_player['y']) + 325),
+                    'x': int(float(data['x']) - float(dis_to_mid[0])),
+                    'y': int(float(data['y']) - float(dis_to_mid[1])),
                     'width': 20,
                     'height': 20,
                     'hp': 100
