@@ -220,7 +220,7 @@ def run_game():
 
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 400, 'y': 400, 'width': 20, 'height': 20, 'id': 0,
+    my_player = {'x': 500, 'y': 500, 'width': 20, 'height': 20, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x']-500,my_player['y'] - 325]
     players = {}
@@ -234,11 +234,12 @@ def run_game():
     moving = False
     move_x = 0
     move_y = 0
+    knockback = 0
     granade_range = 200
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = load_tmx_map("c:/webroot/map.tmx")
+    tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
     no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
     map_surface = render_map(tmx_data)
     acceleration = 0.1
@@ -332,30 +333,21 @@ def run_game():
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
         keys = pg.key.get_pressed()
-        # Create the new rect to test collision before moving
-        new_rect = pg.Rect(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
-
-        if keys[pg.K_w]:
-            new_rect.y -= 5
-            if not any(new_rect.colliderect(rect) for rect in no_walk_no_shoot_rects):
+        if knockback==0:
+            if keys[pg.K_w]:
                 my_player['y'] -= 5
                 move_y = 5
-        if keys[pg.K_s]:
-            new_rect.y += 5
-            if not any(new_rect.colliderect(rect) for rect in no_walk_no_shoot_rects):
+            if keys[pg.K_s]:
                 my_player['y'] += 5
                 move_y = -5
-        new_rect = pg.Rect(my_player['x'], my_player['y'], my_player['width'], my_player['height'])  # Update after move
-        if keys[pg.K_a]:
-            new_rect.x -= 5
-            if not any(new_rect.colliderect(rect) for rect in no_walk_no_shoot_rects):
+            if keys[pg.K_a]:
                 my_player['x'] -= 5
                 move_x = 5
-        if keys[pg.K_d]:
-            new_rect.x += 5
-            if not any(new_rect.colliderect(rect) for rect in no_walk_no_shoot_rects):
+            if keys[pg.K_d]:
                 my_player['x'] += 5
                 move_x = -5
+        else:
+            knockback-=1
         check_if_dead(my_player['hp'])
         recived = Socket.requestDATA()
         shared_data['recived'] = recived
@@ -393,16 +385,24 @@ def run_game():
                 players_sprites[key]["image"] = pg.Surface((players[key]['width'], players[key]['height']))
                 players_sprites[key]["rect"] = pg.Rect(int(data["x"] + sum_offset[0]), int(data["y"] + sum_offset[1]),players[key]['width'], players[key]['height'])
 
-        world_offset = (500 - my_player['x'], 325 - my_player['y'])
+            # world_offset = (500 - my_player['x'], 325 - my_player['y'])
             # draw_map(screen, tmx_data, world_offset)
         for key, data in players_sprites.items():
             if data['rect'].x >= (500 - my_player['width']) and data['rect'].x <= (500 + my_player['width']) and data['rect'].y >= (325 - my_player['height']) and data['rect'].y <= (325 + my_player['height']):
-                print(key)
-        if move_x!=0 or move_y!=0:
+                move_x=-move_x
+                move_y=-move_y
+                knockback=8
+
+        if move_x != 0 or move_y != 0:
+
+            if knockback == 0:
+                move_x = 0
+                move_y = 0
+            else:
+                my_player['x'] -= move_x
+                my_player['y'] -= move_y
             Socket.sendMOVE(my_player['x'], my_player['y'])
-            move_x = 0
-            move_y = 0
-        screen.blit(map_surface, world_offset)
+        screen.fill(BLACK)
         obj.print_players(players_sprites, screen)
         pg.display.flip()
         clock.tick(60)
