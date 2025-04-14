@@ -40,7 +40,8 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
     # pg.mixer.init()
     # sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
     # sound_effect.set_volume(0.5)
-
+    server_connection = ClientSocket.ClientServer()
+    server_connection.connect()
     while True:
         shot_offset = (0, 0)
         if shared_data['fire']:
@@ -76,10 +77,10 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                     pg.display.flip()
 
                     # --------------------------------------------------------------
-                    for i in range(0, players_sprites.__len__()):
-                        if players_sprites[i]['rect'].colliderect(bullet_sprite['rect']):
+                    for key, data in players_sprites.items():
+                        if data['rect'].colliderect(bullet_sprite['rect']):
                             print(
-                                "hit" + " " + str(i) + ' ' + 'with weapon' + ' ' + str(shared_data['used_weapon'] + 1))
+                                "hit" + " " + key + ' ' + 'with weapon' + ' ' + str(shared_data['used_weapon'] + 1))
                             hit = True
                 end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
                     weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
@@ -88,7 +89,7 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                 end2 = 325 - end2
                 end1 += my_player['x'] - 500
                 end2 += my_player['y'] - 325
-                ClientSocket.ClientServer.sendSHOOT(int(my_player['x']), int(my_player['y']), int(end1), int(end2))
+                server_connection.sendSHOOT(my_player['x'],my_player['y'],end1,end2,shared_data['used_weapon'])
                 shared_data['fire'] = False
         for key, data in shared_data['recived'].items():
             if 'shoot' in data:
@@ -122,7 +123,7 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                         center=(end_pos[0] + start_pos[0], start_pos[1] - end_pos[1]))
                     screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
                     pg.display.flip()
-                    image = pg.Surface((20, 20))
+                    image = pg.Surface((60, 60))
                     image.fill(pg.Color('blue'))
                     rect = image.get_rect(center=(500, 325))
                     # --------------------------------------------------------------
@@ -138,24 +139,6 @@ def check_if_dead(hp):
         print("dead")
         pg.quit()
         sys.exit()
-
-def knockback(x, y, move_offset, moving, knockback_x, knockback_y):
-    move_offset = (500 - x, y - 325)
-    target_pos = (500, 325)
-    moving = True
-    tp = 500
-    tp2 = 325
-    # Apply knockback based on movement direction
-    if move_offset[0] > 0:  # Moving right
-        tp -= knockback_x  # Knockback to the left)
-    elif move_offset[0] < 0:  # left
-        tp += knockback_x  # Knockback to the right
-    if move_offset[1] > 0:  # Moving down
-        tp2 -= knockback_y  # Knockback upward
-    elif move_offset[1] < 0:  # Moving up
-        tp2 += knockback_y  # Knockback downward
-    move_offset = (tp - 500, tp2 - 325)
-    return move_offset, moving, target_pos
 
 
 def get_collision_rects(tmx_data):
@@ -194,7 +177,8 @@ def render_map(tmx_data):
 
 
 shared_data = {"fire": False, "used_weapon": 0, 'move_offset': (500, 325), 'got_shot': False, 'recived': {}}
-server_connection = ClientSocket.ClientServer
+
+
 lock = threading.Lock()
 
 
@@ -220,7 +204,7 @@ def run_game():
 
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 500, 'y': 500, 'width': 20, 'height': 20, 'id': 0,
+    my_player = {'x': 500, 'y': 500, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x']-500,my_player['y'] - 325]
     players = {}
@@ -234,6 +218,7 @@ def run_game():
     moving = False
     move_x = 0
     move_y = 0
+    angle=0
     knockback = 0
     granade_range = 200
     BLACK = (0, 0, 0)
@@ -289,8 +274,8 @@ def run_game():
             old_player = {
                 'x': int(float(data['x']) -float(dis_to_mid[0])),
                 'y': int(float(data['y']) - float(dis_to_mid[1])),
-                'width': 20,
-                'height': 20,
+                'width': 60,
+                'height': 60,
                 'hp': 100
             }
             players[key] = old_player
@@ -321,6 +306,21 @@ def run_game():
                 running = False
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 shared_data['fire'] = True
+            elif event.type == pg.MOUSEMOTION:
+                mouse=pg.mouse.get_pos()
+                if mouse[0]==500:
+                    if mouse[1]==325:
+                        angle=0
+                    else:
+                        angle=(1+(-(325-mouse[1]))/abs(325-mouse[1]))*90
+                else:
+                    direction = (0 - (325-mouse[1])) / (0 - (mouse[0]-500))
+                    angle=math.atan(direction)
+                    angle=math.degrees(angle)
+                    if direction==0:
+                        angle=180+(mouse[0]/abs(mouse[0]))*90
+                    else:
+                        angle=(direction/abs(direction))*((-(mouse[0]-500))/abs(mouse[0]-500))*90+angle+(1+(-direction)/abs(direction))*90
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_1:
                     shared_data['used_weapon'] = 0
@@ -367,8 +367,8 @@ def run_game():
                 new_player = {
                     'x': int(float(data['x']) - float(dis_to_mid[0])),
                     'y': int(float(data['y']) - float(dis_to_mid[1])),
-                    'width': 20,
-                    'height': 20,
+                    'width': 60,
+                    'height': 60,
                     'hp': 100
                 }
                 players[key] = new_player
@@ -402,8 +402,9 @@ def run_game():
                 my_player['x'] -= move_x
                 my_player['y'] -= move_y
             Socket.sendMOVE(my_player['x'], my_player['y'])
+        #screen.blit(map_surface, world_offset)
         screen.fill(BLACK)
-        obj.print_players(players_sprites, screen)
+        obj.print_players(players_sprites, screen,angle)
         pg.display.flip()
         clock.tick(60)
     pg.quit()
