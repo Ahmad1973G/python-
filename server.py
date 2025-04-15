@@ -211,11 +211,12 @@ class SubServer:
 
     def process_shoot(self, client_id, message: str):
         try:
-            start_x = message.split(';')[0]
-            start_y = message.split(';')[1]
-            end_x = message.split(';')[2]
-            end_y = message.split(';')[3]
-            weapon = message.split(';')[4]
+            messages = message.split(';')
+            start_x = messages[0]
+            start_y = messages[1]
+            end_x = messages[2]
+            end_y = messages[3]
+            weapon = messages[4]
             with self.elements_lock:
                 self.updated_elements[client_id]['shoot'] = [start_x, start_y, end_x, end_y, weapon]
             with self.clients_lock:
@@ -247,7 +248,7 @@ class SubServer:
 
     def process_angle(self, client_id, message: str):
         try:
-            angle = int(message.split()[0])
+            angle = int(message)
             with self.elements_lock:
                 self.updated_elements[client_id]['angle'] = angle
             with self.players_data_lock:
@@ -323,6 +324,8 @@ class SubServer:
                 self.process_damage_taken(client_id, message.split(" ")[-1])
             elif message.startswith("POWER"):
                 self.process_power(client_id, message.split(" ")[-1])
+            elif message.startswith("ANGLE"):
+                self.process_angle(client_id, message.split(" ")[-1])
             elif message.startswith("REQUESTFULL"):
                 with self.elements_lock:
                     self.updated_elements[client_id] = {}
