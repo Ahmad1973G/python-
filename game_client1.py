@@ -91,10 +91,6 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                 end2 += my_player['y'] - 325
                 server_connection.sendSHOOT(my_player['x'],my_player['y'],end1,end2,shared_data['used_weapon'])
                 shared_data['fire'] = False
-                #-----------------------------------------------------------------------------------------------------------------------
-        #{''x:
-        # y
-        # shoot}
         for key, data in shared_data['recived'].items():
             if 'shoot' in data:
                 start_pos = [int(float(data['shoot'][0])), int(float(data['shoot'][1]))]
@@ -208,7 +204,7 @@ def run_game():
 
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 500, 'y': 500, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 400, 'y': 400, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x']-500,my_player['y'] - 325]
     players = {}
@@ -361,6 +357,7 @@ def run_game():
         for key, data in shared_data['recived'].items():
             if key in players:
                 if 'x' in data:
+                    print("moved")
                     players[key]['x'] = int(float(data['x']) - float(dis_to_mid[0]))
                     players[key]['y'] = int(float(data['y']) - float(dis_to_mid[1]))
 

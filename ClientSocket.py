@@ -93,13 +93,22 @@ class ClientServer:
             print("Failed to send move, error:", message)
 
     def sendSHOOT(self, start_x, start_y, end_x, end_y, weapon):
-        self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y};{weapon}\n".encode())
+        self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y};{weapon}".encode())
         message = self.socket.recv(1024)
         message = message.decode()
         if message == "ACK":
             print("shoot sent successfully")
         else:
             print("Failed to send shoot, error:", message)
+
+    def sendANGLE(self, angle):
+        self.socket.send(f"ANGLE {angle}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "ACK":
+            print("angle sent successfully")
+        else:
+            print("Failed to send angle, error:", message)
 
     def sendDAMAGE(self, damage):
         self.socket.send(f"DAMAGE {damage}".encode())
