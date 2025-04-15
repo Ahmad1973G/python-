@@ -208,6 +208,14 @@ class SubServer:
         except Exception as e:
             print(f"Error processing power for {client_id}: {e}")
 
+    def process_angle(self, client_id, message: str):
+        try:
+            angle = int(message.split()[0])
+            self.updated_elements[client_id]['angle'] = angle
+            self.connected_clients[client_id][1].send("ACK".encode())
+        except Exception as e:
+            print(f"Error processing angle for {client_id}: {e}")
+
     def process_request(self, client_id):
         try:
             self.players_counter[client_id] += 1
