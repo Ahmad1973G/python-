@@ -40,7 +40,8 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
     # pg.mixer.init()
     # sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
     # sound_effect.set_volume(0.5)
-
+    server_connection = ClientSocket.ClientServer()
+    server_connection.connect()
     while True:
         shot_offset = (0, 0)
         if shared_data['fire']:
@@ -76,10 +77,10 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                     pg.display.flip()
 
                     # --------------------------------------------------------------
-                    for i in range(0, players_sprites.__len__()):
-                        if players_sprites[i]['rect'].colliderect(bullet_sprite['rect']):
+                    for key, data in players_sprites.items():
+                        if data['rect'].colliderect(bullet_sprite['rect']):
                             print(
-                                "hit" + " " + str(i) + ' ' + 'with weapon' + ' ' + str(shared_data['used_weapon'] + 1))
+                                "hit" + " " + key + ' ' + 'with weapon' + ' ' + str(shared_data['used_weapon'] + 1))
                             hit = True
                 end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
                     weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
@@ -88,7 +89,7 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                 end2 = 325 - end2
                 end1 += my_player['x'] - 500
                 end2 += my_player['y'] - 325
-                Socket.sendSHOOT(my_player['x'], my_player['y'], end1, end2, shared_data['used_weapon'])
+                server_connection.sendSHOOT(my_player['x'],my_player['y'],end1,end2,shared_data['used_weapon'])
                 shared_data['fire'] = False
         for key, data in shared_data['recived'].items():
             if 'shoot' in data:
@@ -122,7 +123,7 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                         center=(end_pos[0] + start_pos[0], start_pos[1] - end_pos[1]))
                     screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
                     pg.display.flip()
-                    image = pg.Surface((20, 20))
+                    image = pg.Surface((60, 60))
                     image.fill(pg.Color('blue'))
                     rect = image.get_rect(center=(500, 325))
                     # --------------------------------------------------------------
@@ -140,40 +141,62 @@ def check_if_dead(hp):
         sys.exit()
 
 
-def knockback(x, y, move_offset, moving, knockback_x, knockback_y):
-    move_offset = (500 - x, y - 325)
-    target_pos = (500, 325)
-    moving = True
-    tp = 500
-    tp2 = 325
-    # Apply knockback based on movement direction
-    if move_offset[0] > 0:  # Moving right
-        tp -= knockback_x  # Knockback to the left)
-    elif move_offset[0] < 0:  # left
-        tp += knockback_x  # Knockback to the right
-    if move_offset[1] > 0:  # Moving down
-        tp2 -= knockback_y  # Knockback upward
-    elif move_offset[1] < 0:  # Moving up
-        tp2 += knockback_y  # Knockback downward
-    move_offset = (tp - 500, tp2 - 325)
-    return move_offset, moving, target_pos
+def get_collision_rects(tmx_data):
+    collision_rects = []
+    tile_width = tmx_data.tilewidth
+    tile_height = tmx_data.tileheight
+
+    for layer in tmx_data.visible_layers:
+        if isinstance(layer, pytmx.TiledTileLayer):
+            if layer.properties.get('collidable'):  # This is what matters!
+                for x, y, gid in layer:
+                    if gid != 0:
+                        rect = pg.Rect(x * tile_width, y * tile_height, tile_width, tile_height)
+                        collision_rects.append(rect)
+    return collision_rects
 
 
-def draw_map(screen, tmx_data, world_offset):
-    """Draw the TMX map with an offset to simulate camera movement."""
-    for layer in tmx_data.layers:
+def draw_map(screen, map_surface, world_offset):
+    """Draw the TMX map onto the screen."""
+    screen.blit(map_surface, world_offset)
+
+
+def render_map(tmx_data):
+    """Render the TMX map onto a surface once."""
+    map_surface = pg.Surface((tmx_data.width * tmx_data.tilewidth,
+                              tmx_data.height * tmx_data.tileheight))
+
+    for layer in tmx_data.visible_layers:
         if isinstance(layer, pytmx.TiledTileLayer):
             for x, y, gid in layer:
                 tile = tmx_data.get_tile_image_by_gid(gid)
                 if tile:
-                    screen.blit(tile, (x * tmx_data.tilewidth + world_offset[0],
-                                       y * tmx_data.tileheight + world_offset[1]))
+                    map_surface.blit(tile, (x * tmx_data.tilewidth, y * tmx_data.tileheight))
+
+    return map_surface
 
 
 shared_data = {"fire": False, "used_weapon": 0, 'move_offset': (500, 325), 'got_shot': False, 'recived': {}}
-Socket = ClientSocket.ClientServer()
-moving = False
+
+
 lock = threading.Lock()
+
+
+def get_no_walk_no_shoot_collision_rects(tmx_data):
+    collision_rects = []
+    for layer in tmx_data.layers:
+        if layer.name.lower() == "no walk no shoot":
+            if isinstance(layer, pytmx.TiledObjectGroup):
+                for obj in layer:
+                    rect = pg.Rect(int(obj.x), int(obj.y), int(obj.width), int(obj.height))
+                    collision_rects.append(rect)
+            elif isinstance(layer, pytmx.TiledTileLayer):
+                for x, y, gid in layer:
+                    if gid != 0:
+                        rect = pg.Rect(x * tmx_data.tilewidth, y * tmx_data.tileheight,
+                                       tmx_data.tilewidth, tmx_data.tileheight)
+                        collision_rects.append(rect)
+    return collision_rects
 
 
 def run_game():
@@ -181,8 +204,9 @@ def run_game():
 
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 400, 'y': 400, 'width': 20, 'height': 20, 'id': 0,
+    my_player = {'x': 500, 'y': 500, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
+    dis_to_mid = [my_player['x']-500,my_player['y'] - 325]
     players = {}
 
     weapons = [
@@ -192,11 +216,17 @@ def run_game():
 
     ]
     moving = False
+    move_x = 0
+    move_y = 0
+    angle=0
+    knockback = 0
     granade_range = 200
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    # tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
+    tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
+    no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
+    map_surface = render_map(tmx_data)
     acceleration = 0.1
     direction = 0  # like m in y=mx+b
     RED = (255, 0, 0)
@@ -215,13 +245,7 @@ def run_game():
         "rect": pg.Rect(500, 325, my_player["width"], my_player["height"]),
     }
 
-    players_sprites = [
-        {
-            "image": pg.Surface((data["width"], data["height"])),
-            "rect": pg.Rect(data["x"], data["y"], data["width"], data["height"]),
-        }
-        for key, data in players.items()
-    ]
+    players_sprites = {}
 
     obj = Pmodel1.Player(
         my_player,
@@ -236,15 +260,36 @@ def run_game():
         0,
         screen,
         players_sprites,
-        my_sprite
+        my_sprite,
+        weapons
     )  # Create PlayerSprite objects for each player
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
     # --------------------------------------------------------------------------------
+    Socket = ClientSocket.ClientServer()
     Socket.connect()
+    shared_data['recived'] = Socket.requestDATAFULL()
+    if shared_data['recived'] != {}:
+        for key, data in shared_data['recived'].items():
+            old_player = {
+                'x': int(float(data['x']) -float(dis_to_mid[0])),
+                'y': int(float(data['y']) - float(dis_to_mid[1])),
+                'width': 60,
+                'height': 60,
+                'hp': 100
+            }
+            players[key] = old_player
+            old_player = {
+                'image': pg.Surface((players[key]['width'], players[key]['height'])),
+                'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])
+            }
+            players_sprites[key] = old_player
+    else:
+        players = {}
+        players_sprites = {}
+
     Socket.sendMOVE(my_player['x'], my_player['y'])
-    bla = Socket.requestDATAFULL()
-    players = shared_data['recived']
+
     # print (players)
     running = True
     h = None
@@ -260,103 +305,108 @@ def run_game():
             if event.type == pg.QUIT:
                 running = False
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                target_pos = pg.mouse.get_pos()
-                move_offset = (target_pos[0] - 500, target_pos[1] - 325)
-                moving = True
-            elif event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
                 shared_data['fire'] = True
-            elif event.type == pg.KEYDOWN:  # Check if a key was pressed
+            elif event.type == pg.MOUSEMOTION:
+                mouse=pg.mouse.get_pos()
+                if mouse[0]==500:
+                    if mouse[1]==325:
+                        angle=0
+                    else:
+                        angle=(1+(-(325-mouse[1]))/abs(325-mouse[1]))*90
+                else:
+                    direction = (0 - (325-mouse[1])) / (0 - (mouse[0]-500))
+                    angle=math.atan(direction)
+                    angle=math.degrees(angle)
+                    if direction==0:
+                        angle=180+(mouse[0]/abs(mouse[0]))*90
+                    else:
+                        angle=(direction/abs(direction))*((-(mouse[0]-500))/abs(mouse[0]-500))*90+angle+(1+(-direction)/abs(direction))*90
+            elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_1:
                     shared_data['used_weapon'] = 0
                 elif event.key == pg.K_2:
                     shared_data['used_weapon'] = 1
                 elif event.key == pg.K_3:
                     shared_data['used_weapon'] = 2
-                # obj.shoot(used_weapon)
                 elif event.key == pg.K_q:
                     big_boom_boom(players, screen, RED, granade_range)
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
-                    # Stop movement in the direction of the collisio
-        # Update player position
-        # players = Socket.run_conn(obj.convert_to_json())
-        # ---------------------------------------------------------------------------
-        # updated_players = None#Socket.run_conn(obj.convert_to_json())
-        # for player in updated_players:
-        #    for key in player.keys():
-        #        if player[key] is None:
-        #            continue
-        #        players[player['id']][key]=player[key]
-
-        # if shared_data['move_offset'] != (500, 325):
-        # move_offset = shared_data['move_offset']
-        # shared_data['move_offset'] = (500, 325)
+        keys = pg.key.get_pressed()
+        if knockback==0:
+            if keys[pg.K_w]:
+                my_player['y'] -= 5
+                move_y = 5
+            if keys[pg.K_s]:
+                my_player['y'] += 5
+                move_y = -5
+            if keys[pg.K_a]:
+                my_player['x'] -= 5
+                move_x = 5
+            if keys[pg.K_d]:
+                my_player['x'] += 5
+                move_x = -5
+        else:
+            knockback-=1
         check_if_dead(my_player['hp'])
         recived = Socket.requestDATA()
         shared_data['recived'] = recived
         if type(shared_data['recived']) is str:
             shared_data['recived'] = json.loads(recived)
-        # shared_data['recived'] = {'268': {'x': 500, 'y': 325}, '2648': {'x': 50, 'y': 40}}
         found = False
         for key, data in shared_data['recived'].items():
             if key in players:
                 if 'x' in data:
-                    players[key]['x'] = data['x']
-                    players[key]['y'] = data['y']
-                    players[key]['x'] = int(float(players[key]['x']) - float(obj.my_player['x']) + 500)
-                    players[key]['y'] = int(float(players[key]['y']) - float(obj.my_player['y']) + 325)
+                    players[key]['x'] = int(float(data['x']) - float(dis_to_mid[0]))
+                    players[key]['y'] = int(float(data['y']) - float(dis_to_mid[1]))
 
                 if 'hp' in data:
                     players[key]['hp'] = data['hp']
                     # check_if_they_dead(players[key]['hp'])
             elif 'x' in data and 'y' in data:
                 new_player = {
-                    'x': data['x'],
-                    'y': data['y'],
-                    'width': 20,
-                    'height': 20
+                    'x': int(float(data['x']) - float(dis_to_mid[0])),
+                    'y': int(float(data['y']) - float(dis_to_mid[1])),
+                    'width': 60,
+                    'height': 60,
+                    'hp': 100
                 }
                 players[key] = new_player
-                players[key]['x'] = int(
-                    float(players[key]['x']) - float(obj.my_player['x']) + 500)
-                players[key]['y'] = int(
-                    float(players[key]['y']) - float(obj.my_player['y']) + 325)
+                new_player = {
+                    'image': pg.Surface((players[key]['width'], players[key]['height'])),
+                    'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])
+                }
+                players_sprites[key] = new_player
 
         if players != {}:
+            sum_offset[0] += move_x
+            sum_offset[1] += move_y
+            for key, data in players.items():
+                players_sprites[key]["image"] = pg.Surface((players[key]['width'], players[key]['height']))
+                players_sprites[key]["rect"] = pg.Rect(int(data["x"] + sum_offset[0]), int(data["y"] + sum_offset[1]),players[key]['width'], players[key]['height'])
 
-            players_sprites = [
-                {
-                    "image": pg.Surface((data["width"], data["height"])),
-                    "rect": pg.Rect(data["x"], data["y"], data["width"], data["height"]),
-                }
-                for key, data in players.items()
-            ]
-            sum_offset[0] -= move_offset[0] * acceleration
-            sum_offset[1] -= move_offset[1] * acceleration
-            obj.update_players_sprites(players, players_sprites)
-            # for i in range(0,players._len_()-1):
-            # players [i]['x']+=1
-            # players [i]['y']+=1
-            # players_sprites[i]['rect'].x=players[i]['x']
-            # players_sprites[i]['rect'].y=players[i]['y']
-            # print(players)
-            # print (my_player)
-            # if colision_id[0] == 0:
-            for player in players_sprites:
-                if my_sprite['rect'].colliderect(player['rect']):  # Check collision using rect
-                    move_offset, moving, target_pos = knockback(player['rect'].x, player['rect'].y, move_offset, moving,
-                                                                35, 35)
+            # world_offset = (500 - my_player['x'], 325 - my_player['y'])
+            # draw_map(screen, tmx_data, world_offset)
+        for key, data in players_sprites.items():
+            if data['rect'].x >= (500 - my_player['width']) and data['rect'].x <= (500 + my_player['width']) and data['rect'].y >= (325 - my_player['height']) and data['rect'].y <= (325 + my_player['height']):
+                move_x=-move_x
+                move_y=-move_y
+                knockback=8
 
-        # world_offset = (500 - my_player['x'], 325 - my_player['y'])
-        # draw_map(screen, tmx_data, world_offset)
-        moving, move_offset, my_player['x'], my_player['y'] = obj.move(acceleration, move_offset, moving)
-        if moving is True:
+        if move_x != 0 or move_y != 0:
+
+            if knockback == 0:
+                move_x = 0
+                move_y = 0
+            else:
+                my_player['x'] -= move_x
+                my_player['y'] -= move_y
             Socket.sendMOVE(my_player['x'], my_player['y'])
+        #screen.blit(map_surface, world_offset)
         screen.fill(BLACK)
-        obj.print_players(players_sprites, screen)
+        obj.print_players(players_sprites, screen,angle)
         pg.display.flip()
         clock.tick(60)
     pg.quit()
-
 
 run_game()
