@@ -39,14 +39,18 @@ class SubServer:
         self.players_data = {}
         self.udp_socket.settimeout(4)
         self.server_id = 0
+        self.server_index = 0
+        self.server_borders = [0, 0]
         self.updated_elements = {}
         self.players_counter = {}
+        self.players_to_lb = {}
 
         # Add locks for shared resources
         self.clients_lock = threading.Lock()
         self.players_data_lock = threading.Lock()
         self.elements_lock = threading.Lock()
         self.counter_lock = threading.Lock()
+        self.lb_lock = threading.Lock()
 
         self.process_move = sub_client_prots.process_move
         self.process_shoot = sub_client_prots.process_shoot
@@ -69,14 +73,75 @@ class SubServer:
             "REQUESTFULL": self.process_requestFull
         }
 
-    def getID(self):
-        self.lb_socket.send("ID".encode())
+    def getINDEX(self):
+        self.lb_socket.send("INDEX".encode())
         data = self.lb_socket.recv(1024).decode()
-        if data.startswith("ID CODE 2"):
-            self.server_id = int(data.split(";")[-1])
-            print("Server ID:", self.server_id)
+        if data.startswith("INDEX CODE 2"):
+            self.server_index = int(data.split(";")[-1])
+            print("Server INDEX:", self.server_id)
         else:
             print("Failed to get server ID from load balancer, error:", data)
+
+    def getBORDERS(self):
+        self.lb_socket.send("BORDERS".encode())
+        data = self.lb_socket.recv(1024).decode()
+        if data.startswith("BORDERS CODE 2"):
+            data = data.split()[-1]
+            self.server_borders[0] = int(data.split(";")[0])
+            self.server_borders[1] = int(data.split(";")[1])
+        else:
+            print("Failed to get server ID from load balancer, error:", data)
+
+    def AddToLB(self, client_id):
+        info = self.players_data[client_id]
+        info['server'] = self.server_id
+        with self.lb_lock:
+            self.players_to_lb[client_id] = info
+
+    def CheckForLB(self, client_id, x, y):
+        if self.server_index == 1:
+            if x > self.server_borders[0] or y > self.server_borders[1]:
+                self.AddToLB(client_id)
+                return
+        if self.server_index == 2:
+            if x < self.server_borders[0] or y < self.server_borders[1]:
+                self.AddToLB(client_id)
+                return
+        if self.server_index == 3:
+            if x < self.server_borders[0] or y < self.server_borders[1]:
+                self.AddToLB(client_id)
+                return
+        if self.server_index == 4:
+            if x > self.server_borders[0] or y < self.server_borders[1]:
+                self.AddToLB(client_id)
+                return
+
+    def SendInfoLB(self):
+        with self.lb_lock:
+            self.lb_socket.send(("INFO " + json.dumps(self.players_to_lb)).encode())
+
+    def getRIGHT(self):
+        with self.lb_lock:
+            self.lb_socket.send(f"RIGHT".encode())
+            data = self.lb_socket.recv(1024).decode()
+            data = json.loads(data)
+            pass
+
+    def getSEND(self):
+        with self.lb_lock:
+            self.lb_socket.send(f"SEND".encode())
+            data = self.lb_socket.recv(1024).decode()
+            data = json.loads(data)
+            for client_id, data in data.items():
+                with self.elements_lock:
+                    self.updated_elements[client_id] = data
+            start_time = time.time()
+            while time.time() < start_time + 3:
+                pass
+            with self.elements_lock:
+                for client_id in data.keys():
+                    if client_id in self.updated_elements.keys():
+                        del self.updated_elements[client_id]
 
     def lb_connect_protocol(self):
         print("Listening on UDP for load balancer on", get_ip_address())
@@ -88,12 +153,28 @@ class SubServer:
                     self.sendSYNCACKLB()
                     if self.recvACKLB():
                         self.is_connected_to_lb = True
+                        lb_thread = threading.Thread(target=self.handle_lb)
+                        lb_thread.start()
                         break
             except socket.timeout:
                 print("No UDP packet received within timeout period")
             except Exception as e:
                 print(f"Error receiving UDP packet: {e}")
                 self.lb_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def handle_lb(self):
+        self.getINDEX()
+        self.getBORDERS()
+        while True:
+            try:
+                self.SendInfoLB()
+                data = self.lb_socket.recv(1024).decode()
+                pass
+            except socket.timeout:
+                print("No data received from load balancer within timeout period")
+            except Exception as e:
+                print(f"Error receiving data from load balancer: {e}")
+                break
 
     def readSYNcLB(self, data):
         str_data = data.decode()
