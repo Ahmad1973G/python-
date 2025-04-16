@@ -29,6 +29,7 @@ def big_boom_boom(players, screen, red, range):
     pg.draw.circle(screen, red, (500, 325), range, width=0)
     pg.display.flip()
     time.sleep(0.5)
+    
 
 
 # def sendmovement(x,y):
@@ -295,9 +296,9 @@ def run_game():
     h = None
     g = None
     # thread_movement = threading.Thread(target=sendmovement, args=())
-    thread_shooting = threading.Thread(target=shoot, args=(weapons, players_sprites, bullet_sprite, screen, my_player))
-    thread_shooting.daemon = True
+    thread_shooting = threading.Thread(target=shoot, daemon = True, args=(weapons, players_sprites, bullet_sprite, screen, my_player))
     thread_shooting.start()
+    thread_bomb = threading.Thread(target=big_boom_boom, daemon = True, args=(players, screen, RED, granade_range))
     # thread_movement.start()
     while running:
 
