@@ -3,6 +3,7 @@ import json
 import threading
 import random
 import time
+import sub_client_prots
 
 # Configuration
 LB_PORT = 5002
@@ -46,6 +47,36 @@ class SubServer:
         self.players_data_lock = threading.Lock()
         self.elements_lock = threading.Lock()
         self.counter_lock = threading.Lock()
+
+        self.process_move = sub_client_prots.process_move
+        self.process_shoot = sub_client_prots.process_shoot
+        self.process_damage_taken = sub_client_prots.process_damage_taken
+        self.process_power = sub_client_prots.process_power
+        self.process_angle = sub_client_prots.process_angle
+        self.process_request = sub_client_prots.process_request
+        self.process_requestFull = sub_client_prots.process_requestFull
+
+        self.protocols = {
+            "MOVE": self.process_move,
+            "SHOOT": self.process_shoot,
+            "DAMAGE": self.process_damage_taken,
+            "POWER": self.process_power,
+            "ANGLE": self.process_angle
+        }
+
+        self.receive_protocol = {
+            "REQUEST": self.process_request,
+            "REQUESTFULL": self.process_requestFull
+        }
+
+    def getID(self):
+        self.lb_socket.send("ID".encode())
+        data = self.lb_socket.recv(1024).decode()
+        if data.startswith("ID CODE 2"):
+            self.server_id = int(data.split(";")[-1])
+            print("Server ID:", self.server_id)
+        else:
+            print("Failed to get server ID from load balancer, error:", data)
 
     def lb_connect_protocol(self):
         print("Listening on UDP for load balancer on", get_ip_address())
@@ -194,146 +225,17 @@ class SubServer:
                         break
             conn.close()
 
-    def process_move(self, client_id, message: str):
-        try:
-            x = message.split(';')[0]
-            y = message.split(';')[1]
-            with self.elements_lock:
-                self.updated_elements[client_id]['x'] = x
-                self.updated_elements[client_id]['y'] = y
-            with self.players_data_lock:
-                self.players_data[client_id]['x'] = x
-                self.players_data[client_id]['y'] = y
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send("ACK".encode())
-        except Exception as e:
-            print(f"Error processing move for {client_id}: {e}")
-
-    def process_shoot(self, client_id, message: str):
-        try:
-            messages = message.split(';')
-            start_x = messages[0]
-            start_y = messages[1]
-            end_x = messages[2]
-            end_y = messages[3]
-            weapon = messages[4]
-            with self.elements_lock:
-                self.updated_elements[client_id]['shoot'] = [start_x, start_y, end_x, end_y, weapon]
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send("ACK".encode())
-        except Exception as e:
-            print(f"Error processing shoot for {client_id}: {e}")
-
-    def process_damage_taken(self, client_id, message: str):
-        try:
-            damage = message
-            with self.elements_lock:
-                self.updated_elements[client_id]['health'] -= damage
-            with self.players_data_lock:
-                self.players_data[client_id]['health'] -= damage
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send("ACK".encode())
-        except Exception as e:
-            print(f"Error processing damage taken for {client_id}: {e}")
-
-    def process_power(self, client_id, message: str):
-        try:
-            power = message.split(';')
-            with self.elements_lock:
-                self.updated_elements[client_id]['power'] = power, self.players_data['x'], self.players_data['y']
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send("ACK".encode())
-        except Exception as e:
-            print(f"Error processing power for {client_id}: {e}")
-
-    def process_angle(self, client_id, message: str):
-        try:
-            angle = int(message)
-            with self.elements_lock:
-                self.updated_elements[client_id]['angle'] = angle
-            with self.players_data_lock:
-                self.players_data[client_id]['angle'] = angle
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send("ACK".encode())
-        except Exception as e:
-            print(f"Error processing angle for {client_id}: {e}")
-
-    def process_request(self, client_id):
-        try:
-            with self.counter_lock:
-                self.players_counter[client_id] += 1
-                counter = self.players_counter[client_id]
-
-            if counter == 10000:
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send("WARNING".encode())
-                return 0
-            elif counter == 100000:
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send("KICK".encode())
-                    self.connected_clients[client_id][1].close()
-                return 1
-
-            with self.elements_lock:
-                other_players_data = {player_id: data for player_id, data in self.updated_elements.items() if data != {}}
-            
-            other_players_data_str = json.dumps(other_players_data)
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send(other_players_data_str.encode())
-        except Exception as e:
-            print(f"Error processing request for {client_id}: {e}")
-        finally:
-            return 0
-
-    def process_requestFull(self, client_id):
-        try:
-            with self.counter_lock:
-                self.players_counter[client_id] += 1
-                counter = self.players_counter[client_id]
-
-            if counter == 10000:
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send("WARNING".encode())
-                return 0
-            elif counter == 100000:
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send("KICK".encode())
-                    self.connected_clients[client_id][1].close()
-                return 1
-
-            with self.players_data_lock:
-                other_players_data = {player_id: data for player_id, data in self.players_data.items() if data != {}}
-            
-            other_players_data_str = json.dumps(other_players_data)
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send(other_players_data_str.encode())
-        except Exception as e:
-            print(f"Error processing request for {client_id}: {e}")
-        finally:
-            return 0
-
     def process_player_data(self, client_id, message: str):
         try:
-            if message.startswith("MOVE"):
-                self.process_move(client_id, message.split(" ")[-1])
-                print("recived move!")
-                print(self.updated_elements)
-            elif message.startswith("SHOOT"):
-                self.process_shoot(client_id, message.split(" ")[-1])
-            elif message.startswith("DAMAGE"):
-                self.process_damage_taken(client_id, message.split(" ")[-1])
-            elif message.startswith("POWER"):
-                self.process_power(client_id, message.split(" ")[-1])
-            elif message.startswith("ANGLE"):
-                self.process_angle(client_id, message.split(" ")[-1])
-            elif message.startswith("REQUESTFULL"):
-                with self.elements_lock:
-                    self.updated_elements[client_id] = {}
-                return self.process_requestFull(client_id)
-            elif message.startswith("REQUEST"):
-                with self.elements_lock:
-                    self.updated_elements[client_id] = {}
-                return self.process_request(client_id)
+            messages = message.split(' ')
+            protocol = messages[0]
+            data = messages[-1]
+            if protocol in self.protocols.keys():
+                self.protocols[protocol](client_id, data)
+
+            elif protocol in self.receive_protocol.keys():
+                return self.receive_protocol[protocol](client_id)
+
             else:
                 print("Unknown protocol, ignoring")
 
