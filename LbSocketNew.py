@@ -119,19 +119,27 @@ class LoadBalancer:
     def run(self):
         self.start_protocol()
 
-    def process_info(self, packet_info):
-        right_servers, server_to_send = self.MoveServer(packet_info, self.server_borders)
+    def process_info(self, packet_info, id):
+        try:
+            right_servers, server_to_send = self.MoveServer(packet_info, self.server_borders)
 
-        for client_id, server in right_servers.items():
-            with self.right_lock:
-                self.final_packet_right[server] = client_id
-                self.final_packet_right[packet_info[client_id]['server']] = [client_id,
-                                                                             self.servers[server].getpeername()[0]]
+            for client_id, server in right_servers.items():
+                with self.right_lock:
+                    self.final_packet_right[server][client_id] = True
+                    self.final_packet_right[packet_info[client_id]['server']][client_id
+                    ] = self.servers[server].getpeername()[0]
 
-        for client_id, servers in server_to_send.items():
-            with self.send_lock:
-                for server in servers:
-                    self.final_packet_to_send[server] = packet_info[client_id]
+            for client_id, servers in server_to_send.items():
+                with self.send_lock:
+                    for server in servers:
+                        self.final_packet_to_send[server] = packet_info[client_id]
+
+            self.servers[id].send("ACK".encode())
+        except Exception as e:
+            print(f"Error processing info: {e}")
+            return
+
+
 
     def getRIGHT(self, server_id):
         with self.right_lock:
@@ -166,7 +174,7 @@ class LoadBalancer:
 
                     if data.startswith("INFO"):
                         packet_info = json.loads(data.split()[-1])
-                        self.process_info(packet_info)
+                        self.process_info(packet_info, id)
                         continue
 
                     if data.startswith("RIGHT"):
