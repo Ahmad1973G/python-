@@ -224,9 +224,6 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
-    no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
-    map_surface = render_map(tmx_data)
     acceleration = 0.1
     direction = 0  # like m in y=mx+b
     RED = (255, 0, 0)
@@ -242,7 +239,7 @@ def run_game():
     }
     my_sprite = {
         "image": pg.Surface((my_player["width"], my_player["height"])),
-        "rect": pg.Rect(500, 325, my_player["width"], my_player["height"]),
+        "rect": pg.Rect(500, 325, my_player["width"], my_player["height"])
     }
 
     players_sprites = {}
@@ -276,7 +273,8 @@ def run_game():
                 'y': int(float(data['y']) - float(dis_to_mid[1])),
                 'width': 60,
                 'height': 60,
-                'hp': 100
+                'hp': 100,
+                'angle': 0
             }
             players[key] = old_player
             old_player = {
@@ -321,6 +319,7 @@ def run_game():
                         angle=180+(mouse[0]/abs(mouse[0]))*90
                     else:
                         angle=(direction/abs(direction))*((-(mouse[0]-500))/abs(mouse[0]-500))*90+angle+(1+(-direction)/abs(direction))*90
+        #        Socket.sendANGLE(angle)
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_1:
                     shared_data['used_weapon'] = 0
@@ -357,19 +356,23 @@ def run_game():
         for key, data in shared_data['recived'].items():
             if key in players:
                 if 'x' in data:
+                    print("moved")
                     players[key]['x'] = int(float(data['x']) - float(dis_to_mid[0]))
                     players[key]['y'] = int(float(data['y']) - float(dis_to_mid[1]))
 
                 if 'hp' in data:
                     players[key]['hp'] = data['hp']
                     # check_if_they_dead(players[key]['hp'])
+                if 'angle' in data:
+                    players[key]['angle'] = data['angle']
             elif 'x' in data and 'y' in data:
                 new_player = {
                     'x': int(float(data['x']) - float(dis_to_mid[0])),
                     'y': int(float(data['y']) - float(dis_to_mid[1])),
                     'width': 60,
                     'height': 60,
-                    'hp': 100
+                    'hp': 100,
+                    'angle':0
                 }
                 players[key] = new_player
                 new_player = {
@@ -404,7 +407,7 @@ def run_game():
             Socket.sendMOVE(my_player['x'], my_player['y'])
         #screen.blit(map_surface, world_offset)
         screen.fill(BLACK)
-        obj.print_players(players_sprites, screen,angle)
+        obj.print_players(players_sprites,players,angle)
         pg.display.flip()
         clock.tick(60)
     pg.quit()

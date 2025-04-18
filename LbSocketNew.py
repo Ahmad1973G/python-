@@ -4,6 +4,7 @@ import threading
 import time
 import random
 from typing import Union, Tuple, Dict, Any, Optional
+import database
 
 class LoadBalancer:
     def __init__(self):
@@ -151,6 +152,8 @@ class LoadBalancer:
             self.servers[server_id].send(f"SEND CODE 2;{self.final_packet_to_send[server_id]}".encode())
             self.final_packet_to_send[server_id] = {}
 
+
+
     def handle_server(self, id):
         while True:
             try:
@@ -184,6 +187,9 @@ class LoadBalancer:
                     if data.startswith("SEND"):
                         self.getSEND(id)
                         continue
+
+                    if data.startswith("LOGIN"):
+                        self.process_login(data.split()[-1], id)
 
                 except json.JSONDecodeError:
                     print(f"Error decoding JSON data from server {id}: {data}")

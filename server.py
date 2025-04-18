@@ -46,6 +46,7 @@ class SubServer:
         self.players_to_lb = {}
         self.different_server_players = {}
         self.moving_servers = {}
+        self.waiting_login = {}
 
         # Add locks for shared resources
         self.clients_lock = threading.Lock()
@@ -55,6 +56,7 @@ class SubServer:
         self.lb_lock = threading.Lock()
         self.other_server_lock = threading.Lock()
         self.moving_lock = threading.Lock()
+        self.waiting_login_lock = threading.Lock()
 
         self.process_move = sub_client_prots.process_move
         self.process_shoot = sub_client_prots.process_shoot
@@ -69,7 +71,8 @@ class SubServer:
             "SHOOT": self.process_shoot,
             "DAMAGE": self.process_damage_taken,
             "POWER": self.process_power,
-            "ANGLE": self.process_angle
+            "ANGLE": self.process_angle,
+            "LOGIN": self.process_login
         }
 
         self.receive_protocol = {
@@ -233,8 +236,8 @@ class SubServer:
                     self.sendSYNCACKLB()
                     if self.recvACKLB():
                         self.is_connected_to_lb = True
-                        lb_thread = threading.Thread(target=self.handle_lb)
-                        lb_thread.start()
+                        #lb_thread = threading.Thread(target=self.handle_lb)
+                        #lb_thread.start()
                         break
             except socket.timeout:
                 print("No UDP packet received within timeout period")
@@ -291,6 +294,24 @@ class SubServer:
             self.udp_socket.sendto(f"SYNC+ACK CODE 69 {self.server_address[0]};{self.server_address[1]}".encode(), addr)
             return True
         return False
+
+    def SendLogin(self):
+        with self.waiting_login_lock:
+            if not self.waiting_login:
+                return
+            str_login = f"LOGIN {json.dumps(self.waiting_login)}"
+            self.lb_socket.send(str_login.encode())
+
+    def process_login(self, client_id, message: str):
+        try:
+            messages = message.split(';')
+            username = messages[0]
+            password = messages[1]
+            with self.waiting_login_lock:
+                self.waiting_login[client_id] = (username, password)
+
+        except Exception as e:
+            print(f"Error processing login for {client_id}: {e}")
 
     def sendID(self):
         try:
@@ -403,10 +424,7 @@ class SubServer:
                 print("Unknown protocol, ignoring")
 
             with self.counter_lock:
-                if client_id in self.players_counter.keys():
-                    self.players_counter[client_id] = 0
-                else:
-                    self.players_counter[client_id] = 0
+                self.players_counter[client_id] = 0
 
             return 0
         except Exception as e:

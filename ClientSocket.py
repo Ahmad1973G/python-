@@ -196,3 +196,14 @@ class ClientServer:
         except socket.error as e:
             print(f"Socket error: {e}")
             return None
+
+    def login(self, user, password):
+        self.socket.send(f"LOGIN {user};{password}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "LOGIN":
+            print("Login successful")
+            return True
+        else:
+            print("Login failed, error:", message)
+            return False
