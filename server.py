@@ -231,10 +231,12 @@ class SubServer:
             protocol = messages[0]
             data = messages[-1]
             if protocol in self.protocols.keys():
-                self.protocols[protocol](client_id, data)
+                self.protocols[protocol](self, client_id, data)
 
             elif protocol in self.receive_protocol.keys():
-                return self.receive_protocol[protocol](client_id)
+                with self.elements_lock:
+                    self.updated_elements[client_id] = {}
+                return self.receive_protocol[protocol](self, client_id)
 
             else:
                 print("Unknown protocol, ignoring")

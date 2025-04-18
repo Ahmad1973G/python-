@@ -35,13 +35,11 @@ def big_boom_boom(players, screen, red, range):
 # while True:
 # if moving:
 # Socket.sendMOVE(x,y)
-def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
+def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, socket):
     hit = False
     # pg.mixer.init()
     # sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
     # sound_effect.set_volume(0.5)
-    server_connection = ClientSocket.ClientServer()
-    server_connection.connect()
     while True:
         shot_offset = (0, 0)
         if shared_data['fire']:
@@ -89,7 +87,7 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player):
                 end2 = 325 - end2
                 end1 += my_player['x'] - 500
                 end2 += my_player['y'] - 325
-                server_connection.sendSHOOT(my_player['x'],my_player['y'],end1,end2,shared_data['used_weapon'])
+                socket.sendSHOOT(my_player['x'],my_player['y'],end1,end2,shared_data['used_weapon'])
                 shared_data['fire'] = False
         for key, data in shared_data['recived'].items():
             if 'shoot' in data:
@@ -224,9 +222,6 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
-    no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
-    map_surface = render_map(tmx_data)
     acceleration = 0.1
     direction = 0  # like m in y=mx+b
     RED = (255, 0, 0)
@@ -295,7 +290,7 @@ def run_game():
     h = None
     g = None
     # thread_movement = threading.Thread(target=sendmovement, args=())
-    thread_shooting = threading.Thread(target=shoot, args=(weapons, players_sprites, bullet_sprite, screen, my_player))
+    thread_shooting = threading.Thread(target=shoot, args=(weapons, players_sprites, bullet_sprite, screen, my_player, Socket))
     thread_shooting.daemon = True
     thread_shooting.start()
     # thread_movement.start()

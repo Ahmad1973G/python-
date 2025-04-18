@@ -1,3 +1,5 @@
+import json
+
 def process_move(self, client_id, message: str):
     try:
         x = message.split(';')[0]
