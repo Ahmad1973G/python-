@@ -1,15 +1,20 @@
+import json
+
+
 def process_move(self, client_id, message: str):
     try:
         x = message.split(';')[0]
         y = message.split(';')[1]
+
         with self.elements_lock:
             self.updated_elements[client_id]['x'] = x
             self.updated_elements[client_id]['y'] = y
         with self.players_data_lock:
             self.players_data[client_id]['x'] = x
             self.players_data[client_id]['y'] = y
-        with self.clients_lock:
-            self.connected_clients[client_id][1].send("ACK".encode())
+
+        self.CheckIfMovingFULL(client_id)
+        self.CheckForLB(client_id, x, y)
     except Exception as e:
         print(f"Error processing move for {client_id}: {e}")
 
@@ -86,6 +91,7 @@ def process_request(self, client_id):
         with self.elements_lock:
             other_players_data = {player_id: data for player_id, data in self.updated_elements.items() if data != {}}
 
+        other_players_data.update(self.different_server_players)
         other_players_data_str = json.dumps(other_players_data)
         with self.clients_lock:
             self.connected_clients[client_id][1].send(other_players_data_str.encode())

@@ -82,49 +82,72 @@ class ClientServer:
             print("Received the ID packet, ID:", self.id)
             return self.id
 
+    def MoveServer(self, data):
+        try:
+            ip = int(data)
+            port = self.server[1]
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.connect((ip, port))
+            data = self.socket.recv(1024)
+            str_data = data.decode()
+            if str_data.startswith("ID"):
+                self.socket.send(f"ID CODE 69;{self.id}".encode())
+                print("Received the ID packet successfully")
+                print("Sent the ID packet")
+                self.server = (ip, port)
+                return True
+            return False
+        except Exception as e:
+            print("Error connecting to server:", e)
+            return False
+
+    def protocol_check(self, data: str):
+        if data == "ACK":
+            print("ACK received")
+            return True
+
+        if data.startswith("MOVING"):
+            if not self.MoveServer(data):
+                print("Error moving server")
+                return False
+            print("Server moved successfully")
+            return True
+
     def sendMOVE(self, x, y):
         # Add newline delimiter to separate messages
         self.socket.send(f"MOVE {x};{y}".encode())
         message = self.socket.recv(1024)
         message = message.decode()
-        if message == "ACK":
-            print("move sent successfully")
-        else:
-            print("Failed to send move, error:", message)
+        if self.protocol_check(message):
+            print("Move sent successfully")
 
     def sendSHOOT(self, start_x, start_y, end_x, end_y, weapon):
         self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y};{weapon}".encode())
         message = self.socket.recv(1024)
         message = message.decode()
-        if message == "ACK":
-            print("shoot sent successfully")
-        else:
-            print("Failed to send shoot, error:", message)
+        if self.protocol_check(message):
+            print("Shoot sent successfully")
 
     def sendANGLE(self, angle):
         self.socket.send(f"ANGLE {angle}".encode())
         message = self.socket.recv(1024)
         message = message.decode()
-
+        if self.protocol_check(message):
+            print("Angle sent successfully")
 
     def sendDAMAGE(self, damage):
         self.socket.send(f"DAMAGE {damage}".encode())
         message = self.socket.recv(1024)
         message = message.decode()
-        if message == "ACK":
-            print("damage sent successfully")
-        else:
-            print("Failed to send damage, error:", message)
+        if self.protocol_check(message):
+            print("Damage sent successfully")
 
     def sendPOWER(self, power):
         self.socket.send(f"POWER {power}".encode())
         message = self.socket.recv(1024)
         message = message.decode()
-        if message == "ACK":
+        if self.protocol_check(message):
             print("Power sent successfully")
-        else:
-            print("Failed to send power, error:", message)
-
 
     def requestDATA(self):
         try:
@@ -173,3 +196,14 @@ class ClientServer:
         except socket.error as e:
             print(f"Socket error: {e}")
             return None
+
+    def login(self, user, password):
+        self.socket.send(f"LOGIN {user};{password}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "LOGIN":
+            print("Login successful")
+            return True
+        else:
+            print("Login failed, error:", message)
+            return False
