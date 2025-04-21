@@ -204,7 +204,7 @@ def run_game():
 
     screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 500, 'y': 500, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 400, 'y': 400, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x']-500,my_player['y'] - 325]
     players = {}
