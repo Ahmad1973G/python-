@@ -20,13 +20,13 @@ class Player(pg.sprite.Sprite):
         self.screen = screen
         self.players_sprites = players_sprites
         self.my_sprite = my_sprite
-        self.image = pg.Surface((my_player['width'], my_player['height']))
-        self.image.fill((255, 0, 0))  # Fill with red for visibility
-        self.rect = self.image.get_rect(topleft=(500, 325))  # Set initial position
         self.weapons = weapons
         # New attributes for powerups and items
         self.invulnerability = False  # Tracks if the player is invulnerable
         self.invulnerability_end_time = None  # Time when invulnerability ends
+        self.players_image=pg.Surface((20, 20))
+        self.players_image.fill(pg.Color((255,0,0)))
+        self.players_rect=self.players_image.get_rect(center=(0,0))
 
     def activate_invulnerability(self, duration):
         self.invulnerability = True
@@ -92,22 +92,23 @@ class Player(pg.sprite.Sprite):
         }
         return json.dumps(client_loc)
 
-    def print_players(self, players_sprites, screen):
-        for player in players_sprites:
-            player['image'].fill((255, 0, 0))
-            self.screen.blit(player['image'], player['rect'])
+    def print_players(self, players_sprites,players,angle):
+        PINK = (255, 174, 201)
+        for key,data in players_sprites.items():
+            data['image']=pg.image.load('char.png').convert()
+            data['image'].set_colorkey(PINK)
+            #data['rect'].center = (data['rect'].x,data['rect'].y)
+
+            data['image'] = pg.transform.rotate(data['image'],players[key]['angle'])
+            data['rect'] = data['image'].get_rect(center=(data['rect'].x,data['rect'].y))
+
+            self.screen.blit(data['image'],data['rect'])
         # Draw the main player at the center
-        image = pg.Surface((20, 20))
-        image.fill(pg.Color('blue'))
+        image = pg.Surface((60, 60))
+        image = pg.image.load('char.png').convert()
+        image.set_colorkey(PINK)
+
+        image=pg.transform.rotate(image,angle)
         rect = image.get_rect(center=(500, 325))
         self.screen.blit(image, rect)
 
-    def move(self, players_sprites, acceleration, move_offset, moving):
-        if not moving:
-            return False, move_offset, self.my_player['x'], self.my_player['y']
-        move_offset = (move_offset[0] * (1 - acceleration), move_offset[1] * (1 - acceleration))
-        self.my_player['x'] += move_offset[0] * acceleration
-        self.my_player['y'] += move_offset[1] * acceleration
-        if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
-            return False, (0, 0), self.my_player['x'], self.my_player['y']  # Stop moving when close enough
-        return True, move_offset, self.my_player['x'], self.my_player['y']

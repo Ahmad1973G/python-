@@ -3,7 +3,7 @@ import json
 import Pmodel1
 import ClientSocket
 import threading
-
+print ("shefer is gay")
 def print_players(players_list, screen):
     screen.fill((30, 30, 30))
     

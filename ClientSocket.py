@@ -83,16 +83,51 @@ class ClientServer:
             return self.id
 
     def sendMOVE(self, x, y):
+        # Add newline delimiter to separate messages
         self.socket.send(f"MOVE {x};{y}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "ACK":
+            print("move sent successfully")
+        else:
+            print("Failed to send move, error:", message)
 
     def sendSHOOT(self, start_x, start_y, end_x, end_y, weapon):
         self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y};{weapon}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "ACK":
+            print("shoot sent successfully")
+        else:
+            print("Failed to send shoot, error:", message)
+
+    def sendANGLE(self, angle):
+        self.socket.send(f"ANGLE {angle}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "ACK":
+            print("angle sent successfully")
+        else:
+            print("Failed to send angle, error:", message)
 
     def sendDAMAGE(self, damage):
         self.socket.send(f"DAMAGE {damage}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "ACK":
+            print("damage sent successfully")
+        else:
+            print("Failed to send damage, error:", message)
 
     def sendPOWER(self, power):
         self.socket.send(f"POWER {power}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "ACK":
+            print("Power sent successfully")
+        else:
+            print("Failed to send power, error:", message)
+
 
     def requestDATA(self):
         try:
