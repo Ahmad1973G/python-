@@ -153,6 +153,20 @@ class LoadBalancer:
             self.final_packet_to_send[server_id] = {}
 
 
+    def process_login(self, data, id):
+        try:
+            clients = {}
+            data = json.loads(data)
+            for client_id, data in data.items():
+                username = data[0]
+                password = data[1]
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON data: {data}")
+            return
+        except Exception as e:
+            print(f"Error processing login data: {e}")
+            return
+
 
     def handle_server(self, id):
         while True:
