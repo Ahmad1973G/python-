@@ -105,10 +105,7 @@ class ClientServer:
         self.socket.send(f"ANGLE {angle}".encode())
         message = self.socket.recv(1024)
         message = message.decode()
-        if message == "ACK":
-            print("angle sent successfully")
-        else:
-            print("Failed to send angle, error:", message)
+
 
     def sendDAMAGE(self, damage):
         self.socket.send(f"DAMAGE {damage}".encode())
