@@ -92,17 +92,22 @@ class Player(pg.sprite.Sprite):
         }
         return json.dumps(client_loc)
 
-    def print_players(self, players_sprites, screen,angle):
+    def print_players(self, players_sprites,players,angle):
         PINK = (255, 174, 201)
         for key,data in players_sprites.items():
             data['image']=pg.image.load('char.png').convert()
             data['image'].set_colorkey(PINK)
-            data['rect'].center = (data['rect'].x,data['rect'].y)
+            #data['rect'].center = (data['rect'].x,data['rect'].y)
+
+            data['image'] = pg.transform.rotate(data['image'],players[key]['angle'])
+            data['rect'] = data['image'].get_rect(center=(data['rect'].x,data['rect'].y))
+
             self.screen.blit(data['image'],data['rect'])
         # Draw the main player at the center
         image = pg.Surface((60, 60))
         image = pg.image.load('char.png').convert()
         image.set_colorkey(PINK)
+
         image=pg.transform.rotate(image,angle)
         rect = image.get_rect(center=(500, 325))
         self.screen.blit(image, rect)
