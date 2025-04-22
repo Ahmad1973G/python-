@@ -92,48 +92,49 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                 shared_data['fire'] = False
         with lock_shared_data:
             temp = shared_data['recived']
-        for key, data in temp.items():
-            if 'shoot' in data:
-                start_pos = [int(float(data['shoot'][0])), int(float(data['shoot'][1]))]
-                end_pos = [int(float(data['shoot'][2])), int(float(data['shoot'][3]))]
-                start_pos[0] -= my_player['x'] - 500
-                start_pos[1] -= my_player['y'] - 325
-                end_pos[0] -= my_player['x'] - 500
-                end_pos[1] -= my_player['y'] - 325
-                Red = (255, 0, 0)
+        if temp != {}:
+            for key, data in temp.items():
+                if 'shoot' in data:
+                    start_pos = [int(float(data['shoot'][0])), int(float(data['shoot'][1]))]
+                    end_pos = [int(float(data['shoot'][2])), int(float(data['shoot'][3]))]
+                    start_pos[0] -= my_player['x'] - 500
+                    start_pos[1] -= my_player['y'] - 325
+                    end_pos[0] -= my_player['x'] - 500
+                    end_pos[1] -= my_player['y'] - 325
+                    Red = (255, 0, 0)
 
-                # --------------------------------------------------------------------------------
-                hit2 = False
-                range1 = 1
-                end_pos[0] -= start_pos[0]  # setting players position as rashit hatsirim
-                end_pos[1] = start_pos[1] - end_pos[1]
-                added_dis = range1 * weapons[int(data['shoot'][4])]['bulet_speed']
+                    # --------------------------------------------------------------------------------
+                    hit2 = False
+                    range1 = 1
+                    end_pos[0] -= start_pos[0]  # setting players position as rashit hatsirim
+                    end_pos[1] = start_pos[1] - end_pos[1]
+                    added_dis = range1 * weapons[int(data['shoot'][4])]['bulet_speed']
 
-                while abs(range1) < weapons[int(data['shoot'][4])]['range'] - 1 and not hit2:
-                    range1 += added_dis
-                    try:
-                        direction = (0 - end_pos[1]) / (0 - end_pos[0])
-                        end_pos[0] = (end_pos[0] / abs(end_pos[0])) * math.sqrt(
-                            range1 / (direction * direction + 1))
-                        end_pos[1] = direction * end_pos[0]
-                    except ZeroDivisionError:
-                        end_pos[1] = (end_pos[1] / abs(end_pos[1]) * math.sqrt(range1))
-                        end_pos[0] = 0
-                    bullet_sprite['image'].fill((255, 0, 255))
-                    bullet_sprite['rect'] = bullet_sprite['image'].get_rect(
-                        center=(end_pos[0] + start_pos[0], start_pos[1] - end_pos[1]))
-                    with lock:
-                        screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
-                        pg.display.flip()
-                    image = pg.Surface((60, 60))
-                    image.fill(pg.Color('blue'))
-                    rect = image.get_rect(center=(500, 325))
-                    # --------------------------------------------------------------
-                    if rect.colliderect(bullet_sprite['rect']):
-                        print("got hit")
-                        # my_player['hp']-=weapons[int(data['shoot'][4])]['damage']
-                        my_player['hp'] -= weapons[0]['damage']
-                        hit2 = True
+                    while abs(range1) < weapons[int(data['shoot'][4])]['range'] - 1 and not hit2:
+                        range1 += added_dis
+                        try:
+                            direction = (0 - end_pos[1]) / (0 - end_pos[0])
+                            end_pos[0] = (end_pos[0] / abs(end_pos[0])) * math.sqrt(
+                                range1 / (direction * direction + 1))
+                            end_pos[1] = direction * end_pos[0]
+                        except ZeroDivisionError:
+                            end_pos[1] = (end_pos[1] / abs(end_pos[1]) * math.sqrt(range1))
+                            end_pos[0] = 0
+                        bullet_sprite['image'].fill((255, 0, 255))
+                        bullet_sprite['rect'] = bullet_sprite['image'].get_rect(
+                            center=(end_pos[0] + start_pos[0], start_pos[1] - end_pos[1]))
+                        with lock:
+                            screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
+                            pg.display.flip()
+                        image = pg.Surface((60, 60))
+                        image.fill(pg.Color('blue'))
+                        rect = image.get_rect(center=(500, 325))
+                        # --------------------------------------------------------------
+                        if rect.colliderect(bullet_sprite['rect']):
+                            print("got hit")
+                            # my_player['hp']-=weapons[int(data['shoot'][4])]['damage']
+                            my_player['hp'] -= weapons[0]['damage']
+                            hit2 = True
 
 
 def check_if_dead(hp):
@@ -157,11 +158,6 @@ def get_collision_rects(tmx_data):
                         rect = pg.Rect(x * tile_width, y * tile_height, tile_width, tile_height)
                         collision_rects.append(rect)
     return collision_rects
-
-
-def draw_map(screen, map_surface, world_offset):
-    """Draw the TMX map onto the screen."""
-    screen.blit(map_surface, world_offset)
 
 
 def render_map(tmx_data):
@@ -207,7 +203,7 @@ def run_game():
     with lock:
         screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 400, 'y': 400, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 600, 'y': 600, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -356,12 +352,17 @@ def run_game():
             knockback -= 1
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
-            my_player['x'] = 500
-            my_player['y'] = 500
+            my_player['x'] = 400
+            my_player['y'] = 400
+            for key,data in players.items():
+                data['x']+=dis_to_mid[0]-(my_player['x'] - 500)
+                data['y']+=dis_to_mid[1]-(my_player['y']-325)
             dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
             weapons[0]['ammo'] = weapons[0]['max_ammo']
             weapons[1]['ammo'] = weapons[1]['max_ammo']
             weapons[2]['ammo'] = weapons[2]['max_ammo']
+            sum_offset=[0,0]
+
             Socket.sendMOVE(my_player['x'], my_player['y'])
         recived = Socket.requestDATA()
 
@@ -404,8 +405,7 @@ def run_game():
                 players_sprites[key]["rect"] = pg.Rect(int(data["x"] + sum_offset[0]), int(data["y"] + sum_offset[1]),
                                                        players[key]['width'], players[key]['height'])
 
-            # world_offset = (500 - my_player['x'], 325 - my_player['y'])
-            # draw_map(screen, tmx_data, world_offset)
+
         for key, data in players_sprites.items():
             if data['rect'].x >= (500 - my_player['width']) and data['rect'].x <= (500 + my_player['width']) and data[
                 'rect'].y >= (325 - my_player['height']) and data['rect'].y <= (325 + my_player['height']):
