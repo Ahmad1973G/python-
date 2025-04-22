@@ -37,7 +37,7 @@ class database:
   def getallplayer(self, PLAYERID):
     self.c.execute("SELECT * FROM players WHERE PlayerID = ?", (PLAYERID,))
 
-    return(self.c.fetchall())
+    return self.c.fetchall()
 
   def createplayer(self, PlayerModel, Username, Password):
     id = self.id

@@ -24,6 +24,7 @@ class LoadBalancer:
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.final_packet_right = {}
         self.final_packet_to_send = {}
+        self.DataBase = database.database()
 
         self.right_lock = threading.Lock()
         self.send_lock = threading.Lock()
@@ -114,7 +115,7 @@ class LoadBalancer:
                 print(f"Error accepting connection: {e}")
                 try:
                     conn.close()
-                except:
+                except Exception as e:
                     pass
 
     def run(self):
@@ -160,6 +161,10 @@ class LoadBalancer:
             for client_id, data in data.items():
                 username = data[0]
                 password = data[1]
+                player = self.DataBase.login(username, password)
+                if player is True:
+
+
         except json.JSONDecodeError:
             print(f"Error decoding JSON data: {data}")
             return
