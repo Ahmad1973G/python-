@@ -61,7 +61,7 @@ def process_power(self, client_id, message: str):
 
 def process_angle(self, client_id, message: str):
     try:
-        angle = int(message)
+        angle = float(message)
         with self.elements_lock:
             self.updated_elements[client_id]['angle'] = angle
         with self.players_data_lock:

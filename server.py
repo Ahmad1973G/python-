@@ -180,7 +180,6 @@ class SubServer:
                 except Exception as e:
                     pass
 
-
     def getRIGHT(self):
         self.lb_socket.send(f"RIGHT".encode())
         data = self.lb_socket.recv(1024).decode()
@@ -197,9 +196,6 @@ class SubServer:
         if players_to_this:
             welcome_thread = threading.Thread(target=self.WelcomePlayers, args=(players_to_this,))
             welcome_thread.start()
-
-
-
 
     def CheckIfMoving(self, client_id):
         with self.moving_lock:
@@ -225,7 +221,6 @@ class SubServer:
             data = json.loads(data)
             self.different_server_players = data
 
-
     def lb_connect_protocol(self):
         print("Listening on UDP for load balancer on", get_ip_address())
         while not self.is_connected_to_lb:
@@ -236,15 +231,14 @@ class SubServer:
                     self.sendSYNCACKLB()
                     if self.recvACKLB():
                         self.is_connected_to_lb = True
-                        #lb_thread = threading.Thread(target=self.handle_lb)
-                        #lb_thread.start()
+                        # lb_thread = threading.Thread(target=self.handle_lb)
+                        # lb_thread.start()
                         break
             except socket.timeout:
                 print("No UDP packet received within timeout period")
             except Exception as e:
                 print(f"Error receiving UDP packet: {e}")
                 self.lb_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
 
     def handle_lb(self):
         self.getINDEX()
@@ -322,10 +316,10 @@ class SubServer:
                 while client_id in self.connected_clients.keys():
                     client_id = random.randint(1, 1000)
                 self.connected_clients[client_id] = (addr, conn)
-            
+
             with self.players_data_lock:
                 self.players_data[client_id] = {}
-            
+
             conn.send(f"ID CODE 69 {client_id}".encode())
             print("Sent ID to client")
             return client_id
@@ -364,16 +358,16 @@ class SubServer:
         with self.clients_lock:
             conn = self.connected_clients[client_id][1]
             client_address = self.connected_clients[client_id][0]
-        
+
         with self.counter_lock:
             self.players_counter[client_id] = 0
-        
+
         with self.elements_lock:
             self.updated_elements[client_id] = {}
-        
+
         with self.players_data_lock:
             self.players_data[client_id] = {}
-        
+
         print(f"Connected to client {client_id} at {client_address}")
         try:
             while True:
@@ -391,15 +385,15 @@ class SubServer:
             with self.clients_lock:
                 if client_id in self.connected_clients:
                     del self.connected_clients[client_id]
-            
+
             with self.players_data_lock:
                 if client_id in self.players_data:
                     del self.players_data[client_id]
-            
+
             with self.counter_lock:
                 if client_id in self.players_counter:
                     del self.players_counter[client_id]
-            
+
             with self.elements_lock:
                 self.updated_elements[client_id] = {'dead': True}
                 start_time = time.time()

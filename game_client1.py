@@ -91,7 +91,7 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                 Socket.sendSHOOT(my_player['x'], my_player['y'], end1, end2, shared_data['used_weapon'])
                 shared_data['fire'] = False
         with lock_shared_data:
-            temp=shared_data['recived']
+            temp = shared_data['recived']
         for key, data in temp.items():
             if 'shoot' in data:
                 start_pos = [int(float(data['shoot'][0])), int(float(data['shoot'][1]))]
@@ -326,8 +326,8 @@ def run_game():
                         angle = 180 + (mouse[0] / abs(mouse[0])) * 90
                     else:
                         angle = (direction / abs(direction)) * (
-                                    (-(mouse[0] - 500)) / abs(mouse[0] - 500)) * 90 + angle + (
-                                            1 + (-direction) / abs(direction)) * 90
+                                (-(mouse[0] - 500)) / abs(mouse[0] - 500)) * 90 + angle + (
+                                        1 + (-direction) / abs(direction)) * 90
                 Socket.sendANGLE(angle)
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_1:
@@ -356,12 +356,12 @@ def run_game():
             knockback -= 1
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
-            my_player['x']=400
-            my_player['y']=400
-            dis_to_mid=[my_player['x']-500,my_player['y']-325]
-            weapons[0]['ammo']=weapons[0]['max_ammo']
-            weapons[1]['ammo']=weapons[1]['max_ammo']
-            weapons[2]['ammo']=weapons[2]['max_ammo']
+            my_player['x'] = 500
+            my_player['y'] = 500
+            dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
+            weapons[0]['ammo'] = weapons[0]['max_ammo']
+            weapons[1]['ammo'] = weapons[1]['max_ammo']
+            weapons[2]['ammo'] = weapons[2]['max_ammo']
             Socket.sendMOVE(my_player['x'], my_player['y'])
         recived = Socket.requestDATA()
 
@@ -422,9 +422,10 @@ def run_game():
                 my_player['x'] -= move_x
                 my_player['y'] -= move_y
             Socket.sendMOVE(my_player['x'], my_player['y'])
-        # screen.blit(map_surface, world_offset)
+        world_offset = (500 - my_player['x'], 325 - my_player['y'])
+
         with lock:
-            screen.fill(BLACK)
+            screen.blit(map_surface, world_offset)
         obj.print_players(players_sprites, players, angle)
         pg.display.flip()
         clock.tick(60)

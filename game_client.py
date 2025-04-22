@@ -422,9 +422,11 @@ def run_game():
                 my_player['x'] -= move_x
                 my_player['y'] -= move_y
             Socket.sendMOVE(my_player['x'], my_player['y'])
-        # screen.blit(map_surface, world_offset)
+        world_offset = (500 - my_player['x'], 325 - my_player['y'])
+
+
         with lock:
-            screen.fill(BLACK)
+            screen.blit(map_surface, world_offset)
         obj.print_players(players_sprites, players, angle)
         pg.display.flip()
         clock.tick(60)
