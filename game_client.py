@@ -219,7 +219,7 @@ def run_game():
     move_y = 0
     angle = 0
     knockback = 0
-    death= pg.image.load('dead.png')
+    death=pg.image.load('dead.png').convert()
     granade_range = 200
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
@@ -363,9 +363,11 @@ def run_game():
             weapons[1]['ammo'] = weapons[1]['max_ammo']
             weapons[2]['ammo'] = weapons[2]['max_ammo']
             sum_offset=[0,0]
-            with lock:
+            for i in range (0,40):
                 screen.blit(death,(0,0))
-            time.sleep(5)
+            #kys = pg.key.get_pressed()
+            #while not kys[pg.K_r]:
+            #    kys = pg.key.get_pressed()
             Socket.sendMOVE(my_player['x'], my_player['y'])
         recived = Socket.requestDATA()
 
