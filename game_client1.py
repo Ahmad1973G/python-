@@ -203,7 +203,7 @@ def run_game():
     with lock:
         screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 600, 'y': 600, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 400, 'y': 400, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -219,6 +219,7 @@ def run_game():
     move_y = 0
     angle = 0
     knockback = 0
+    death= pg.image.load('dead.png')
     granade_range = 200
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
@@ -362,7 +363,9 @@ def run_game():
             weapons[1]['ammo'] = weapons[1]['max_ammo']
             weapons[2]['ammo'] = weapons[2]['max_ammo']
             sum_offset=[0,0]
-
+            with lock:
+                screen.blit(death,(0,0))
+            time.sleep(5)
             Socket.sendMOVE(my_player['x'], my_player['y'])
         recived = Socket.requestDATA()
 
@@ -378,6 +381,8 @@ def run_game():
 
                 if 'hp' in data:
                     players[key]['hp'] = data['hp']
+                    if data['hp'] <=0:
+                        del (players[key])
                     # check_if_they_dead(players[key]['hp'])
                 if 'angle' in data:
                     players[key]['angle'] = data['angle']
