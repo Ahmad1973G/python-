@@ -132,8 +132,8 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                         # --------------------------------------------------------------
                         if rect.colliderect(bullet_sprite['rect']):
                             print("got hit")
-                            # my_player['hp']-=weapons[int(data['shoot'][4])]['damage']
-                            my_player['hp'] -= weapons[0]['damage']
+                        #    Socket.sendDAMAGE(weapons[int(data['shoot'][4])]['damage'])
+                            my_player['hp']-=weapons[int(data['shoot'][4])]['damage']
                             hit2 = True
 
 
@@ -363,11 +363,13 @@ def run_game():
             weapons[1]['ammo'] = weapons[1]['max_ammo']
             weapons[2]['ammo'] = weapons[2]['max_ammo']
             sum_offset=[0,0]
-            for i in range (0,40):
+            with lock:
                 screen.blit(death,(0,0))
+            pg.display.flip()
             #kys = pg.key.get_pressed()
             #while not kys[pg.K_r]:
             #    kys = pg.key.get_pressed()
+            time.sleep(5)
             Socket.sendMOVE(my_player['x'], my_player['y'])
         recived = Socket.requestDATA()
 
