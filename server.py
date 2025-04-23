@@ -3,6 +3,7 @@ import json
 import threading
 import random
 import time
+import sub_client_prots
 
 # Configuration
 LB_PORT = 5002
@@ -38,14 +39,40 @@ class SubServer:
         self.players_data = {}
         self.udp_socket.settimeout(4)
         self.server_id = 0
+        self.server_index = 0
+        self.server_borders = [0, 0]
         self.updated_elements = {}
         self.players_counter = {}
+        self.players_to_lb = {}
+        self.different_server_players = {}
+        self.moving_servers = {}
+        self.waiting_login = {}
+
+        # Add locks for shared resources
+        self.clients_lock = threading.Lock()
+        self.players_data_lock = threading.Lock()
+        self.elements_lock = threading.Lock()
+        self.counter_lock = threading.Lock()
+        self.lb_lock = threading.Lock()
+        self.other_server_lock = threading.Lock()
+        self.moving_lock = threading.Lock()
+        self.waiting_login_lock = threading.Lock()
+
+        self.process_move = sub_client_prots.process_move
+        self.process_shoot = sub_client_prots.process_shoot
+        self.process_damage_taken = sub_client_prots.process_damage_taken
+        self.process_power = sub_client_prots.process_power
+        self.process_angle = sub_client_prots.process_angle
+        self.process_request = sub_client_prots.process_request
+        self.process_requestFull = sub_client_prots.process_requestFull
+
         self.protocols = {
             "MOVE": self.process_move,
             "SHOOT": self.process_shoot,
             "DAMAGE": self.process_damage_taken,
             "POWER": self.process_power,
-            "ANGLE": self.process_angle
+            "ANGLE": self.process_angle,
+            "LOGIN": self.process_login
         }
 
         self.receive_protocol = {
@@ -53,11 +80,146 @@ class SubServer:
             "REQUESTFULL": self.process_requestFull
         }
 
-        # Add locks for shared resources
-        self.clients_lock = threading.Lock()
-        self.players_data_lock = threading.Lock()
-        self.elements_lock = threading.Lock()
-        self.counter_lock = threading.Lock()
+    def getINDEX(self):
+        self.lb_socket.send("INDEX".encode())
+        data = self.lb_socket.recv(1024).decode()
+        if data.startswith("INDEX CODE 2"):
+            self.server_index = int(data.split(";")[-1])
+            print("Server INDEX:", self.server_id)
+        else:
+            print("Failed to get server ID from load balancer, error:", data)
+
+    def getBORDERS(self):
+        self.lb_socket.send("BORDERS".encode())
+        data = self.lb_socket.recv(1024).decode()
+        if data.startswith("BORDERS CODE 2"):
+            data = data.split()[-1]
+            self.server_borders[0] = int(data.split(";")[0])
+            self.server_borders[1] = int(data.split(";")[1])
+        else:
+            print("Failed to get server ID from load balancer, error:", data)
+
+    def AddToLB(self, client_id):
+        info = self.players_data[client_id]
+        info['server'] = self.server_id
+        with self.lb_lock:
+            self.players_to_lb[client_id] = info
+
+    def CheckForLB(self, client_id, x, y):
+        if self.server_index == 1:
+            if x > self.server_borders[0] or y > self.server_borders[1]:
+                self.AddToLB(client_id)
+                return
+        if self.server_index == 2:
+            if x < self.server_borders[0] or y < self.server_borders[1]:
+                self.AddToLB(client_id)
+                return
+        if self.server_index == 3:
+            if x < self.server_borders[0] or y < self.server_borders[1]:
+                self.AddToLB(client_id)
+                return
+        if self.server_index == 4:
+            if x > self.server_borders[0] or y < self.server_borders[1]:
+                self.AddToLB(client_id)
+                return
+
+    def SendInfoLB(self):
+        with self.lb_lock:
+            self.lb_socket.send(("INFO " + json.dumps(self.players_to_lb)).encode())
+
+        data = self.lb_socket.recv(1024).decode()
+        if data == "ACK":
+            return
+        else:
+            print("Failed to send data to load balancer, error:", data)
+            return
+
+    def AskForID(self, conn):
+        try:
+            conn.send("ID".encode())
+            data = conn.recv(1024).decode()
+            if data.startswith("ID CODE 69"):
+                client_id = int(data.split(";")[-1])
+                print("Received ID from client:", client_id)
+                return client_id
+            else:
+                print("Failed to receive ID from client, error:", data)
+                return -1
+        except Exception as e:
+            print(f"Error receiving ID from client: {e}")
+            return -1
+
+    def WelcomePlayers(self, players):
+        while True:
+            try:
+                with self.clients_lock:
+                    conn, addr = self.server_socket.accept()
+                    client_id = self.AskForID(conn)
+
+                if client_id == -1:
+                    conn.close()
+                    continue
+                if client_id not in players:
+                    continue
+                with self.clients_lock:
+                    self.connected_clients[client_id] = (addr, conn)
+                client_thread = threading.Thread(target=self.handle_client, args=(client_id,))
+                client_thread.start()
+                print(f"Started thread for client {client_id} from another server")
+                players.remove(client_id)
+                if not players:
+                    break
+
+            except socket.timeout:
+                print("No connection received within timeout period, trying again")
+
+            except Exception as e:
+                print(f"Error accepting connection from client: {e}")
+                try:
+                    conn.close()
+                except Exception as e:
+                    pass
+
+    def getRIGHT(self):
+        self.lb_socket.send(f"RIGHT".encode())
+        data = self.lb_socket.recv(1024).decode()
+        data = json.loads(data)
+        players_to_this = []
+
+        with self.moving_lock:
+            for client_id, server in data.items():
+                if server is True:
+                    players_to_this.append(client_id)
+                    continue
+                self.moving_servers[client_id] = server
+
+        if players_to_this:
+            welcome_thread = threading.Thread(target=self.WelcomePlayers, args=(players_to_this,))
+            welcome_thread.start()
+
+    def CheckIfMoving(self, client_id):
+        with self.moving_lock:
+            if client_id in self.moving_servers.keys():
+                return True, self.moving_servers[client_id]
+            else:
+                return False, 0
+
+    def CheckIfMovingFULL(self, client_id):
+        with self.clients_lock:
+            cond, ip = self.CheckIfMoving(client_id)
+            if not cond:
+                self.connected_clients[client_id][1].send("ACK".encode())
+                return
+
+            self.connected_clients[client_id][1].send(f"MOVING {ip}".encode())
+
+    def getSEND(self):
+        with self.other_server_lock:
+            self.different_server_players = {}
+            self.lb_socket.send(f"SEND".encode())
+            data = self.lb_socket.recv(1024).decode()
+            data = json.loads(data)
+            self.different_server_players = data
 
     def lb_connect_protocol(self):
         print("Listening on UDP for load balancer on", get_ip_address())
@@ -69,12 +231,29 @@ class SubServer:
                     self.sendSYNCACKLB()
                     if self.recvACKLB():
                         self.is_connected_to_lb = True
+                        # lb_thread = threading.Thread(target=self.handle_lb)
+                        # lb_thread.start()
                         break
             except socket.timeout:
                 print("No UDP packet received within timeout period")
             except Exception as e:
                 print(f"Error receiving UDP packet: {e}")
                 self.lb_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def handle_lb(self):
+        self.getINDEX()
+        self.getBORDERS()
+        while True:
+            try:
+                self.SendInfoLB()
+                self.getRIGHT()
+                self.getSEND()
+            except socket.timeout:
+                print("No data received from load balancer within timeout period")
+            except Exception as e:
+                print(f"Error receiving data from load balancer: {e}")
+                self.is_connected_to_lb = False
+                break
 
     def readSYNcLB(self, data):
         str_data = data.decode()
@@ -109,6 +288,24 @@ class SubServer:
             self.udp_socket.sendto(f"SYNC+ACK CODE 69 {self.server_address[0]};{self.server_address[1]}".encode(), addr)
             return True
         return False
+
+    def SendLogin(self):
+        with self.waiting_login_lock:
+            if not self.waiting_login:
+                return
+            str_login = f"LOGIN {json.dumps(self.waiting_login)}"
+            self.lb_socket.send(str_login.encode())
+
+    def process_login(self, client_id, message: str):
+        try:
+            messages = message.split(';')
+            username = messages[0]
+            password = messages[1]
+            with self.waiting_login_lock:
+                self.waiting_login[client_id] = (username, password)
+
+        except Exception as e:
+            print(f"Error processing login for {client_id}: {e}")
 
     def sendID(self):
         try:
@@ -206,150 +403,24 @@ class SubServer:
                         break
             conn.close()
 
-    def process_move(self, client_id, message: str):
-        try:
-            x = message.split(';')[0]
-            y = message.split(';')[1]
-            with self.elements_lock:
-                self.updated_elements[client_id]['x'] = x
-                self.updated_elements[client_id]['y'] = y
-            with self.players_data_lock:
-                self.players_data[client_id]['x'] = x
-                self.players_data[client_id]['y'] = y
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send("ACK".encode())
-        except Exception as e:
-            print(f"Error processing move for {client_id}: {e}")
-
-    def process_shoot(self, client_id, message: str):
-        try:
-            messages = message.split(';')
-            start_x = messages[0]
-            start_y = messages[1]
-            end_x = messages[2]
-            end_y = messages[3]
-            weapon = messages[4]
-            with self.elements_lock:
-                self.updated_elements[client_id]['shoot'] = [start_x, start_y, end_x, end_y, weapon]
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send("ACK".encode())
-        except Exception as e:
-            print(f"Error processing shoot for {client_id}: {e}")
-
-    def process_damage_taken(self, client_id, message: str):
-        try:
-            damage = message
-            with self.elements_lock:
-                self.updated_elements[client_id]['health'] -= damage
-            with self.players_data_lock:
-                self.players_data[client_id]['health'] -= damage
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send("ACK".encode())
-        except Exception as e:
-            print(f"Error processing damage taken for {client_id}: {e}")
-
-    def process_power(self, client_id, message: str):
-        try:
-            power = message.split(';')
-            with self.elements_lock:
-                self.updated_elements[client_id]['power'] = power, self.players_data['x'], self.players_data['y']
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send("ACK".encode())
-        except Exception as e:
-            print(f"Error processing power for {client_id}: {e}")
-
-    def process_angle(self, client_id, message: str):
-        try:
-            angle = float(message)
-            with self.elements_lock:
-                self.updated_elements[client_id]['angle'] = angle
-            with self.players_data_lock:
-                self.players_data[client_id]['angle'] = angle
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send("ACK".encode())
-        except Exception as e:
-            print(f"Error processing angle for {client_id}: {e}")
-
-    def process_request(self, client_id):
-        try:
-            with self.counter_lock:
-                self.players_counter[client_id] += 1
-                counter = self.players_counter[client_id]
-
-            if counter == 10000:
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send("WARNING".encode())
-                return 0
-            elif counter == 100000:
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send("KICK".encode())
-                    self.connected_clients[client_id][1].close()
-                return 1
-
-            with self.elements_lock:
-                other_players_data = {player_id: data for player_id, data in self.updated_elements.items() if
-                                      data != {}}
-
-            other_players_data_str = json.dumps(other_players_data)
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send(other_players_data_str.encode())
-        except Exception as e:
-            print(f"Error processing request for {client_id}: {e}")
-        finally:
-            return 0
-
-    def process_requestFull(self, client_id):
-        try:
-            with self.counter_lock:
-                self.players_counter[client_id] += 1
-                counter = self.players_counter[client_id]
-
-            if counter == 10000:
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send("WARNING".encode())
-                return 0
-            elif counter == 100000:
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send("KICK".encode())
-                    self.connected_clients[client_id][1].close()
-                return 1
-
-            with self.players_data_lock:
-                other_players_data = {player_id: data for player_id, data in self.players_data.items() if data != {}}
-
-            other_players_data_str = json.dumps(other_players_data)
-            with self.clients_lock:
-                self.connected_clients[client_id][1].send(other_players_data_str.encode())
-        except Exception as e:
-            print(f"Error processing request for {client_id}: {e}")
-        finally:
-            return 0
-
     def process_player_data(self, client_id, message: str):
         try:
             messages = message.split(' ')
             protocol = messages[0]
             data = messages[-1]
             if protocol in self.protocols.keys():
-                self.protocols[protocol](client_id, data)
+                self.protocols[protocol](self, client_id, data)
 
             elif protocol in self.receive_protocol.keys():
                 with self.elements_lock:
-                    if 'shoot' in self.updated_elements[client_id].keys():
-                        pass
-                    print(self.updated_elements[client_id])
                     self.updated_elements[client_id] = {}
-
-                return self.receive_protocol[protocol](client_id)
+                return self.receive_protocol[protocol](self, client_id)
 
             else:
                 print("Unknown protocol, ignoring")
 
             with self.counter_lock:
-                if client_id in self.players_counter.keys():
-                    self.players_counter[client_id] = 0
-                else:
-                    self.players_counter[client_id] = 0
+                self.players_counter[client_id] = 0
 
             return 0
         except Exception as e:
