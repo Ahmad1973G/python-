@@ -159,12 +159,18 @@ class LoadBalancer:
             clients = {}
             data = json.loads(data)
             for client_id, data in data.items():
-                username = data[0]
-                password = data[1]
-                player = self.DataBase.login(username, password)
-                if player is True:
+                try:
+                    username = data[0]
+                    password = data[1]
 
-
+                    if self.DataBase.login(username, password) is True:
+                        player = self.DataBase.getallplayer(username)
+                        clients[client_id] = ("SUCCESS CODE LOGIN", player)
+                    else:
+                        clients[client_id] = ("FAILED CODE LOGIN 1", None)
+                except Exception as e:
+                    print(f"Error processing login data for client {client_id}: {e}")
+                    clients[client_id] = (f"FAILED CODE LOGIN {e}", None)
         except json.JSONDecodeError:
             print(f"Error decoding JSON data: {data}")
             return
@@ -172,6 +178,18 @@ class LoadBalancer:
             print(f"Error processing login data: {e}")
             return
 
+    def process_signup(self, Username, Password):
+        try:
+            if self.DataBase.getplayerid(Username) is not None:
+                self.socket.send("FAILED CODE SIGNUP 2".encode())
+                return
+
+            self.DataBase.createplayer(1, Username, Password)
+            self.socket.send("SUCCESS CODE SIGNUP".encode())
+        except Exception as e:
+            print(f"Error processing signup data: {e}")
+            self.socket.send(f"FAILED CODE SIGNUP {e}".encode())
+            return
 
     def handle_server(self, id):
         while True:

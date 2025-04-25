@@ -301,6 +301,17 @@ class SubServer:
                 return
             str_login = f"LOGIN {json.dumps(self.waiting_login)}"
             self.lb_socket.send(str_login.encode())
+            data = self.lb_socket.recv(1024).decode()
+            data = json.loads(data)
+            for client_id, data in data.items()
+                prot = data[0]
+                if prot.startswith("SUCCESS CODE LOGIN"):
+                    print(f"login for {client_id} successful!")
+                    with self.players_data_lock:
+                        self.players_data[client_id] = data[1]
+                        del self.players_data[client_id]['PlayerID']
+                        del self.players_data[client_id]['Username']
+                        del self.players_data[client_id]['Password']
 
     def process_login(self, client_id, message: str):
         try:
