@@ -132,8 +132,8 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                         # --------------------------------------------------------------
                         if rect.colliderect(bullet_sprite['rect']):
                             print("got hit")
-                        #    Socket.sendDAMAGE(weapons[int(data['shoot'][4])]['damage'])
-                            my_player['hp']-=weapons[int(data['shoot'][4])]['damage']
+#                            Socket.sendDAMAGE(weapons[int(data['shoot'][4])]['damage'])
+                            my_player['hp'] -= weapons[int(data['shoot'][4])]['damage']
                             hit2 = True
 
 
@@ -203,7 +203,7 @@ def run_game():
     with lock:
         screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 500, 'y': 500, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 400, 'y': 400, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -219,7 +219,7 @@ def run_game():
     move_y = 0
     angle = 0
     knockback = 0
-    death=pg.image.load('dead.png').convert()
+    death = pg.image.load('dead.png').convert()
     granade_range = 200
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
@@ -353,18 +353,18 @@ def run_game():
             knockback -= 1
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
-            my_player['x'] = 500
-            my_player['y'] = 500
-            for key,data in players.items():
-                data['x']+=dis_to_mid[0]-(my_player['x'] - 500)
-                data['y']+=dis_to_mid[1]-(my_player['y']-325)
+            my_player['x'] = 400
+            my_player['y'] = 400
+            for key, data in players.items():
+                data['x'] += dis_to_mid[0] - (my_player['x'] - 500)
+                data['y'] += dis_to_mid[1] - (my_player['y'] - 325)
             dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
             weapons[0]['ammo'] = weapons[0]['max_ammo']
             weapons[1]['ammo'] = weapons[1]['max_ammo']
             weapons[2]['ammo'] = weapons[2]['max_ammo']
-            sum_offset=[0,0]
+            sum_offset = [0, 0]
             with lock:
-                screen.blit(death,(0,0))
+                screen.blit(death, (0, 0))
             pg.display.flip()
             #kys = pg.key.get_pressed()
             #while not kys[pg.K_r]:
@@ -385,7 +385,7 @@ def run_game():
 
                 if 'hp' in data:
                     players[key]['hp'] = data['hp']
-                    if data['hp'] <=0:
+                    if data['hp'] <= 0:
                         del (players[key])
                     # check_if_they_dead(players[key]['hp'])
                 if 'angle' in data:
@@ -413,7 +413,6 @@ def run_game():
                 players_sprites[key]["image"] = pg.Surface((players[key]['width'], players[key]['height']))
                 players_sprites[key]["rect"] = pg.Rect(int(data["x"] + sum_offset[0]), int(data["y"] + sum_offset[1]),
                                                        players[key]['width'], players[key]['height'])
-
 
         for key, data in players_sprites.items():
             if data['rect'].x >= (500 - my_player['width']) and data['rect'].x <= (500 + my_player['width']) and data[

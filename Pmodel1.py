@@ -92,22 +92,23 @@ class Player(pg.sprite.Sprite):
         }
         return json.dumps(client_loc)
 
-    def print_players(self, players_sprites, screen):
+    def print_players(self, players_sprites,players,angle):
+        PINK = (255, 174, 201)
         for key,data in players_sprites.items():
-            data['image'].fill([255,0,0])
+            data['image']=pg.image.load('char.png').convert()
+            data['image'].set_colorkey(PINK)
+            #data['rect'].center = (data['rect'].x,data['rect'].y)
+
+            data['image'] = pg.transform.rotate(data['image'],players[key]['angle'])
+            data['rect'] = data['image'].get_rect(center=(data['rect'].x,data['rect'].y))
+
             self.screen.blit(data['image'],data['rect'])
         # Draw the main player at the center
-        image = pg.Surface((20, 20))
-        image.fill(pg.Color('blue'))
+        image = pg.Surface((60, 60))
+        image = pg.image.load('char.png').convert()
+        image.set_colorkey(PINK)
+
+        image=pg.transform.rotate(image,angle)
         rect = image.get_rect(center=(500, 325))
         self.screen.blit(image, rect)
 
-    def move(self, acceleration, move_offset, moving):
-        if not moving:
-            return False, move_offset, self.my_player['x'], self.my_player['y']
-        move_offset = (move_offset[0] * (1 - acceleration), move_offset[1] * (1 - acceleration))
-        self.my_player['x'] += move_offset[0] * acceleration
-        self.my_player['y'] += move_offset[1] * acceleration
-        if abs(move_offset[0]) < 1 and abs(move_offset[1]) < 1:
-            return False, (0, 0), self.my_player['x'], self.my_player['y']  # Stop moving when close enough
-        return True, move_offset, self.my_player['x'], self.my_player['y']
