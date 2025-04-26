@@ -103,7 +103,7 @@ class ClientServer:
 
     def protocol_check(self, data: str):
         if data == "ACK":
-            print("ACK received")
+            # print("ACK received")
             return True
 
         if data.startswith("MOVING"):
@@ -133,7 +133,8 @@ class ClientServer:
         message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
-            print("Angle sent successfully")
+            pass
+            # print("Angle sent successfully")
 
     def sendDAMAGE(self, damage):
         self.socket.send(f"DAMAGE {damage}".encode())
