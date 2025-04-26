@@ -25,10 +25,65 @@ def load_tmx_map(filename):
         return None
 
 
-def big_boom_boom(players, screen, red, range):
-    pg.draw.circle(screen, red, (500, 325), range, width=0)
-    pg.display.flip()
-    time.sleep(0.5)
+def bomb(players_sprites, screen, red, Brange, my_player, Socket):
+    
+    while True:
+        if shared_data['bomb']:
+            with lock:    
+                print("CLIENT; player activated bomb")
+                bomb_x = my_player['x']
+                bomb_y = my_player['y']
+                bomb_range = Brange # range is 200
+                explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
+
+                screen.fill((0, 0, 0))  # Clear screen
+                pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
+                pg.display.flip()
+
+                for i in range(0, players_sprites.__len__()):
+                    player_center = players_sprites[i]['rect'].center # Get the center of the player rect
+                    distance = math.sqrt(
+                        (player_center[0] - explosion_center[0]) ** 2 +
+                        (player_center[1] - explosion_center[1]) ** 2
+                    )
+                    if distance <= bomb_range:
+                        print(f"Player {i} hit by explosion!")
+                
+                my_player_center = (500, 325)
+                self_distance = math.sqrt(
+                    (my_player_center[0] - explosion_center[0]) ** 2 +
+                    (my_player_center[1] - explosion_center[1]) ** 2
+                )
+                if self_distance <= bomb_range:
+                    print("CLIENT; You were hit by the explosion!")
+                    
+                # Reset the bomb trigger and send to server
+                Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
+                shared_data['bomb'] = False
+                
+        with lock:
+            for key, data in shared_data['recived'].items():
+                if 'explode' in data:
+                    
+
+                    print("CLIENT; someone activated bomb")
+                    bomb_x = int(float(data['explode'][0]))
+                    bomb_y = int(float(data['explode'][1]))
+                    bomb_range = int(float(data['explode'][2]))
+                    explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
+
+                    screen.fill((0, 0, 0))  # Clear screen
+                    pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
+                    pg.display.flip()
+                    time.sleep(0.5)
+                    
+                    my_player_center = (500, 325)
+                    self_distance = math.sqrt(
+                        (my_player_center[0] - explosion_center[0]) ** 2 +
+                        (my_player_center[1] - explosion_center[1]) ** 2
+                    )
+                    if self_distance <= bomb_range:
+                        print("CLIENT; You were hit by the explosion!")
 
 
 # def sendmovement(x,y):
@@ -175,7 +230,7 @@ def render_map(tmx_data):
     return map_surface
 
 
-shared_data = {"fire": False, "used_weapon": 0, 'got_shot': False, 'recived': {}}
+shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False, 'recived': {}}
 
 lock_shared_data = threading.Lock()
 lock = threading.Lock()
@@ -272,7 +327,7 @@ def run_game():
     if recived != {}:
         for key, data in recived.items():
             old_player = {
-                'x': int(float(data['x']) - float(dis_to_mid[0])),
+                'x': int(float(data['x']) - float(dis_to_mid[1])),
                 'y': int(float(data['y']) - float(dis_to_mid[1])),
                 'width': 60,
                 'height': 60,
@@ -300,6 +355,10 @@ def run_game():
                                        args=(weapons, players_sprites, bullet_sprite, screen, my_player, Socket))
     thread_shooting.daemon = True
     thread_shooting.start()
+
+    thread_bomb = threading.Thread(target=bomb, args=(players_sprites, screen, RED, granade_range, my_player, Socket))
+    thread_bomb.daemon = True
+    thread_bomb.start()
     # thread_movement.start()
     while running:
 
@@ -333,6 +392,9 @@ def run_game():
                     shared_data['used_weapon'] = 1
                 elif event.key == pg.K_3:
                     shared_data['used_weapon'] = 2
+                elif event.key == pg.K_q:
+                    shared_data['bomb'] = True
+                    time.sleep(0.5)
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
         keys = pg.key.get_pressed()
@@ -353,8 +415,8 @@ def run_game():
             knockback -= 1
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
-            my_player['x'] = 500
-            my_player['y'] = 500
+            my_player['x'] = 450
+            my_player['y'] = 450
             for key,data in players.items():
                 data['x']+=dis_to_mid[0]-(my_player['x'] - 500)
                 data['y']+=dis_to_mid[1]-(my_player['y']-325)

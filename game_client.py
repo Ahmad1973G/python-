@@ -25,10 +25,65 @@ def load_tmx_map(filename):
         return None
 
 
-def big_boom_boom(players, screen, red, range):
-    pg.draw.circle(screen, red, (500, 325), range, width=0)
-    pg.display.flip()
-    time.sleep(0.5)
+def bomb(players_sprites, screen, red, Brange, my_player, Socket):
+    while True:
+
+        if shared_data['bomb']:
+            with lock:    
+                print("CLIENT; player activated bomb")
+                bomb_x = my_player['x']
+                bomb_y = my_player['y']
+                bomb_range = Brange # range is 200
+                explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
+
+                screen.fill((0, 0, 0))  # Clear screen
+                pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
+                pg.display.flip()
+
+                for i in range(0, players_sprites.__len__()):
+                    player_center = players_sprites[i]['rect'].center # Get the center of the player rect
+                    distance = math.sqrt(
+                        (player_center[0] - explosion_center[0]) ** 2 +
+                        (player_center[1] - explosion_center[1]) ** 2
+                    )
+                    if distance <= bomb_range:
+                        print(f"Player {i} hit by explosion!")
+                
+                my_player_center = (500, 325)
+                self_distance = math.sqrt(
+                    (my_player_center[0] - explosion_center[0]) ** 2 +
+                    (my_player_center[1] - explosion_center[1]) ** 2
+                )
+                if self_distance <= bomb_range:
+                    print("CLIENT; You were hit by the explosion!")
+                    
+                # Reset the bomb trigger and send to server
+                Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
+                shared_data['bomb'] = False
+                
+        with lock:
+            for key, data in shared_data['recived'].items():
+                if 'explode' in data:
+                    
+
+                    print("CLIENT; someone activated bomb")
+                    bomb_x = int(float(data['explode'][0]))
+                    bomb_y = int(float(data['explode'][1]))
+                    bomb_range = int(float(data['explode'][2]))
+                    explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
+
+                    screen.fill((0, 0, 0))  # Clear screen
+                    pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
+                    pg.display.flip()
+                    time.sleep(0.5)
+                    
+                    my_player_center = (500, 325)
+                    self_distance = math.sqrt(
+                        (my_player_center[0] - explosion_center[0]) ** 2 +
+                        (my_player_center[1] - explosion_center[1]) ** 2
+                    )
+                    if self_distance <= bomb_range:
+                        print("CLIENT; You were hit by the explosion!")
 
 
 # def sendmovement(x,y):
@@ -175,7 +230,7 @@ def render_map(tmx_data):
     return map_surface
 
 
-shared_data = {"fire": False, "used_weapon": 0, 'got_shot': False, 'recived': {}}
+shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False, 'recived': {}}
 
 lock_shared_data = threading.Lock()
 lock = threading.Lock()
@@ -203,7 +258,7 @@ def run_game():
     with lock:
         screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 400, 'y': 400, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 450, 'y': 450, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -224,14 +279,9 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = pytmx.load_pygame("c:/webroot/map.tmx")  # <<< your TMX file here
-    no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
+    #tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
+    #no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
     #map_surface = render_map(tmx_data)
-    tile_width = tmx_data.tilewidth
-    tile_height = tmx_data.tileheight
-    map_width = tmx_data.width
-    map_height = tmx_data.height
-    SCREEN_WIDTH, SCREEN_HEIGHT = 1000, 650
     acceleration = 0.1
     direction = 0  # like m in y=mx+b
     RED = (255, 0, 0)
@@ -277,7 +327,7 @@ def run_game():
     if recived != {}:
         for key, data in recived.items():
             old_player = {
-                'x': int(float(data['x']) - float(dis_to_mid[0])),
+                'x': int(float(data['x']) - float(dis_to_mid[1])),
                 'y': int(float(data['y']) - float(dis_to_mid[1])),
                 'width': 60,
                 'height': 60,
@@ -305,6 +355,10 @@ def run_game():
                                        args=(weapons, players_sprites, bullet_sprite, screen, my_player, Socket))
     thread_shooting.daemon = True
     thread_shooting.start()
+
+    thread_bomb = threading.Thread(target=bomb, args=(players_sprites, screen, RED, granade_range, my_player, Socket))
+    thread_bomb.daemon = True
+    thread_bomb.start()
     # thread_movement.start()
     while running:
 
@@ -338,28 +392,31 @@ def run_game():
                     shared_data['used_weapon'] = 1
                 elif event.key == pg.K_3:
                     shared_data['used_weapon'] = 2
+                elif event.key == pg.K_q:
+                    shared_data['bomb'] = True
+                    time.sleep(0.5)
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
         keys = pg.key.get_pressed()
         if knockback == 0:
             if keys[pg.K_w]:
-                my_player['y'] -= 10
-                move_y = 10
+                my_player['y'] -= 5
+                move_y = 5
             if keys[pg.K_s]:
-                my_player['y'] += 10
-                move_y = -10
+                my_player['y'] += 5
+                move_y = -5
             if keys[pg.K_a]:
-                my_player['x'] -= 10
-                move_x = 10
+                my_player['x'] -= 5
+                move_x = 5
             if keys[pg.K_d]:
-                my_player['x'] += 10
-                move_x = -10
+                my_player['x'] += 5
+                move_x = -5
         else:
             knockback -= 1
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
-            my_player['x'] = 500
-            my_player['y'] = 500
+            my_player['x'] = 450
+            my_player['y'] = 450
             for key,data in players.items():
                 data['x']+=dis_to_mid[0]-(my_player['x'] - 500)
                 data['y']+=dis_to_mid[1]-(my_player['y']-325)
@@ -439,24 +496,8 @@ def run_game():
         world_offset = (500 - my_player['x'], 325 - my_player['y'])
 
         with lock:
-            start_col = my_player['x'] // tile_width
-            start_row = my_player['y'] // tile_height
-            end_col = (my_player['x'] + SCREEN_WIDTH) // tile_width + 2
-            end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
-
-            # Draw visible tiles
-            for layer in tmx_data.visible_layers:
-                if isinstance(layer, pytmx.TiledTileLayer):
-                    layer_index = tmx_data.layers.index(layer)  # <<< fix here
-                    for x in range(start_col, end_col):
-                        for y in range(start_row, end_row):
-                            if 0 <= x < map_width and 0 <= y < map_height:
-                                image = tmx_data.get_tile_image(x, y, layer_index)
-                                if image:
-                                    screen.blit(
-                                        image,
-                                        (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
-                                    )
+            #screen.blit(map_surface, world_offset)
+            screen.fill(BLACK)
         obj.print_players(players_sprites, players, angle)
         pg.display.flip()
         clock.tick(60)

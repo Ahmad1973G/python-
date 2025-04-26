@@ -148,6 +148,15 @@ class ClientServer:
         message = message.decode()
         if self.protocol_check(message):
             print("Power sent successfully")
+    
+    def sendBOOM(self, x, y, Brange):
+        self.socket.send(f"BOOM {x};{y};{Brange}\n".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "ACK":
+            print("SOCKET; boom sent successfully")
+        else:
+            print("SOCKET; Failed to send boom, error:", message)
 
     def requestDATA(self):
         try:

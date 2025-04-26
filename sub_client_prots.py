@@ -18,7 +18,18 @@ def process_move(self, client_id, message: str):
     except Exception as e:
         print(f"Error processing move for {client_id}: {e}")
 
+def process_boom(self, client_id, message: str):
+        try:
+            x = message.split(";")[0]
+            y = message.split(";")[1]
+            Brange = message.split(";")[2]
+            self.updated_elements[client_id]['explode'] = [x, y, Brange]
+            print("SERVER; got bomb activation")
+            self.connected_clients[client_id][1].send("ACK".encode())
+        except Exception as e:
+            print(f"SERVER; Error processing bomb for {client_id}: {e}")
 
+    
 def process_shoot(self, client_id, message: str):
     try:
         messages = message.split(';')
