@@ -27,27 +27,26 @@ def load_tmx_map(filename):
 
 def bomb(players_sprites, screen, red, Brange, my_player, Socket):
     while True:
-
         if shared_data['bomb']:
             with lock:    
                 print("CLIENT; player activated bomb")
                 bomb_x = my_player['x']
                 bomb_y = my_player['y']
-                bomb_range = Brange # range is 200
+                bomb_range = Brange  # range is 200
                 explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
                 screen.fill((0, 0, 0))  # Clear screen
                 pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                 pg.display.flip()
 
-                for i in range(0, players_sprites.__len__()):
-                    player_center = players_sprites[i]['rect'].center # Get the center of the player rect
+                for player_id, player_data in players_sprites.items():
+                    player_center = player_data['rect'].center  # Get the center of the player rect
                     distance = math.sqrt(
                         (player_center[0] - explosion_center[0]) ** 2 +
                         (player_center[1] - explosion_center[1]) ** 2
                     )
                     if distance <= bomb_range:
-                        print(f"Player {i} hit by explosion!")
+                        print(f"Player {player_id} hit by explosion!")
                 
                 my_player_center = (500, 325)
                 self_distance = math.sqrt(
@@ -60,12 +59,11 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 # Reset the bomb trigger and send to server
                 Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
                 shared_data['bomb'] = False
-                
-        with lock:
-            for key, data in shared_data['recived'].items():
-                if 'explode' in data:
-                    
 
+        with lock:
+            # Iterate over a copy of the dictionary to avoid modification issues
+            for key, data in list(shared_data['recived'].items()):
+                if 'explode' in data:
                     print("CLIENT; someone activated bomb")
                     bomb_x = int(float(data['explode'][0]))
                     bomb_y = int(float(data['explode'][1]))
@@ -84,6 +82,13 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     )
                     if self_distance <= bomb_range:
                         print("CLIENT; You were hit by the explosion!")
+                    
+                    # Remove the processed 'explode' data
+                    del shared_data['recived'][key]
+                time.sleep(0.01)
+
+        
+                
 
 
 # def sendmovement(x,y):
