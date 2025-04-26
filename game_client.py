@@ -224,9 +224,9 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
-    no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
-    map_surface = render_map(tmx_data)
+    #tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
+    #no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
+    #map_surface = render_map(tmx_data)
     acceleration = 0.1
     direction = 0  # like m in y=mx+b
     RED = (255, 0, 0)
@@ -434,7 +434,8 @@ def run_game():
         world_offset = (500 - my_player['x'], 325 - my_player['y'])
 
         with lock:
-            screen.blit(map_surface, world_offset)
+            #screen.blit(map_surface, world_offset)
+            screen.fill(BLACK)
         obj.print_players(players_sprites, players, angle)
         pg.display.flip()
         clock.tick(60)

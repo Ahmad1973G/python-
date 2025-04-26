@@ -111,4 +111,3 @@ class Player(pg.sprite.Sprite):
         image=pg.transform.rotate(image,angle)
         rect = image.get_rect(center=(500, 325))
         self.screen.blit(image, rect)
-
