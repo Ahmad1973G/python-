@@ -32,7 +32,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 print("CLIENT; player activated bomb")
                 bomb_x = my_player['x']
                 bomb_y = my_player['y']
-                bomb_range = Brange  # range is 200
+                bomb_range = Brange
                 explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
                 screen.fill((0, 0, 0))  # Clear screen
@@ -40,7 +40,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 pg.display.flip()
 
                 for player_id, player_data in players_sprites.items():
-                    player_center = player_data['rect'].center  # Get the center of the player rect
+                    player_center = player_data['rect'].center
                     distance = math.sqrt(
                         (player_center[0] - explosion_center[0]) ** 2 +
                         (player_center[1] - explosion_center[1]) ** 2
@@ -56,12 +56,10 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 if self_distance <= bomb_range:
                     print("CLIENT; You were hit by the explosion!")
                     
-                # Reset the bomb trigger and send to server
                 Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
                 shared_data['bomb'] = False
 
         with lock:
-            # Iterate over a copy of the dictionary to avoid modification issues
             for key, data in list(shared_data['recived'].items()):
                 if 'explode' in data:
                     print("CLIENT; someone activated bomb")
@@ -83,9 +81,9 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     if self_distance <= bomb_range:
                         print("CLIENT; You were hit by the explosion!")
                     
-                    # Remove the processed 'explode' data
                     del shared_data['recived'][key]
-                time.sleep(0.01)
+
+        time.sleep(0.02)  # Add a small delay to reduce CPU usage
 
         
                 
