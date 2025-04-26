@@ -25,20 +25,17 @@ def load_tmx_map(filename):
         return None
 
 
-def bomb(players_sprites, screen, red, Brange, my_player, Socket, tmx_data, collidable_tiles, world_offset):
+def bomb(players_sprites, screen, red, Brange, my_player, Socket):
     while True:
         if shared_data['bomb']:
-            with lock:
+            with lock:    
                 print("CLIENT; player activated bomb")
                 bomb_x = my_player['x']
                 bomb_y = my_player['y']
                 bomb_range = Brange
-                explosion_center = (bomb_x + world_offset[0], bomb_y + world_offset[1])
+                explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
-                # Render the map and other elements before drawing the explosion
-                render_map_and_elements(screen, tmx_data, collidable_tiles, my_player, world_offset)
-
-                # Draw the explosion
+                screen.fill((0, 0, 0))  # Clear screen
                 pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                 pg.display.flip()
 
@@ -50,7 +47,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket, tmx_data, coll
                     )
                     if distance <= bomb_range:
                         print(f"Player {player_id} hit by explosion!")
-
+                
                 my_player_center = (500, 325)
                 self_distance = math.sqrt(
                     (my_player_center[0] - explosion_center[0]) ** 2 +
@@ -58,7 +55,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket, tmx_data, coll
                 )
                 if self_distance <= bomb_range:
                     print("CLIENT; You were hit by the explosion!")
-
+                    
                 Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
                 shared_data['bomb'] = False
 
@@ -69,15 +66,13 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket, tmx_data, coll
                     bomb_x = int(float(data['explode'][0]))
                     bomb_y = int(float(data['explode'][1]))
                     bomb_range = int(float(data['explode'][2]))
-                    explosion_center = (bomb_x + world_offset[0], bomb_y + world_offset[1])
+                    explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
-                    # Render the map and other elements before drawing the explosion
-                    render_map_and_elements(screen, tmx_data, collidable_tiles, my_player, world_offset)
-
-                    # Draw the explosion
+                    screen.fill((0, 0, 0))  # Clear screen
                     pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                     pg.display.flip()
-
+                    time.sleep(0.5)
+                    
                     my_player_center = (500, 325)
                     self_distance = math.sqrt(
                         (my_player_center[0] - explosion_center[0]) ** 2 +
@@ -85,10 +80,11 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket, tmx_data, coll
                     )
                     if self_distance <= bomb_range:
                         print("CLIENT; You were hit by the explosion!")
-
+                    
                     del shared_data['recived'][key]
 
         time.sleep(0.02)  # Add a small delay to reduce CPU usage
+
         
                 
 
@@ -510,8 +506,8 @@ def run_game():
         with lock:
             start_col = my_player['x'] // tile_width
             start_row = my_player['y'] // tile_height
-            end_col = (my_player['x'] + SCREEN_WIDTH) // tile_width
-            end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height
+            end_col = (my_player['x'] + SCREEN_WIDTH) // tile_width + 2
+            end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
 
             # Draw visible tiles
             for layer in tmx_data.visible_layers:
@@ -526,19 +522,6 @@ def run_game():
                                         image,
                                         (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
                                     )
-
-        camera_x = my_player['x'] - SCREEN_WIDTH // 2
-        camera_y = my_player['y'] - SCREEN_HEIGHT // 2
-
-        for rect in collidable_tiles:
-            screen_rect = pg.Rect(
-                rect[0] - camera_x,
-                rect[2] - camera_y,
-                rect[1],
-                rect[3]
-            )
-            pg.draw.rect(screen, (255, 0, 0), screen_rect, 2)  # red outline
-
         obj.print_players(players_sprites, players, angle)
         pg.display.flip()
         clock.tick(60)
