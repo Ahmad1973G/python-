@@ -18,7 +18,7 @@ class database:
 
 
     self.c.execute("""CREATE TABLE IF NOT EXISTS players (
-      PlayerID INTEGER PRIMARY KEY,
+      PlayerID INTEGER,
       Username TEXT,
       Password TEXT,
       PlayerModel INTEGER,
@@ -36,12 +36,27 @@ class database:
 
   def getallplayer(self, PLAYERID):
     self.c.execute("SELECT * FROM players WHERE PlayerID = ?", (PLAYERID,))
-
-    return(self.c.fetchall())
+    
+    # Get column names
+    column_names = [description[0] for description in self.c.description]
+    
+    # Fetch rows
+    rows = self.c.fetchall()
+    
+    # Convert to dictionary
+    if rows:
+        if len(rows) == 1:
+            # Return single row as dict
+            return dict(zip(column_names, rows[0]))
+        else:
+            # Return multiple rows as list of dicts
+            return [dict(zip(column_names, row)) for row in rows]
+    
+    return None
+  
 
   def createplayer(self, PlayerModel, Username, Password):
-    id = self.id
-    self.c.execute("INSERT INTO players (PlayerID, Username, Password, PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, Username, Password, PlayerModel, 100, 0, 0, None, None, None, None, None)
+    self.c.execute("INSERT INTO players (PlayerID, Username, Password, PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (self.id, Username, Password, PlayerModel, 100, 0, 0, None, None, None, None, None)
     )
     self.id += 1
 
@@ -113,10 +128,14 @@ class database:
   def getplayerslot5(self, PlayerID):
     self.c.execute("SELECT Playerslot5 FROM players WHERE PlayerID = ?", (PlayerID,))
     return(self.c.fetchall())
+  
+
 
   def getplayerslots(self, PlayerID):
     self.c.execute("SELECT Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5 FROM players WHERE PlayerID = ?", (PlayerID,)) 
+  
     return(self.c.fetchall())
+
 
   def updateplayerslots(self, PlayerID, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5):
     self.c.execute("UPDATE players SET Playerslot1 = ?, Playerslot2 = ?, Playerslot3 = ?, Playerslot4 = ?, Playerslot5 = ? WHERE PlayerID = ?", (Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5, PlayerID))

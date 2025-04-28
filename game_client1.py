@@ -25,10 +25,68 @@ def load_tmx_map(filename):
         return None
 
 
-def big_boom_boom(players, screen, red, range):
-    pg.draw.circle(screen, red, (500, 325), range, width=0)
-    pg.display.flip()
-    time.sleep(0.5)
+def bomb(players_sprites, screen, red, Brange, my_player, Socket):
+    while True:
+        if shared_data['bomb']:
+            with lock:    
+                print("CLIENT; player activated bomb")
+                bomb_x = my_player['x']
+                bomb_y = my_player['y']
+                bomb_range = Brange
+                explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
+
+                screen.fill((0, 0, 0))  # Clear screen
+                pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
+                pg.display.flip()
+
+                for player_id, player_data in players_sprites.items():
+                    player_center = player_data['rect'].center
+                    distance = math.sqrt(
+                        (player_center[0] - explosion_center[0]) ** 2 +
+                        (player_center[1] - explosion_center[1]) ** 2
+                    )
+                    if distance <= bomb_range:
+                        print(f"Player {player_id} hit by explosion!")
+                
+                my_player_center = (500, 325)
+                self_distance = math.sqrt(
+                    (my_player_center[0] - explosion_center[0]) ** 2 +
+                    (my_player_center[1] - explosion_center[1]) ** 2
+                )
+                if self_distance <= bomb_range:
+                    print("CLIENT; You were hit by the explosion!")
+                    
+                Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
+                shared_data['bomb'] = False
+
+        with lock:
+            for key, data in list(shared_data['recived'].items()):
+                if 'explode' in data:
+                    print("CLIENT; someone activated bomb")
+                    bomb_x = int(float(data['explode'][0]))
+                    bomb_y = int(float(data['explode'][1]))
+                    bomb_range = int(float(data['explode'][2]))
+                    explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
+
+                    screen.fill((0, 0, 0))  # Clear screen
+                    pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
+                    pg.display.flip()
+                    time.sleep(0.5)
+                    
+                    my_player_center = (500, 325)
+                    self_distance = math.sqrt(
+                        (my_player_center[0] - explosion_center[0]) ** 2 +
+                        (my_player_center[1] - explosion_center[1]) ** 2
+                    )
+                    if self_distance <= bomb_range:
+                        print("CLIENT; You were hit by the explosion!")
+                    
+                    del shared_data['recived'][key]
+
+        time.sleep(0.02)  # Add a small delay to reduce CPU usage
+
+        
+                
 
 
 # def sendmovement(x,y):
@@ -92,48 +150,49 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                 shared_data['fire'] = False
         with lock_shared_data:
             temp = shared_data['recived']
-        for key, data in temp.items():
-            if 'shoot' in data:
-                start_pos = [int(float(data['shoot'][0])), int(float(data['shoot'][1]))]
-                end_pos = [int(float(data['shoot'][2])), int(float(data['shoot'][3]))]
-                start_pos[0] -= my_player['x'] - 500
-                start_pos[1] -= my_player['y'] - 325
-                end_pos[0] -= my_player['x'] - 500
-                end_pos[1] -= my_player['y'] - 325
-                Red = (255, 0, 0)
+        if temp != {}:
+            for key, data in temp.items():
+                if 'shoot' in data:
+                    start_pos = [int(float(data['shoot'][0])), int(float(data['shoot'][1]))]
+                    end_pos = [int(float(data['shoot'][2])), int(float(data['shoot'][3]))]
+                    start_pos[0] -= my_player['x'] - 500
+                    start_pos[1] -= my_player['y'] - 325
+                    end_pos[0] -= my_player['x'] - 500
+                    end_pos[1] -= my_player['y'] - 325
+                    Red = (255, 0, 0)
 
-                # --------------------------------------------------------------------------------
-                hit2 = False
-                range1 = 1
-                end_pos[0] -= start_pos[0]  # setting players position as rashit hatsirim
-                end_pos[1] = start_pos[1] - end_pos[1]
-                added_dis = range1 * weapons[int(data['shoot'][4])]['bulet_speed']
+                    # --------------------------------------------------------------------------------
+                    hit2 = False
+                    range1 = 1
+                    end_pos[0] -= start_pos[0]  # setting players position as rashit hatsirim
+                    end_pos[1] = start_pos[1] - end_pos[1]
+                    added_dis = range1 * weapons[int(data['shoot'][4])]['bulet_speed']
 
-                while abs(range1) < weapons[int(data['shoot'][4])]['range'] - 1 and not hit2:
-                    range1 += added_dis
-                    try:
-                        direction = (0 - end_pos[1]) / (0 - end_pos[0])
-                        end_pos[0] = (end_pos[0] / abs(end_pos[0])) * math.sqrt(
-                            range1 / (direction * direction + 1))
-                        end_pos[1] = direction * end_pos[0]
-                    except ZeroDivisionError:
-                        end_pos[1] = (end_pos[1] / abs(end_pos[1]) * math.sqrt(range1))
-                        end_pos[0] = 0
-                    bullet_sprite['image'].fill((255, 0, 255))
-                    bullet_sprite['rect'] = bullet_sprite['image'].get_rect(
-                        center=(end_pos[0] + start_pos[0], start_pos[1] - end_pos[1]))
-                    with lock:
-                        screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
-                        pg.display.flip()
-                    image = pg.Surface((60, 60))
-                    image.fill(pg.Color('blue'))
-                    rect = image.get_rect(center=(500, 325))
-                    # --------------------------------------------------------------
-                    if rect.colliderect(bullet_sprite['rect']):
-                        print("got hit")
-                        # my_player['hp']-=weapons[int(data['shoot'][4])]['damage']
-                        my_player['hp'] -= weapons[0]['damage']
-                        hit2 = True
+                    while abs(range1) < weapons[int(data['shoot'][4])]['range'] - 1 and not hit2:
+                        range1 += added_dis
+                        try:
+                            direction = (0 - end_pos[1]) / (0 - end_pos[0])
+                            end_pos[0] = (end_pos[0] / abs(end_pos[0])) * math.sqrt(
+                                range1 / (direction * direction + 1))
+                            end_pos[1] = direction * end_pos[0]
+                        except ZeroDivisionError:
+                            end_pos[1] = (end_pos[1] / abs(end_pos[1]) * math.sqrt(range1))
+                            end_pos[0] = 0
+                        bullet_sprite['image'].fill((255, 0, 255))
+                        bullet_sprite['rect'] = bullet_sprite['image'].get_rect(
+                            center=(end_pos[0] + start_pos[0], start_pos[1] - end_pos[1]))
+                        with lock:
+                            screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
+                            pg.display.flip()
+                        image = pg.Surface((60, 60))
+                        image.fill(pg.Color('blue'))
+                        rect = image.get_rect(center=(500, 325))
+                        # --------------------------------------------------------------
+                        if rect.colliderect(bullet_sprite['rect']):
+                            print("got hit")
+                            #    Socket.sendDAMAGE(weapons[int(data['shoot'][4])]['damage'])
+                            my_player['hp'] -= weapons[int(data['shoot'][4])]['damage']
+                            hit2 = True
 
 
 def check_if_dead(hp):
@@ -144,62 +203,42 @@ def check_if_dead(hp):
     return x, y, dis_to_mid, 50, 20, 7
 
 
-def get_collision_rects(tmx_data):
-    collision_rects = []
-    tile_width = tmx_data.tilewidth
-    tile_height = tmx_data.tileheight
-
-    for layer in tmx_data.visible_layers:
-        if isinstance(layer, pytmx.TiledTileLayer):
-            if layer.properties.get('collidable'):  # This is what matters!
-                for x, y, gid in layer:
-                    if gid != 0:
-                        rect = pg.Rect(x * tile_width, y * tile_height, tile_width, tile_height)
-                        collision_rects.append(rect)
-    return collision_rects
-
-
-def draw_map(screen, map_surface, world_offset):
-    """Draw the TMX map onto the screen."""
-    screen.blit(map_surface, world_offset)
-
-
-def render_map(tmx_data):
-    """Render the TMX map onto a surface once."""
-    map_surface = pg.Surface((tmx_data.width * tmx_data.tilewidth,
-                              tmx_data.height * tmx_data.tileheight))
-
-    for layer in tmx_data.visible_layers:
-        if isinstance(layer, pytmx.TiledTileLayer):
-            for x, y, gid in layer:
-                tile = tmx_data.get_tile_image_by_gid(gid)
-                if tile:
-                    map_surface.blit(tile, (x * tmx_data.tilewidth, y * tmx_data.tileheight))
-
-    return map_surface
-
-
-shared_data = {"fire": False, "used_weapon": 0, 'got_shot': False, 'recived': {}}
+shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False, 'recived': {}}
 
 lock_shared_data = threading.Lock()
 lock = threading.Lock()
 
 
-def get_no_walk_no_shoot_collision_rects(tmx_data):
-    collision_rects = []
+def get_collidable_tiles(tmx_data, collidable_tileset_name="Obstacles"):
+    """Returns a set of tile coordinates that are collidable."""
+    collidable_tiles = set()
     for layer in tmx_data.layers:
-        if layer.name.lower() == "no walk no shoot":
-            if isinstance(layer, pytmx.TiledObjectGroup):
+        if isinstance(layer, pytmx.TiledObjectGroup):
+            if layer.name == "no walk no shoot":
                 for obj in layer:
-                    rect = pg.Rect(int(obj.x), int(obj.y), int(obj.width), int(obj.height))
-                    collision_rects.append(rect)
-            elif isinstance(layer, pytmx.TiledTileLayer):
-                for x, y, gid in layer:
-                    if gid != 0:
-                        rect = pg.Rect(x * tmx_data.tilewidth, y * tmx_data.tileheight,
-                                       tmx_data.tilewidth, tmx_data.tileheight)
-                        collision_rects.append(rect)
-    return collision_rects
+                    # Add the coordinates of the collidable tile to the set
+                    new_tile_tup = obj.x - 500, obj.width, obj.y - 330, obj.height
+                    # collidable_tiles.add((obj.x // tmx_data.tilewidth, obj.y // tmx_data.tileheight))
+                    collidable_tiles.add(new_tile_tup)
+    return collidable_tiles
+
+
+def check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
+    if player_rect.x > coll_obj_x + coll_obj_w or player_rect.y < coll_obj_y - coll_obj_h:
+        return False
+    if player_rect.x + player_rect.width < coll_obj_x or player_rect.y - player_rect.height > coll_obj_y:
+        return False
+    return True
+
+
+def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
+    """Checks if the player collides with any of the collidable tiles."""
+    for coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h in collidable_tiles:
+        if check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
+            print(coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h)
+            return True
+    print("No collision")
+    return False
 
 
 def run_game():
@@ -207,7 +246,7 @@ def run_game():
     with lock:
         screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 400, 'y': 400, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 300, 'y': 300, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -223,13 +262,19 @@ def run_game():
     move_y = 0
     angle = 0
     knockback = 0
+    death = pg.image.load('dead.png').convert()
     granade_range = 200
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = load_tmx_map("c:/networks/webroot/map.tmx")
-    no_walk_no_shoot_rects = get_no_walk_no_shoot_collision_rects(tmx_data)
-    map_surface = render_map(tmx_data)
+    tmx_data = pytmx.load_pygame("c:/webroot/map.tmx")  # <<< your TMX file here
+    collidable_tiles = get_collidable_tiles(tmx_data,
+                                            collidable_tileset_name="Obstacles")  # Get collidable tile coordinates
+    tile_width = tmx_data.tilewidth
+    tile_height = tmx_data.tileheight
+    map_width = tmx_data.width
+    map_height = tmx_data.height
+    SCREEN_WIDTH, SCREEN_HEIGHT = 1000, 650
     acceleration = 0.1
     direction = 0  # like m in y=mx+b
     RED = (255, 0, 0)
@@ -275,7 +320,7 @@ def run_game():
     if recived != {}:
         for key, data in recived.items():
             old_player = {
-                'x': int(float(data['x']) - float(dis_to_mid[0])),
+                'x': int(float(data['x']) - float(dis_to_mid[1])),
                 'y': int(float(data['y']) - float(dis_to_mid[1])),
                 'width': 60,
                 'height': 60,
@@ -303,6 +348,10 @@ def run_game():
                                        args=(weapons, players_sprites, bullet_sprite, screen, my_player, Socket))
     thread_shooting.daemon = True
     thread_shooting.start()
+
+    thread_bomb = threading.Thread(target=bomb, args=(players_sprites, screen, RED, granade_range, my_player, Socket))
+    thread_bomb.daemon = True
+    thread_bomb.start()
     # thread_movement.start()
     while running:
 
@@ -336,32 +385,62 @@ def run_game():
                     shared_data['used_weapon'] = 1
                 elif event.key == pg.K_3:
                     shared_data['used_weapon'] = 2
+                elif event.key == pg.K_q:
+                    shared_data['bomb'] = True
+                    time.sleep(0.5)
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
+
         keys = pg.key.get_pressed()
+        # Check for collisions with nearby collision rects
+        #print(f"Here pressed {keys}")
+        #res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
+        #print("Finished")
+
+        #print(res)
         if knockback == 0:
             if keys[pg.K_w]:
-                my_player['y'] -= 5
-                move_y = 5
+                new_rect = pg.Rect(my_player['x'], my_player['y'] - 5, my_player['width'], my_player['height'])
+                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
+                    my_player['y'] -= 5
+                    move_y = 5
             if keys[pg.K_s]:
-                my_player['y'] += 5
-                move_y = -5
+                new_rect = pg.Rect(my_player['x'], my_player['y'] + 5, my_player['width'], my_player['height'])
+                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
+                    my_player['y'] += 5
+                    move_y = -5
             if keys[pg.K_a]:
-                my_player['x'] -= 5
-                move_x = 5
+                new_rect = pg.Rect(my_player['x'] - 5, my_player['y'], my_player['width'], my_player['height'])
+                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
+                    my_player['x'] -= 5
+                    move_x = 5
             if keys[pg.K_d]:
-                my_player['x'] += 5
-                move_x = -5
+                new_rect = pg.Rect(my_player['x'] + 5, my_player['y'], my_player['width'], my_player['height'])
+                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
+                    my_player['x'] += 5
+                    move_x = -5
         else:
             knockback -= 1
+
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
             my_player['x'] = 500
             my_player['y'] = 500
+            for key, data in players.items():
+                data['x'] += dis_to_mid[0] - (my_player['x'] - 500)
+                data['y'] += dis_to_mid[1] - (my_player['y'] - 325)
             dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
             weapons[0]['ammo'] = weapons[0]['max_ammo']
             weapons[1]['ammo'] = weapons[1]['max_ammo']
             weapons[2]['ammo'] = weapons[2]['max_ammo']
+            sum_offset = [0, 0]
+            with lock:
+                screen.blit(death, (0, 0))
+            pg.display.flip()
+            # kys = pg.key.get_pressed()
+            # while not kys[pg.K_r]:
+            #    kys = pg.key.get_pressed()
+            time.sleep(5)
             Socket.sendMOVE(my_player['x'], my_player['y'])
         recived = Socket.requestDATA()
 
@@ -377,6 +456,8 @@ def run_game():
 
                 if 'hp' in data:
                     players[key]['hp'] = data['hp']
+                    if data['hp'] <= 0:
+                        del (players[key])
                     # check_if_they_dead(players[key]['hp'])
                 if 'angle' in data:
                     players[key]['angle'] = data['angle']
@@ -404,8 +485,6 @@ def run_game():
                 players_sprites[key]["rect"] = pg.Rect(int(data["x"] + sum_offset[0]), int(data["y"] + sum_offset[1]),
                                                        players[key]['width'], players[key]['height'])
 
-            # world_offset = (500 - my_player['x'], 325 - my_player['y'])
-            # draw_map(screen, tmx_data, world_offset)
         for key, data in players_sprites.items():
             if data['rect'].x >= (500 - my_player['width']) and data['rect'].x <= (500 + my_player['width']) and data[
                 'rect'].y >= (325 - my_player['height']) and data['rect'].y <= (325 + my_player['height']):
@@ -425,7 +504,24 @@ def run_game():
         world_offset = (500 - my_player['x'], 325 - my_player['y'])
 
         with lock:
-            screen.blit(map_surface, world_offset)
+            start_col = my_player['x'] // tile_width
+            start_row = my_player['y'] // tile_height
+            end_col = (my_player['x'] + SCREEN_WIDTH) // tile_width + 2
+            end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
+
+            # Draw visible tiles
+            for layer in tmx_data.visible_layers:
+                if isinstance(layer, pytmx.TiledTileLayer):
+                    layer_index = tmx_data.layers.index(layer)  # <<< fix here
+                    for x in range(start_col, end_col):
+                        for y in range(start_row, end_row):
+                            if 0 <= x < map_width and 0 <= y < map_height:
+                                image = tmx_data.get_tile_image(x, y, layer_index)
+                                if image:
+                                    screen.blit(
+                                        image,
+                                        (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
+                                    )
         obj.print_players(players_sprites, players, angle)
         pg.display.flip()
         clock.tick(60)

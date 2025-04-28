@@ -65,6 +65,7 @@ class SubServer:
         self.process_angle = sub_client_prots.process_angle
         self.process_request = sub_client_prots.process_request
         self.process_requestFull = sub_client_prots.process_requestFull
+        self.process_boom = sub_client_prots.process_boom
 
         self.protocols = {
             "MOVE": self.process_move,
@@ -72,7 +73,8 @@ class SubServer:
             "DAMAGE": self.process_damage_taken,
             "POWER": self.process_power,
             "ANGLE": self.process_angle,
-            "LOGIN": self.process_login
+            "LOGIN": self.process_login,
+            "BOOM": self.process_boom
         }
 
         self.receive_protocol = {
@@ -122,6 +124,7 @@ class SubServer:
             if x > self.server_borders[0] or y < self.server_borders[1]:
                 self.AddToLB(client_id)
                 return
+    
 
     def SendInfoLB(self):
         with self.lb_lock:
