@@ -344,7 +344,8 @@ def run_game():
     h = None
     g = None
     # thread_movement = threading.Thread(target=sendmovement, args=())
-    thread_shooting = threading.Thread(target=shoot, args=(weapons, players_sprites, bullet_sprite, screen, my_player))
+    thread_shooting = threading.Thread(target=shoot,
+                                       args=(weapons, players_sprites, bullet_sprite, screen, my_player, Socket))
     thread_shooting.daemon = True
     thread_shooting.start()
 
