@@ -1,6 +1,8 @@
 import pygame as pg
 import json
-
+import tkinter as tk
+from tkinter import messagebox, font
+from tkinter import ttk
 from pygame.examples.music_drop_fade import starting_pos
 import random
 import Pmodel1
@@ -11,7 +13,7 @@ import pytmx
 import math
 import sys
 import os
-
+import startprotocol
 
 def load_tmx_map(filename):
     """Load TMX map file and return data."""
@@ -242,6 +244,13 @@ def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
 
 
 def run_game():
+    Socket = ClientSocket.ClientServer()
+    Socket.connect()
+    root = tk.Tk()
+    app = startprotocol.ModernGameLogin(root, Socket)
+    root.title("Login")
+    root.mainloop()
+
     pg.init()
     with lock:
         screen = pg.display.set_mode((1000, 650))
@@ -314,8 +323,6 @@ def run_game():
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
     # --------------------------------------------------------------------------------
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
     recived = Socket.requestDATAFULL()
     if recived != {}:
         for key, data in recived.items():
