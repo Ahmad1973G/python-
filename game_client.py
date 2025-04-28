@@ -1,6 +1,8 @@
 import pygame as pg
+import tkinter as tk
+from tkinter import messagebox, font
 import json
-
+from tkinter import ttk
 from pygame.examples.music_drop_fade import starting_pos
 import random
 import Pmodel1
@@ -11,7 +13,7 @@ import pytmx
 import math
 import sys
 import os
-
+import startprotocol
 
 def load_tmx_map(filename):
     """Load TMX map file and return data."""
@@ -200,6 +202,14 @@ def get_no_walk_no_shoot_collision_rects(tmx_data):
 
 
 def run_game():
+    Socket = ClientSocket.ClientServer()
+    Socket.connect()
+    root = tk.Tk()
+    app = startprotocol.ModernGameLogin(root, Socket)
+    root.mainloop()
+    while app.player_data is None:
+        pass
+
     pg.init()
 
     screen = pg.display.set_mode((1000, 650))
@@ -266,8 +276,9 @@ def run_game():
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
     # --------------------------------------------------------------------------------
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
+
+
+
     shared_data['recived'] = Socket.requestDATAFULL()
     if shared_data['recived'] != {}:
         for key, data in shared_data['recived'].items():

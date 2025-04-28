@@ -48,7 +48,7 @@ class database:
     def createplayer(self, PlayerModel, Username, Password):
         self.c.execute(
             "INSERT INTO players (PlayerID, Username, Password, PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (self.id, Username, Password, PlayerModel, 100, 0, 0, None, None, None, None, None)
+            (self.id, Username, Password, PlayerModel, 100, 0, 0, 0, 0, 0, 0, 0)
             )
         self.id += 1
 

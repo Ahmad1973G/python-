@@ -47,6 +47,7 @@ class SubServer:
         self.different_server_players = {}
         self.moving_servers = {}
         self.waiting_login = {}
+        self.waiting_register = {}
 
         # Add locks for shared resources
         self.clients_lock = threading.Lock()
@@ -57,6 +58,7 @@ class SubServer:
         self.other_server_lock = threading.Lock()
         self.moving_lock = threading.Lock()
         self.waiting_login_lock = threading.Lock()
+        self.waiting_register_lock = threading.Lock()
 
         self.process_move = sub_client_prots.process_move
         self.process_shoot = sub_client_prots.process_shoot
@@ -65,6 +67,8 @@ class SubServer:
         self.process_angle = sub_client_prots.process_angle
         self.process_request = sub_client_prots.process_request
         self.process_requestFull = sub_client_prots.process_requestFull
+        self.process_login = sub_client_prots.process_login
+        self.process_register = sub_client_prots.process_register
 
         self.protocols = {
             "MOVE": self.process_move,
@@ -72,7 +76,8 @@ class SubServer:
             "DAMAGE": self.process_damage_taken,
             "POWER": self.process_power,
             "ANGLE": self.process_angle,
-            "LOGIN": self.process_login
+            "LOGIN": self.process_login,
+            "REGISTER": self.process_register
         }
 
         self.receive_protocol = {
@@ -94,8 +99,8 @@ class SubServer:
         data = self.lb_socket.recv(1024).decode()
         if data.startswith("BORDERS CODE 2"):
             data = data.split()[-1]
-            self.server_borders[0] = int(data.split(";")[0])
-            self.server_borders[1] = int(data.split(";")[1])
+            self.server_borders[0] = int(float(data.split(";")[0]))
+            self.server_borders[1] = int(float(data.split(";")[1]))
         else:
             print("Failed to get server ID from load balancer, error:", data)
 
@@ -236,8 +241,8 @@ class SubServer:
                     self.sendSYNCACKLB()
                     if self.recvACKLB():
                         self.is_connected_to_lb = True
-                        #lb_thread = threading.Thread(target=self.handle_lb)
-                        #lb_thread.start()
+                        lb_thread = threading.Thread(target=self.handle_lb)
+                        lb_thread.start()
                         break
             except socket.timeout:
                 print("No UDP packet received within timeout period")
@@ -251,9 +256,11 @@ class SubServer:
         self.getBORDERS()
         while True:
             try:
-                self.SendInfoLB()
-                self.getRIGHT()
-                self.getSEND()
+                #self.SendInfoLB()
+                #self.getRIGHT()
+                #self.getSEND()
+                self.SendRegister()
+                self.SendLogin()
             except socket.timeout:
                 print("No data received from load balancer within timeout period")
             except Exception as e:
@@ -296,33 +303,63 @@ class SubServer:
         return False
 
     def SendLogin(self):
-        with self.waiting_login_lock:
-            if not self.waiting_login:
-                return
-            str_login = f"LOGIN {json.dumps(self.waiting_login)}"
+        try:
+            with self.waiting_login_lock:
+                if not self.waiting_login:
+                    return
+                str_login = f"LOGIN {json.dumps(self.waiting_login)}"
+            print("Sending login data to load balancer:", str_login)
             self.lb_socket.send(str_login.encode())
             data = self.lb_socket.recv(1024).decode()
+            with self.waiting_login_lock:
+                self.waiting_login = {}
             data = json.loads(data)
-            for client_id, data in data.items()
+            for client_id, data in data.items():
+                client_id = int(client_id)
                 prot = data[0]
                 if prot.startswith("SUCCESS CODE LOGIN"):
                     print(f"login for {client_id} successful!")
-                    with self.players_data_lock:
-                        self.players_data[client_id] = data[1]
-                        del self.players_data[client_id]['PlayerID']
-                        del self.players_data[client_id]['Username']
-                        del self.players_data[client_id]['Password']
+                    self.connected_clients[client_id][1].send(f"SUCCESS CODE LOGIN {data[1]}".encode())
+                    continue
+                if prot.startswith("FAILED CODE LOGIN"):
+                    self.connected_clients[client_id][1].send(prot.encode())
+                    continue
 
-    def process_login(self, client_id, message: str):
-        try:
-            messages = message.split(';')
-            username = messages[0]
-            password = messages[1]
-            with self.waiting_login_lock:
-                self.waiting_login[client_id] = (username, password)
+        except socket.timeout:
+            print("No data received from load balancer within timeout period")
 
         except Exception as e:
-            print(f"Error processing login for {client_id}: {e}")
+            print(f"Error receiving data from load balancer: {e}")
+
+    def SendRegister(self):
+        try:
+            with self.waiting_register_lock:
+                if not self.waiting_register:
+                    return
+                print(self.waiting_register)
+                str_register = f"REGISTER {json.dumps(self.waiting_register)}"
+            self.lb_socket.send(str_register.encode())
+            data = self.lb_socket.recv(1024).decode()
+            with self.waiting_register_lock:
+                self.waiting_register = {}
+            data = json.loads(data)
+            for client_id, data in data.items():
+                client_id = int(client_id)
+                prot = data[0]
+                if prot.startswith("SUCCESS CODE REGISTER"):
+                    print(f"register for {client_id} successful!")
+                    with self.clients_lock:
+                        self.connected_clients[client_id][1].send(f"SUCCESS CODE REGISTER {data[1]}".encode())
+                    continue
+                if prot.startswith("FAILED CODE REGISTER"):
+                    with self.clients_lock:
+                        self.connected_clients[client_id][1].send(prot.encode())
+                    continue
+        except socket.timeout:
+            print("No data received from load balancer within timeout period")
+        except Exception as e:
+            print(f"Error receiving data from load balancer: {e}")
+
 
     def sendID(self):
         try:

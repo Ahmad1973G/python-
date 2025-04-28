@@ -1,6 +1,30 @@
 import json
 
 
+def process_login(self, client_id, message: str):
+    try:
+        messages = message.split(';')
+        username = messages[0]
+        password = messages[1]
+        with self.waiting_login_lock:
+            self.waiting_login[client_id] = (username, password)
+
+    except Exception as e:
+        print(f"Error processing login for {client_id}: {e}")
+
+
+def process_register(self, client_id, message: str):
+    try:
+        messages = message.split(';')
+        username = messages[0]
+        password = messages[1]
+        with self.waiting_register_lock:
+            self.waiting_register[client_id] = (username, password)
+
+    except Exception as e:
+        print(f"Error processing register for {client_id}: {e}")
+
+
 def process_move(self, client_id, message: str):
     try:
         x = message.split(';')[0]

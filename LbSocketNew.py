@@ -6,6 +6,8 @@ import random
 from typing import Union, Tuple, Dict, Any, Optional
 import database
 
+thread_local = threading.local()
+
 class LoadBalancer:
     def __init__(self):
         self.IP = self.get_ip_address()
@@ -24,10 +26,21 @@ class LoadBalancer:
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.final_packet_right = {}
         self.final_packet_to_send = {}
-        self.DataBase = database.database()
+        self.protocols = {
+            'INFO': self.process_info,
+            'LOGIN': self.process_login,
+            'REGISTER': self.process_register,
+        }
 
+        self.DataBase = None
+        self.db_lock = threading.Lock()  # Add database lock
         self.right_lock = threading.Lock()
         self.send_lock = threading.Lock()
+
+    def get_db(self):
+        if not hasattr(thread_local, "db"):
+            thread_local.db = database.database()
+        return thread_local.db
 
     def get_ip_address(self):
         hostname = socket.gethostname()
@@ -123,6 +136,7 @@ class LoadBalancer:
 
     def process_info(self, packet_info, id):
         try:
+            packet_info = json.loads(packet_info)
             right_servers, server_to_send = self.MoveServer(packet_info, self.server_borders)
 
             for client_id, server in right_servers.items():
@@ -156,6 +170,7 @@ class LoadBalancer:
 
     def process_login(self, data, id):
         try:
+            print(f"Login request received from server {id}")
             clients = {}
             data = json.loads(data)
             for client_id, data in data.items():
@@ -163,14 +178,19 @@ class LoadBalancer:
                     username = data[0]
                     password = data[1]
 
-                    if self.DataBase.login(username, password) is True:
-                        player = self.DataBase.getallplayer(username)
-                        clients[client_id] = ("SUCCESS CODE LOGIN", player)
-                    else:
-                        clients[client_id] = ("FAILED CODE LOGIN 1", None)
+                    with self.db_lock:  # Protect database access
+                        db = self.get_db()
+                        if db.login(username, password) is True:
+                            player = db.getallplayer(username)
+                            clients[client_id] = ("SUCCESS CODE LOGIN", player)
+                        else:
+                            clients[client_id] = ("FAILED CODE LOGIN 1", None)
                 except Exception as e:
                     print(f"Error processing login data for client {client_id}: {e}")
                     clients[client_id] = (f"FAILED CODE LOGIN {e}", None)
+
+            self.servers[id].send(json.dumps(clients).encode())
+
         except json.JSONDecodeError:
             print(f"Error decoding JSON data: {data}")
             return
@@ -178,17 +198,30 @@ class LoadBalancer:
             print(f"Error processing login data: {e}")
             return
 
-    def process_signup(self, Username, Password):
+    def process_register(self, data, id):
         try:
-            if self.DataBase.getplayerid(Username) is not None:
-                self.socket.send("FAILED CODE SIGNUP 2".encode())
-                return
+            clients = {}
+            data = json.loads(data)
+            for client_id, data in data.items():
+                username = data[0]
+                password = data[1]
 
-            self.DataBase.createplayer(1, Username, Password)
-            self.socket.send("SUCCESS CODE SIGNUP".encode())
+                try:
+                    with self.db_lock:  # Protect database access
+                        db = self.get_db()
+                        db.createplayer(1, username, password)
+                        data = db.getallplayer(username)
+                        clients[client_id] = ("SUCCESS CODE REGISTER", data)
+                except Exception as e:
+                    print(f"Error processing register data for client {client_id}: {e}")
+                    clients[client_id] = (f"FAILED CODE REGISTER {e}", None)
+            self.servers[id].send(json.dumps(clients).encode())
+
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON data: {data}")
+            return
         except Exception as e:
-            print(f"Error processing signup data: {e}")
-            self.socket.send(f"FAILED CODE SIGNUP {e}".encode())
+            print(f"Error processing register data: {e}")
             return
 
     def handle_server(self, id):
@@ -212,21 +245,13 @@ class LoadBalancer:
                         self.servers[id].send(f"BORDERS CODE 2 {self.server_borders[0]};{self.server_borders[1]}".encode())
                         continue
 
-                    if data.startswith("INFO"):
-                        packet_info = json.loads(data.split()[-1])
-                        self.process_info(packet_info, id)
+                    protocol = data.split(" ")[0]
+                    data = data.split(" ", maxsplit=1)[1]
+                    if protocol in self.protocols:
+                        self.protocols[protocol](data, id)
+                    else:
+                        print(f"Unknown protocol {protocol} from server {id}")
                         continue
-
-                    if data.startswith("RIGHT"):
-                        self.getRIGHT(id)
-                        continue
-
-                    if data.startswith("SEND"):
-                        self.getSEND(id)
-                        continue
-
-                    if data.startswith("LOGIN"):
-                        self.process_login(data.split()[-1], id)
 
                 except json.JSONDecodeError:
                     print(f"Error decoding JSON data from server {id}: {data}")
