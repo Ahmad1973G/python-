@@ -15,6 +15,7 @@ import sys
 import os
 import startprotocol
 
+
 def load_tmx_map(filename):
     """Load TMX map file and return data."""
     if not os.path.exists(filename):
@@ -30,7 +31,7 @@ def load_tmx_map(filename):
 def bomb(players_sprites, screen, red, Brange, my_player, Socket):
     while True:
         if shared_data['bomb']:
-            with lock:    
+            with lock:
                 print("CLIENT; player activated bomb")
                 bomb_x = my_player['x']
                 bomb_y = my_player['y']
@@ -49,7 +50,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     )
                     if distance <= bomb_range:
                         print(f"Player {player_id} hit by explosion!")
-                
+
                 my_player_center = (500, 325)
                 self_distance = math.sqrt(
                     (my_player_center[0] - explosion_center[0]) ** 2 +
@@ -57,7 +58,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 )
                 if self_distance <= bomb_range:
                     print("CLIENT; You were hit by the explosion!")
-                    
+
                 Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
                 shared_data['bomb'] = False
 
@@ -74,7 +75,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                     pg.display.flip()
                     time.sleep(0.5)
-                    
+
                     my_player_center = (500, 325)
                     self_distance = math.sqrt(
                         (my_player_center[0] - explosion_center[0]) ** 2 +
@@ -82,13 +83,10 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     )
                     if self_distance <= bomb_range:
                         print("CLIENT; You were hit by the explosion!")
-                    
+
                     del shared_data['recived'][key]
 
         time.sleep(0.02)  # Add a small delay to reduce CPU usage
-
-        
-                
 
 
 # def sendmovement(x,y):
@@ -276,7 +274,7 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = pytmx.load_pygame("c:/webroot/map.tmx")  # <<< your TMX file here
+    tmx_data = pytmx.load_pygame("c:/python_game/python-/map/map.tmx")  # <<< your TMX file here
     collidable_tiles = get_collidable_tiles(tmx_data,
                                             collidable_tileset_name="Obstacles")  # Get collidable tile coordinates
     tile_width = tmx_data.tilewidth
@@ -399,11 +397,11 @@ def run_game():
 
         keys = pg.key.get_pressed()
         # Check for collisions with nearby collision rects
-        #print(f"Here pressed {keys}")
-        #res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
-        #print("Finished")
+        # print(f"Here pressed {keys}")
+        # res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
+        # print("Finished")
 
-        #print(res)
+        # print(res)
         if knockback == 0:
             if keys[pg.K_w]:
                 new_rect = pg.Rect(my_player['x'], my_player['y'] - 5, my_player['width'], my_player['height'])
