@@ -29,15 +29,6 @@ WORKDIR /app
 # Copy required Python files
 COPY game_client.py Pmodel1.py ClientSocket.py ./
 
-# Copy game assets
-COPY *.png ./
-COPY map.tmx ./
+#RUN pip install pygame
 
-# Install Python dependencies
-RUN pip install pygame pytmx
-
-# Set display environment variable for pygame
-ENV SDL_VIDEODRIVER=x11
-
-# Run the game client
-CMD ["python", "./game_client.py"]
+CMD [ "python", "./database.py" ]
