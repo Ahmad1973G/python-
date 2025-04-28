@@ -27,26 +27,49 @@ def load_tmx_map(filename):
 
 def bomb(players_sprites, screen, red, Brange, my_player, Socket):
     while True:
-        if shared_data['bomb']:
-            with lock:    
-                print("CLIENT; player activated bomb")
-                bomb_x = my_player['x']
-                bomb_y = my_player['y']
-                bomb_range = Brange
+        if shared_data['bomb']:  
+            print("CLIENT; player activated bomb")
+            bomb_x = my_player['x']
+            bomb_y = my_player['y']
+            bomb_range = Brange
+            explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
+
+            screen.fill((0, 0, 0))  # Clear screen
+            pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
+            pg.display.flip()
+
+            for player_id, player_data in players_sprites.items():
+                player_center = player_data['rect'].center
+                distance = math.sqrt(
+                    (player_center[0] - explosion_center[0]) ** 2 +
+                    (player_center[1] - explosion_center[1]) ** 2
+                )
+                if distance <= bomb_range:
+                    print(f"Player {player_id} hit by explosion!")
+            
+            my_player_center = (500, 325)
+            self_distance = math.sqrt(
+                (my_player_center[0] - explosion_center[0]) ** 2 +
+                (my_player_center[1] - explosion_center[1]) ** 2
+            )
+            if self_distance <= bomb_range:
+                print("CLIENT; You were hit by the explosion!")
+                
+            Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
+            shared_data['bomb'] = False
+
+        for key, data in list(shared_data['recived'].items()):
+            if 'explode' in data:
+                print("CLIENT; someone activated bomb")
+                bomb_x = int(float(data['explode'][0]))
+                bomb_y = int(float(data['explode'][1]))
+                bomb_range = int(float(data['explode'][2]))
                 explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
                 screen.fill((0, 0, 0))  # Clear screen
                 pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                 pg.display.flip()
-
-                for player_id, player_data in players_sprites.items():
-                    player_center = player_data['rect'].center
-                    distance = math.sqrt(
-                        (player_center[0] - explosion_center[0]) ** 2 +
-                        (player_center[1] - explosion_center[1]) ** 2
-                    )
-                    if distance <= bomb_range:
-                        print(f"Player {player_id} hit by explosion!")
+                time.sleep(0.5)
                 
                 my_player_center = (500, 325)
                 self_distance = math.sqrt(
@@ -55,33 +78,8 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 )
                 if self_distance <= bomb_range:
                     print("CLIENT; You were hit by the explosion!")
-                    
-                Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
-                shared_data['bomb'] = False
-
-        with lock:
-            for key, data in list(shared_data['recived'].items()):
-                if 'explode' in data:
-                    print("CLIENT; someone activated bomb")
-                    bomb_x = int(float(data['explode'][0]))
-                    bomb_y = int(float(data['explode'][1]))
-                    bomb_range = int(float(data['explode'][2]))
-                    explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
-
-                    screen.fill((0, 0, 0))  # Clear screen
-                    pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
-                    pg.display.flip()
-                    time.sleep(0.5)
-                    
-                    my_player_center = (500, 325)
-                    self_distance = math.sqrt(
-                        (my_player_center[0] - explosion_center[0]) ** 2 +
-                        (my_player_center[1] - explosion_center[1]) ** 2
-                    )
-                    if self_distance <= bomb_range:
-                        print("CLIENT; You were hit by the explosion!")
-                    
-                    del shared_data['recived'][key]
+                
+                del shared_data['recived'][key]
 
         time.sleep(0.02)  # Add a small delay to reduce CPU usage
 
