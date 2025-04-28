@@ -46,11 +46,17 @@ class database:
         return None
 
     def createplayer(self, PlayerModel, Username, Password):
-        self.c.execute(
-            "INSERT INTO players (PlayerID, Username, Password, PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (self.id, Username, Password, PlayerModel, 100, 0, 0, 0, 0, 0, 0, 0)
+        try:
+            self.c.execute(
+                "INSERT INTO players (PlayerID, Username, Password, PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4, Playerslot5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (self.id, Username, Password, PlayerModel, 100, 0, 0, 0, 0, 0, 0, 0)
             )
-        self.id += 1
+            self.conn.commit()  # Add commit here
+            self.id += 1
+            return True
+        except sqlite3.Error as e:
+            print(f"Database error: {e}")
+            return False
 
     def updateplayer(self, PlayerID, PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2,
                      Playerslot3, Playerslot4, Playerslot5):

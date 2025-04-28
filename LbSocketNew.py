@@ -32,7 +32,6 @@ class LoadBalancer:
             'REGISTER': self.process_register,
         }
 
-        self.DataBase = None
         self.db_lock = threading.Lock()  # Add database lock
         self.right_lock = threading.Lock()
         self.send_lock = threading.Lock()
