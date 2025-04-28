@@ -63,8 +63,10 @@ class database:
         self.c.execute(
             "UPDATE players SET PlayerModel = ?, PlayerLifecount = ?, PlayerMoney = ?, Playerammo = ?, Playerslot1 = ?, Playerslot2 = ?, Playerslot3 = ?, Playerslot4 = ?, Playerslot5 = ? WHERE PlayerID = ?",
             (PlayerModel, PlayerLifecount, PlayerMoney, Playerammo, Playerslot1, Playerslot2, Playerslot3, Playerslot4,
-             Playerslot5, PlayerID)
-        )
+             Playerslot5, PlayerID))
+
+        self.conn.commit()  # Add commit here
+
 
     def deleteplayer(self, PlayerID):
         self.c.execute("DELETE FROM players WHERE PlayerID = ?", (PlayerID,))

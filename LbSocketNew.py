@@ -30,6 +30,7 @@ class LoadBalancer:
             'INFO': self.process_info,
             'LOGIN': self.process_login,
             'REGISTER': self.process_register,
+            'CACHE': self.process_cache,
         }
 
         self.db_lock = threading.Lock()  # Add database lock
@@ -165,6 +166,25 @@ class LoadBalancer:
         with self.send_lock:
             self.servers[server_id].send(f"SEND CODE 2;{self.final_packet_to_send[server_id]}".encode())
             self.final_packet_to_send[server_id] = {}
+
+    def process_cache(self, data, id):
+        try:
+            data = json.loads(data)
+            for client_id, properties in data.items():
+                with self.db_lock:
+                    db = self.get_db()
+                    db.updateplayer(properties['PlayerID'], properties['PlayerModel'], properties['PlayerLifecount'],
+                                    properties['PlayerMoney'], properties['Playerammo'], properties['Playerslot1'],
+                                    properties['Playerslot2'], properties['Playerslot3'], properties['Playerslot4'],
+                                    properties['Playerslot5'])
+
+            self.servers[id].send("ACK".encode())
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON data: {data}")
+            return
+        except Exception as e:
+            print(f"Error processing cache data: {e}")
+            return
 
 
     def process_login(self, data, id):

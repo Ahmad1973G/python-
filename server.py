@@ -48,6 +48,8 @@ class SubServer:
         self.moving_servers = {}
         self.waiting_login = {}
         self.waiting_register = {}
+        self.secret_players_data = {}
+        self.players_cached = {}
 
         # Add locks for shared resources
         self.clients_lock = threading.Lock()
@@ -59,6 +61,8 @@ class SubServer:
         self.moving_lock = threading.Lock()
         self.waiting_login_lock = threading.Lock()
         self.waiting_register_lock = threading.Lock()
+        self.secret_lock = threading.Lock()
+        self.cache_lock = threading.Lock()
 
         self.process_move = sub_client_prots.process_move
         self.process_shoot = sub_client_prots.process_shoot
@@ -69,6 +73,9 @@ class SubServer:
         self.process_requestFull = sub_client_prots.process_requestFull
         self.process_login = sub_client_prots.process_login
         self.process_register = sub_client_prots.process_register
+        self.process_Money = sub_client_prots.process_Money
+        self.process_Ammo = sub_client_prots.process_Ammo
+        self.process_Inventory = sub_client_prots.process_Inventory
 
         self.protocols = {
             "MOVE": self.process_move,
@@ -77,7 +84,10 @@ class SubServer:
             "POWER": self.process_power,
             "ANGLE": self.process_angle,
             "LOGIN": self.process_login,
-            "REGISTER": self.process_register
+            "REGISTER": self.process_register,
+            "MONEY": self.process_Money,
+            "AMMO": self.process_Ammo,
+            "INVENTORY": self.process_Inventory,
         }
 
         self.receive_protocol = {
@@ -261,6 +271,7 @@ class SubServer:
                 #self.getSEND()
                 self.SendRegister()
                 self.SendLogin()
+                self.SendCache()
             except socket.timeout:
                 print("No data received from load balancer within timeout period")
             except Exception as e:
@@ -319,10 +330,14 @@ class SubServer:
                 prot = data[0]
                 if prot.startswith("SUCCESS CODE LOGIN"):
                     print(f"login for {client_id} successful!")
-                    self.connected_clients[client_id][1].send(f"SUCCESS CODE LOGIN {data[1]}".encode())
+                    with self.secret_lock:
+                        self.secret_players_data[client_id] = data[1]
+                    with self.clients_lock:
+                        self.connected_clients[client_id][1].send(f"SUCCESS CODE LOGIN {data[1]}".encode())
                     continue
                 if prot.startswith("FAILED CODE LOGIN"):
-                    self.connected_clients[client_id][1].send(prot.encode())
+                    with self.clients_lock:
+                        self.connected_clients[client_id][1].send(prot.encode())
                     continue
 
         except socket.timeout:
@@ -348,6 +363,9 @@ class SubServer:
                 prot = data[0]
                 if prot.startswith("SUCCESS CODE REGISTER"):
                     print(f"register for {client_id} successful!")
+                    with self.secret_lock:
+                        self.secret_players_data[client_id] = data[1]
+
                     with self.clients_lock:
                         self.connected_clients[client_id][1].send(f"SUCCESS CODE REGISTER {data[1]}".encode())
                     continue
@@ -360,6 +378,23 @@ class SubServer:
         except Exception as e:
             print(f"Error receiving data from load balancer: {e}")
 
+    def SendCache(self):
+        try:
+            with self.cache_lock:
+                if not self.players_cached:
+                    return
+                str_cache = f"CACHE {json.dumps(self.players_cached)}"
+            print("Sending cache data to load balancer:", str_cache)
+            self.lb_socket.send(str_cache.encode())
+            data = self.lb_socket.recv(1024).decode()
+            with self.cache_lock:
+                self.players_cached = {}
+            if data == "ACK":
+                print("Cache data sent successfully")
+        except socket.timeout:
+            print("No data received from load balancer within timeout period")
+        except Exception as e:
+            print(f"Error receiving data from load balancer: {e}")
 
     def sendID(self):
         try:
@@ -436,6 +471,9 @@ class SubServer:
             print(f"Error handling client {client_address}: {e}")
         finally:
             print(f"Client {client_address} disconnected.")
+            with self.cache_lock and self.secret_lock:
+                self.players_cached[client_id] = self.secret_players_data[client_id]
+                del self.secret_players_data[client_id]
             with self.clients_lock:
                 if client_id in self.connected_clients:
                     del self.connected_clients[client_id]
@@ -459,7 +497,7 @@ class SubServer:
 
     def process_player_data(self, client_id, message: str):
         try:
-            messages = message.split(' ')
+            messages = message.split(' ', maxsplit=1)
             protocol = messages[0]
             data = messages[-1]
             if protocol in self.protocols.keys():
