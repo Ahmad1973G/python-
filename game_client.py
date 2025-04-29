@@ -352,9 +352,9 @@ def run_game():
     pg.init()
     with lock:
         screen = pg.display.set_mode((1000, 650))
-        font = pg.font.SysFont(None, 50)  # You can change font or size if you want
+        font = pg.font.SysFont(None, 40)  # You can change font or size if you want
     clock = pg.time.Clock()
-    my_player = {'x': 23500, 'y': 21200, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 300, 'y': 300, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
