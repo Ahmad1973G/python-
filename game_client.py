@@ -14,6 +14,7 @@ import math
 import sys
 import os
 import startprotocol
+from scipy.spatial import KDTree
 
 def load_tmx_map(filename):
     """Load TMX map file and return data."""
@@ -211,7 +212,7 @@ lock_shared_data = threading.Lock()
 lock = threading.Lock()
 
 
-def get_collidable_tiles(tmx_data, collidable_tileset_name="Obstacles"):
+def get_collidable_tiles(tmx_data):
     """Returns a set of tile coordinates that are collidable."""
     collidable_tiles = set()
     for layer in tmx_data.layers:
@@ -225,12 +226,41 @@ def get_collidable_tiles(tmx_data, collidable_tileset_name="Obstacles"):
     return collidable_tiles
 
 
+def build_collision_kdtree(collidable_tiles):
+    # Calculate center positions for KD-tree
+    positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in collidable_tiles]
+    kd_tree = KDTree(positions)
+    pos_to_tile = dict(zip(positions, collidable_tiles))
+    return kd_tree, pos_to_tile
+
+
 def check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
-    if player_rect.x > coll_obj_x + coll_obj_w or player_rect.y < coll_obj_y - coll_obj_h:
+    if player_rect.x - player_rect.width/2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height/2 < coll_obj_y - coll_obj_h:
         return False
-    if player_rect.x + player_rect.width < coll_obj_x or player_rect.y - player_rect.height > coll_obj_y:
+    if player_rect.x + player_rect.width/2 < coll_obj_x or player_rect.y - player_rect.height/2 > coll_obj_y:
         return False
     return True
+
+def check_collision_nearby(player_rect, kd_tree, pos_to_tile, radius=80):
+    center = (player_rect.centerx, player_rect.centery)
+    nearby_indices = kd_tree.query_ball_point(center, radius)
+
+    for idx in nearby_indices:
+        x_c, y_c = kd_tree.data[idx]
+        coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h = pos_to_tile[(x_c, y_c)]
+
+        # AABB-style collision check (same logic as your check_collision)
+        if (
+            player_rect.x - player_rect.width / 2 <= coll_obj_x + coll_obj_w and
+            player_rect.x + player_rect.width / 2 >= coll_obj_x and
+            player_rect.y - player_rect.height / 2 <= coll_obj_y and
+            player_rect.y + player_rect.height / 2 >= coll_obj_y - coll_obj_h
+        ):
+            print(f"Collision with: {coll_obj_x}, {coll_obj_w}, {coll_obj_y}, {coll_obj_h}")
+            return True
+
+    print("No collision")
+    return False
 
 
 def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
@@ -242,6 +272,72 @@ def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
     print("No collision")
     return False
 
+""""
+# Python 3 program for recursive binary search.
+# Modifications needed for the older Python 2 are found in comments.
+
+# Returns index of x in arr if present, else -1
+def binary_search(arr, low, high, x):
+
+    # Check base case
+    if high >= low:
+
+        mid = (high + low) // 2
+
+        # If element is present at the middle itself
+        if arr[mid] == x:
+            return mid
+
+        # If element is smaller than mid, then it can only
+        # be present in left subarray
+        elif arr[mid] > x:
+            return binary_search(arr, low, mid - 1, x)
+
+        # Else the element can only be present in right subarray
+        else:
+            return binary_search(arr, mid + 1, high, x)
+
+    else:
+        # Element is not present in the array
+        return -1
+
+def nearby_collision(player_rect, collidable_tiles, arrx, arry, radius=80):
+    if binary_search(arrx, 0, len(arrx) - 1, player_rect.x - radius) != -1:
+        start_x = binary_search(arrx, 0, len(arrx) - 1, player_rect.x - radius)
+        
+    else:
+        start_x = 0
+    
+    if binary_search(arry, 0, len(arry) - 1, player_rect.y - radius) != -1:
+        start_y = binary_search(arry, 0, len(arry) - 1, player_rect.y - radius)
+        
+    else:
+        start_y = 0
+    
+    if binary_search(arrx, 0, len(arrx) - 1, player_rect.x + radius) != -1:
+        end_x = binary_search(arrx, 0, len(arrx) - 1, player_rect.x + radius)
+        
+    else:
+        end_x = len(arrx) - 1
+    
+    if binary_search(arry, 0, len(arry) - 1, player_rect.y + radius) != -1:
+        end_y = binary_search(arry, 0, len(arry) - 1, player_rect.y + radius)
+        
+    else:
+        end_y = len(arry) - 1
+
+    nearby_tiles = set()
+
+    for i in range (start_x, end_x):
+        if i < start_y or i > end_y:
+            continue
+            
+        
+        
+        
+
+    return nearby_tiles 
+"""
 
 def run_game():
     Socket = ClientSocket.ClientServer()
@@ -255,7 +351,7 @@ def run_game():
     with lock:
         screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 300, 'y': 300, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 23500, 'y': 21200, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -277,8 +373,8 @@ def run_game():
     move_offset = (0, 0)
     world_offset = (0, 0)
     tmx_data = pytmx.load_pygame("c:/python_game/python-/map/map.tmx")  # <<< your TMX file here
-    collidable_tiles = get_collidable_tiles(tmx_data,
-                                            collidable_tileset_name="Obstacles")  # Get collidable tile coordinates
+    collidable_tiles = get_collidable_tiles(tmx_data)  # Get collidable tile coordinates
+    kd_tree, pos_to_tile = build_collision_kdtree(collidable_tiles)    
     tile_width = tmx_data.tilewidth
     tile_height = tmx_data.tileheight
     map_width = tmx_data.width
@@ -402,29 +498,28 @@ def run_game():
         #print(f"Here pressed {keys}")
         #res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
         #print("Finished")
-
         #print(res)
         if knockback == 0:
             if keys[pg.K_w]:
-                new_rect = pg.Rect(my_player['x'], my_player['y'] - 5, my_player['width'], my_player['height'])
-                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
-                    my_player['y'] -= 5
-                    move_y = 5
+                new_rect = pg.Rect(my_player['x'], my_player['y'] - 15, my_player['width'], my_player['height'])
+                if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.y > -270:
+                    my_player['y'] -= 25
+                    move_y = 25
             if keys[pg.K_s]:
-                new_rect = pg.Rect(my_player['x'], my_player['y'] + 5, my_player['width'], my_player['height'])
-                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
-                    my_player['y'] += 5
-                    move_y = -5
+                new_rect = pg.Rect(my_player['x'], my_player['y'] + 15, my_player['width'], my_player['height'])
+                if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.y < 21150:
+                    my_player['y'] += 25
+                    move_y = -25
             if keys[pg.K_a]:
-                new_rect = pg.Rect(my_player['x'] - 5, my_player['y'], my_player['width'], my_player['height'])
-                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
-                    my_player['x'] -= 5
-                    move_x = 5
+                new_rect = pg.Rect(my_player['x'] - 15, my_player['y'], my_player['width'], my_player['height'])
+                if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.x > -400:
+                    my_player['x'] -= 25
+                    move_x = 25
             if keys[pg.K_d]:
-                new_rect = pg.Rect(my_player['x'] + 5, my_player['y'], my_player['width'], my_player['height'])
-                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
-                    my_player['x'] += 5
-                    move_x = -5
+                new_rect = pg.Rect(my_player['x'] + 15, my_player['y'], my_player['width'], my_player['height'])
+                if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.x < 23450:
+                    my_player['x'] += 25
+                    move_x = -25
         else:
             knockback -= 1
 
@@ -528,6 +623,7 @@ def run_game():
                                         image,
                                         (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
                                     )
+            
         obj.print_players(players_sprites, players, angle)
         pg.display.flip()
         clock.tick(60)
