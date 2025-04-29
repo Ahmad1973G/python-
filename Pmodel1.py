@@ -75,7 +75,7 @@ class Player(pg.sprite.Sprite):
     def you_dead(self):
         print('dead')
 
-    def convert_to_sprite(self, x, y, height, width, player_id):
+    def convert_to_sprite(x, y, height, width, player_id):
         # Create a simple representation of the sprite
         sprite = {
             "image": pg.Surface((width, height)),
