@@ -276,7 +276,7 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = pytmx.load_pygame("c:/webroot/map.tmx")  # <<< your TMX file here
+    tmx_data = pytmx.load_pygame("c:/python_game/python-/map/map.tmx")  # <<< your TMX file here
     collidable_tiles = get_collidable_tiles(tmx_data,
                                             collidable_tileset_name="Obstacles")  # Get collidable tile coordinates
     tile_width = tmx_data.tilewidth
