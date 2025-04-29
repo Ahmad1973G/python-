@@ -176,7 +176,7 @@ class ClientServer:
 
 
     def sendBOOM(self, x, y, Brange):
-        self.socket.send(f"BOOM {x};{y};{Brange}\n".encode())
+        self.socket.send(f"BOMB {x};{y};{Brange}\n".encode())
         message = self.socket.recv(1024)
         message = message.decode()
         if message == "ACK":

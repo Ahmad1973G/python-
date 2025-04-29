@@ -76,6 +76,7 @@ class SubServer:
         self.process_Money = sub_client_prots.process_Money
         self.process_Ammo = sub_client_prots.process_Ammo
         self.process_Inventory = sub_client_prots.process_Inventory
+        self.process_Bomb = sub_client_prots.process_boom
 
         self.protocols = {
             "MOVE": self.process_move,
@@ -88,6 +89,7 @@ class SubServer:
             "MONEY": self.process_Money,
             "AMMO": self.process_Ammo,
             "INVENTORY": self.process_Inventory,
+            "BOMB": self.process_Bomb
         }
 
         self.receive_protocol = {
