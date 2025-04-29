@@ -233,13 +233,15 @@ def build_collision_kdtree(collidable_tiles):
     pos_to_tile = dict(zip(positions, collidable_tiles))
     return kd_tree, pos_to_tile
 
-
+"""
 def check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
     if player_rect.x - player_rect.width/2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height/2 < coll_obj_y - coll_obj_h:
         return False
     if player_rect.x + player_rect.width/2 < coll_obj_x or player_rect.y - player_rect.height/2 > coll_obj_y:
         return False
     return True
+"""
+
 
 def check_collision_nearby(player_rect, kd_tree, pos_to_tile, radius=80):
     center = (player_rect.centerx, player_rect.centery)
@@ -256,15 +258,15 @@ def check_collision_nearby(player_rect, kd_tree, pos_to_tile, radius=80):
             player_rect.y - player_rect.height / 2 <= coll_obj_y and
             player_rect.y + player_rect.height / 2 >= coll_obj_y - coll_obj_h
         ):
-            print(f"Collision with: {coll_obj_x}, {coll_obj_w}, {coll_obj_y}, {coll_obj_h}")
+            #print(f"Collision with: {coll_obj_x}, {coll_obj_w}, {coll_obj_y}, {coll_obj_h}")
             return True
 
-    print("No collision")
+    #print("No collision")
     return False
 
-
+""""
 def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
-    """Checks if the player collides with any of the collidable tiles."""
+    Checks if the player collides with any of the collidable tiles.
     for coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h in collidable_tiles:
         if check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
             print(coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h)
@@ -272,7 +274,7 @@ def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
     print("No collision")
     return False
 
-""""
+
 # Python 3 program for recursive binary search.
 # Modifications needed for the older Python 2 are found in comments.
 
@@ -350,6 +352,7 @@ def run_game():
     pg.init()
     with lock:
         screen = pg.display.set_mode((1000, 650))
+        font = pg.font.SysFont(None, 50)  # You can change font or size if you want
     clock = pg.time.Clock()
     my_player = {'x': 23500, 'y': 21200, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
@@ -374,7 +377,7 @@ def run_game():
     world_offset = (0, 0)
     tmx_data = pytmx.load_pygame("c:/python_game/python-/map/map.tmx")  # <<< your TMX file here
     collidable_tiles = get_collidable_tiles(tmx_data)  # Get collidable tile coordinates
-    kd_tree, pos_to_tile = build_collision_kdtree(collidable_tiles)    
+    kd_tree, pos_to_tile = build_collision_kdtree(collidable_tiles)
     tile_width = tmx_data.tilewidth
     tile_height = tmx_data.tileheight
     map_width = tmx_data.width
@@ -625,8 +628,11 @@ def run_game():
                                     )
             
         obj.print_players(players_sprites, players, angle)
-        pg.display.flip()
         clock.tick(60)
+        fps = clock.get_fps()
+        fps_text = font.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
+        screen.blit(fps_text, (10, 10))
+        pg.display.flip()
     pg.quit()
 
 
