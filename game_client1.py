@@ -355,6 +355,12 @@ def run_game():
     # thread_movement.start()
     while running:
 
+        with lock:
+            #Checks for Powerups that don't require server connection
+            obj.check_speed()
+            obj.check_invulnerability()
+            #Checks for Powerups that don't require server connection
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
@@ -390,12 +396,23 @@ def run_game():
                     time.sleep(0.5)
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
+                elif event.key == pg.K_e:
+                    if obj.speed_power == False:
+                        obj.speed_up(5)
+                        print("CLIENT; speed up")
+                elif event.key == pg.K_t:
+                    if obj.invulnerability == False:
+                        obj.activate_invulnerability(5)
+                        print("CLIENT; Invulnerability")
 
+                
         keys = pg.key.get_pressed()
         # Check for collisions with nearby collision rects
         #print(f"Here pressed {keys}")
         #res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
         #print("Finished")
+
+        
 
         #print(res)
         if knockback == 0:

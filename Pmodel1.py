@@ -34,6 +34,7 @@ class Player(pg.sprite.Sprite):
         self.players_rect=self.players_image.get_rect(center=(0,0))
     
     def speed_up(self, duration):
+        self.speed_power = True  # Activate speed powerup
         self.original_speed = self.speed
         self.speed *= 2
         self.speed_end_time = time.time() + duration
