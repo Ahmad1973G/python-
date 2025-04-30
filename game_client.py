@@ -347,6 +347,25 @@ def draw_health_bar(surface, x, y, current, max, bar_width=200, bar_height=25):
     pg.draw.rect(surface, (0, 0, 0), (x, y, bar_width, bar_height), 2)  # border
     
     
+def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
+    box_width = 300
+    box_x = 1000 - box_width  # Align to right side
+    log_y = 350  # Starting Y position for log
+
+    # Draw chat messages (right side)
+    for msg in reversed(chat_log[-5:]):
+        text_surface = font_chat.render(msg, True, (255, 0, 0))
+        screen.blit(text_surface, (box_x + 10, log_y))
+        log_y -= 25
+
+    # Draw input box
+    if chat_input_active:
+        pg.draw.rect(screen, (0, 0, 0), (box_x, 575, box_width, 25))
+        input_surface = font_chat.render(chat_input, True, (255, 0, 0))
+        screen.blit(input_surface, (box_x + 5, 578))
+        pg.draw.rect(screen, (255, 0, 0), (box_x, 575, box_width, 25), 1)
+    
+    
 def run_game():
     Socket = ClientSocket.ClientServer()
     Socket.connect()
@@ -358,7 +377,12 @@ def run_game():
     pg.init()
     with lock:
         screen = pg.display.set_mode((1000, 650))
-        font = pg.font.SysFont(None, 40)  # You can change font or size if you want
+        
+    font_fps = pg.font.SysFont(None, 40)  # You can change font or size if you want
+    font_chat = pg.font.SysFont(None, 24)  # You can change font or size if you want
+    chat_input_active = False
+    chat_input = ""
+    chat_log = []
     clock = pg.time.Clock()
     my_player = {'x': 300, 'y': 300, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
@@ -475,9 +499,10 @@ def run_game():
                 shared_data['fire'] = True
             elif event.type == pg.MOUSEMOTION:
                 mouse = pg.mouse.get_pos()
-                if mouse[0] == 500:
-                    if mouse[1] == 325:
+                if mouse[0] == 500 or chat_input_active:
+                    if mouse[1] == 325 or chat_input_active:
                         angle = 0
+
                     else:
                         angle = (1 + (-(325 - mouse[1])) / abs(325 - mouse[1])) * 90
                 else:
@@ -504,35 +529,55 @@ def run_game():
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
 
-        keys = pg.key.get_pressed()
         # Check for collisions with nearby collision rects
         #print(f"Here pressed {keys}")
         #res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
         #print("Finished")
         #print(res)
-        if knockback == 0:
-            if keys[pg.K_w]:
-                new_rect = pg.Rect(my_player['x'], my_player['y'] - 15, my_player['width'], my_player['height'])
-                if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.y > -270:
-                    my_player['y'] -= 25
-                    move_y = 25
-            if keys[pg.K_s]:
-                new_rect = pg.Rect(my_player['x'], my_player['y'] + 15, my_player['width'], my_player['height'])
-                if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.y < 21150:
-                    my_player['y'] += 25
-                    move_y = -25
-            if keys[pg.K_a]:
-                new_rect = pg.Rect(my_player['x'] - 15, my_player['y'], my_player['width'], my_player['height'])
-                if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.x > -400:
-                    my_player['x'] -= 25
-                    move_x = 25
-            if keys[pg.K_d]:
-                new_rect = pg.Rect(my_player['x'] + 15, my_player['y'], my_player['width'], my_player['height'])
-                if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.x < 23450:
-                    my_player['x'] += 25
-                    move_x = -25
-        else:
-            knockback -= 1
+            if event.type == pg.KEYDOWN:        
+                if chat_input_active:
+                    if event.key == pg.K_RETURN:
+                        if chat_input.strip():
+                            chat_log.append("You: " + chat_input)
+                        chat_input = ""
+                        chat_input_active = False
+                    elif event.key == pg.K_ESCAPE:
+                        chat_input = ""  # Clear input without sending
+                        chat_input_active = False
+                    elif event.key == pg.K_BACKSPACE:
+                            chat_input = chat_input[:-1]
+                    else:
+                            chat_input += event.unicode
+                else:
+                    if event.key == pg.K_t:
+                        chat_input_active = True
+
+    # Movement only if not typing in chat
+        if not chat_input_active:
+            keys = pg.key.get_pressed()
+            if knockback == 0:
+                if keys[pg.K_w]:
+                    new_rect = pg.Rect(my_player['x'], my_player['y'] - 15, my_player['width'], my_player['height'])
+                    if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.y > -270:
+                        my_player['y'] -= 25
+                        move_y = 25
+                if keys[pg.K_s]:
+                    new_rect = pg.Rect(my_player['x'], my_player['y'] + 15, my_player['width'], my_player['height'])
+                    if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.y < 21150:
+                        my_player['y'] += 25
+                        move_y = -25
+                if keys[pg.K_a]:
+                    new_rect = pg.Rect(my_player['x'] - 15, my_player['y'], my_player['width'], my_player['height'])
+                    if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.x > -400:
+                        my_player['x'] -= 25
+                        move_x = 25
+                if keys[pg.K_d]:
+                    new_rect = pg.Rect(my_player['x'] + 15, my_player['y'], my_player['width'], my_player['height'])
+                    if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.x < 23450:
+                        my_player['x'] += 25
+                        move_x = -25
+            else:
+                knockback -= 1
 
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
@@ -622,25 +667,29 @@ def run_game():
             end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
 
             # Draw visible tiles
-            for layer in tmx_data.visible_layers:
-                if isinstance(layer, pytmx.TiledTileLayer):
-                    layer_index = tmx_data.layers.index(layer)  # <<< fix here
-                    for x in range(start_col, end_col):
-                        for y in range(start_row, end_row):
-                            if 0 <= x < map_width and 0 <= y < map_height:
-                                image = tmx_data.get_tile_image(x, y, layer_index)
-                                if image:
-                                    screen.blit(
-                                        image,
-                                        (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
-                                    )
+            if not chat_input_active:
+                for layer in tmx_data.visible_layers:
+                    if isinstance(layer, pytmx.TiledTileLayer):
+                        layer_index = tmx_data.layers.index(layer)  # <<< fix here
+                        for x in range(start_col, end_col):
+                            for y in range(start_row, end_row):
+                                if 0 <= x < map_width and 0 <= y < map_height:
+                                    image = tmx_data.get_tile_image(x, y, layer_index)
+                                    if image:
+                                        screen.blit(
+                                            image,
+                                            (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
+                                        )
             
         obj.print_players(players_sprites, players, angle)
         clock.tick(60)
         fps = clock.get_fps()
-        fps_text = font.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
-        screen.blit(fps_text, (10, 10))
+        fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
+        if chat_input_active == False:
+            screen.blit(fps_text, (10, 10))
         draw_health_bar(screen, 30, 30, my_player['hp'], max_health)
+        if chat_input_active:
+            draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)
         pg.display.flip()
     pg.quit()
 
