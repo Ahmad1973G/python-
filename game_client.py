@@ -340,7 +340,13 @@ def nearby_collision(player_rect, collidable_tiles, arrx, arry, radius=80):
 
     return nearby_tiles 
 """
-
+def draw_health_bar(surface, x, y, current, max, bar_width=200, bar_height=25):
+    ratio = current / max
+    pg.draw.rect(surface, (255, 0, 0), (x, y, bar_width, bar_height))  # red background
+    pg.draw.rect(surface, (0, 255, 0), (x, y, bar_width * ratio, bar_height))  # green foreground
+    pg.draw.rect(surface, (0, 0, 0), (x, y, bar_width, bar_height), 2)  # border
+    
+    
 def run_game():
     Socket = ClientSocket.ClientServer()
     Socket.connect()
@@ -371,6 +377,8 @@ def run_game():
     angle = 0
     knockback = 0
     death = pg.image.load('dead.png').convert()
+    max_health = 100
+    current_health = 100
     granade_range = 200
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
@@ -632,6 +640,7 @@ def run_game():
         fps = clock.get_fps()
         fps_text = font.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
         screen.blit(fps_text, (10, 10))
+        draw_health_bar(screen, 30, 30, my_player['hp'], max_health)
         pg.display.flip()
     pg.quit()
 
