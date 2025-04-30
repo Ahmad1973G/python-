@@ -25,9 +25,25 @@ class Player(pg.sprite.Sprite):
         # New attributes for powerups and items
         self.invulnerability = False  # Tracks if the player is invulnerable
         self.invulnerability_end_time = None  # Time when invulnerability ends
+        self.speed_power = False  # Tracks if the player has speed powerup
+        self.speed_end_time = None
+
+
         self.players_image=pg.Surface((20, 20))
         self.players_image.fill(pg.Color((255,0,0)))
         self.players_rect=self.players_image.get_rect(center=(0,0))
+    
+    def speed_up(self, duration):
+        self.original_speed = self.speed
+        self.speed *= 2
+        self.speed_end_time = time.time() + duration
+        print("Speed powerup activated")
+    
+    def check_speed(self):
+        """Check if the speed powerup period has ended."""
+        if self.speed_power and time.time() > self.speed_end_time:
+            self.speed_power = False  # Reset speed powerup status
+            self.speed = self.original_speed
 
     def activate_invulnerability(self, duration):
         self.invulnerability = True
@@ -42,10 +58,6 @@ class Player(pg.sprite.Sprite):
         if self.invulnerability and time.time() > self.invulnerability_end_time:
             self.invulnerability = False
             self.health = self.original_health  # Restore original health
-
-    def update(self):
-        """Update player state (e.g., check if invulnerability has expired)."""
-        self.check_invulnerability()
 
 
     def heal(self, amount):
