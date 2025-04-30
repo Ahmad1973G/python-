@@ -490,8 +490,7 @@ def run_game():
     thread_bomb.daemon = True
     thread_bomb.start()
     # thread_movement.start()
-    while running:
-
+    while running:  
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
@@ -555,29 +554,33 @@ def run_game():
     # Movement only if not typing in chat
         if not chat_input_active:
             keys = pg.key.get_pressed()
+            new_rect = pg.Rect(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
             if knockback == 0:
                 if keys[pg.K_w]:
-                    new_rect = pg.Rect(my_player['x'], my_player['y'] - 15, my_player['width'], my_player['height'])
-                    if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.y > -270:
-                        my_player['y'] -= 25
-                        move_y = 25
+                    if new_rect.y > -270:
+                        my_player['y'] -= 15
+                        move_y = 15
                 if keys[pg.K_s]:
-                    new_rect = pg.Rect(my_player['x'], my_player['y'] + 15, my_player['width'], my_player['height'])
-                    if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.y < 21150:
-                        my_player['y'] += 25
-                        move_y = -25
+                    if new_rect.y < 21150:
+                        my_player['y'] += 15
+                        move_y = -15
                 if keys[pg.K_a]:
-                    new_rect = pg.Rect(my_player['x'] - 15, my_player['y'], my_player['width'], my_player['height'])
-                    if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.x > -400:
-                        my_player['x'] -= 25
-                        move_x = 25
+                    if new_rect.x > -400:
+                        my_player['x'] -= 15
+                        move_x = 15
                 if keys[pg.K_d]:
-                    new_rect = pg.Rect(my_player['x'] + 15, my_player['y'], my_player['width'], my_player['height'])
-                    if not check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80) and new_rect.x < 23450:
-                        my_player['x'] += 25
-                        move_x = -25
+                    if new_rect.x < 23450:
+                        my_player['x'] += 15
+                        move_x = -15
+                           
+                if check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80):
+                        move_x = -move_x
+                        move_y = -move_y
+                        knockback = 8
+                
             else:
                 knockback -= 1
+
 
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
