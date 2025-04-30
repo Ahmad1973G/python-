@@ -589,27 +589,28 @@ def run_game():
     # Movement only if not typing in chat
         if not chat_input_active:
             keys = pg.key.get_pressed()
-            new_rect = pg.Rect(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
+            my_sprite = my_player['x'], my_player['y'], my_player['width'], my_player['height']
+            my_sprite = pg.Rect(my_sprite)
             if knockback == 0:
                 if keys[pg.K_w]:
-                    if new_rect.y > -270:
+                    if my_sprite.y > -270:
                         my_player['y'] -= 15
                         move_y = 15
                 if keys[pg.K_s]:
-                    if new_rect.y < 21150:
+                    if my_sprite.y < 21150:
                         my_player['y'] += 15
                         move_y = -15
                 if keys[pg.K_a]:
-                    if new_rect.x > -400:
+                    if my_sprite.x > -400:
                         my_player['x'] -= 15
                         move_x = 15
                 if keys[pg.K_d]:
-                    if new_rect.x < 23450:
+                    if my_sprite.x < 23450:
                         my_player['x'] += 15
                         move_x = -15
                         
                            
-                if check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80):
+                if check_collision_nearby(my_sprite, kd_tree, pos_to_tile, radius=80):
                         move_x = -move_x
                         move_y = -move_y
                         knockback = 8
