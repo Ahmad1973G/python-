@@ -36,7 +36,7 @@ class Player(pg.sprite.Sprite):
     def speed_up(self, duration):
         self.speed_power = True  # Activate speed powerup
         self.original_speed = self.speed
-        self.speed *= 2
+        self.speed *= 10
         self.speed_end_time = time.time() + duration
         print("Speed powerup activated")
     
@@ -45,6 +45,7 @@ class Player(pg.sprite.Sprite):
         if self.speed_power and time.time() > self.speed_end_time:
             self.speed_power = False  # Reset speed powerup status
             self.speed = self.original_speed
+            print("Speed powerup deactivated")
 
     def activate_invulnerability(self, duration):
         self.invulnerability = True
@@ -59,6 +60,7 @@ class Player(pg.sprite.Sprite):
         if self.invulnerability and time.time() > self.invulnerability_end_time:
             self.invulnerability = False
             self.health = self.original_health  # Restore original health
+            print("Invulnerability powerup deactivated")
 
 
     def heal(self, amount):

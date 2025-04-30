@@ -298,7 +298,7 @@ def run_game():
         obj = Pmodel1.Player(
             my_player,
             10,
-            1,
+            3,
             1,
             100,
             0.1,
@@ -416,23 +416,25 @@ def run_game():
 
         #print(res)
         if knockback == 0:
+            obj.check_speed()
+            obj.check_invulnerability()
             if keys[pg.K_w]:
-                new_rect = pg.Rect(my_player['x'], my_player['y'] - 5, my_player['width'], my_player['height'])
+                new_rect = pg.Rect(my_player['x'], my_player['y'] - obj.speed, my_player['width'], my_player['height'])
                 if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
                     my_player['y'] -= 5
                     move_y = 5
             if keys[pg.K_s]:
-                new_rect = pg.Rect(my_player['x'], my_player['y'] + 5, my_player['width'], my_player['height'])
+                new_rect = pg.Rect(my_player['x'], my_player['y'] + obj.speed, my_player['width'], my_player['height'])
                 if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
                     my_player['y'] += 5
                     move_y = -5
             if keys[pg.K_a]:
-                new_rect = pg.Rect(my_player['x'] - 5, my_player['y'], my_player['width'], my_player['height'])
+                new_rect = pg.Rect(my_player['x'] - obj.speed, my_player['y'], my_player['width'], my_player['height'])
                 if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
                     my_player['x'] -= 5
                     move_x = 5
             if keys[pg.K_d]:
-                new_rect = pg.Rect(my_player['x'] + 5, my_player['y'], my_player['width'], my_player['height'])
+                new_rect = pg.Rect(my_player['x'] + obj.speed, my_player['y'], my_player['width'], my_player['height'])
                 if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
                     my_player['x'] += 5
                     move_x = -5
