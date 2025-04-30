@@ -38,7 +38,7 @@ class Player(pg.sprite.Sprite):
         self.original_speed = self.speed
         self.speed *= 10
         self.speed_end_time = time.time() + duration
-        print("Speed powerup activated")
+        print(f"Speed powerup activated: {self.speed}")
     
     def check_speed(self):
         """Check if the speed powerup period has ended."""
@@ -52,7 +52,7 @@ class Player(pg.sprite.Sprite):
         self.original_health = self.health
         self.health = 9999999  # Set health to a very high value to simulate invulnerability
         self.invulnerability_end_time = time.time() + duration
-        print("Invulnerability activated")
+        print(f"Invulnerability activated: {self.health}")
 
             
     def check_invulnerability(self):
