@@ -366,6 +366,31 @@ def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
         pg.draw.rect(screen, (255, 0, 0), (box_x, 575, box_width, 25), 1)
     
     
+def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=650, slot_size=50, inv_cols=9):
+    hotbar_y = screen_height - slot_size - 20
+    hotbar_x = (screen_width - inv_cols * slot_size) // 2
+
+    for col in range(inv_cols):
+        x = hotbar_x + col * slot_size
+        y = hotbar_y
+
+        # Background slot
+        pg.draw.rect(screen, (60, 60, 60), (x, y, slot_size, slot_size))
+
+        # Highlight selected slot
+        if col == selected_slot:
+            pg.draw.rect(screen, (255, 255, 0), (x - 2, y - 2, slot_size + 4, slot_size + 4), 3)
+
+        # Border
+        pg.draw.rect(screen, (255, 255, 255), (x, y, slot_size, slot_size), 2)
+
+        # Draw item if exists
+        item = hotbar[col]
+        if item and "image" in item:
+            screen.blit(item["image"], (x + 5, y + 5))
+
+    
+    
 def run_game():
     Socket = ClientSocket.ClientServer()
     Socket.connect()
@@ -381,6 +406,11 @@ def run_game():
     font_fps = pg.font.SysFont(None, 40)  # You can change font or size if you want
     font_chat = pg.font.SysFont(None, 24)  # You can change font or size if you want
     chat_input_active = False
+    INV_ROWS = 3
+    INV_COLS = 9
+    SLOT_SIZE = 50
+    hotbar = [None] * 9  # 9 slots
+    selected_slot = 0
     chat_input = ""
     chat_log = []
     clock = pg.time.Clock()
@@ -494,6 +524,10 @@ def run_game():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
+            elif event.type == pg.KEYDOWN:
+                if pg.K_1 <= event.key <= pg.K_9:
+                    selected_slot = event.key - pg.K_1
+                    print("Selected slot:", selected_slot)
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 shared_data['fire'] = True
             elif event.type == pg.MOUSEMOTION:
@@ -533,6 +567,7 @@ def run_game():
         #res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
         #print("Finished")
         #print(res)
+                
             if event.type == pg.KEYDOWN:        
                 if chat_input_active:
                     if event.key == pg.K_RETURN:
@@ -572,6 +607,7 @@ def run_game():
                     if new_rect.x < 23450:
                         my_player['x'] += 15
                         move_x = -15
+                        
                            
                 if check_collision_nearby(new_rect, kd_tree, pos_to_tile, radius=80):
                         move_x = -move_x
@@ -693,6 +729,8 @@ def run_game():
         draw_health_bar(screen, 30, 30, my_player['hp'], max_health)
         if chat_input_active:
             draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)
+            
+        draw_hotbar(screen, selected_slot, hotbar)
         pg.display.flip()
     pg.quit()
 
