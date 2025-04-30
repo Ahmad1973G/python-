@@ -345,7 +345,7 @@ def draw_health_bar(surface, x, y, current, max, bar_width=200, bar_height=25):
     pg.draw.rect(surface, (255, 0, 0), (x, y, bar_width, bar_height))  # red background
     pg.draw.rect(surface, (0, 255, 0), (x, y, bar_width * ratio, bar_height))  # green foreground
     pg.draw.rect(surface, (0, 0, 0), (x, y, bar_width, bar_height), 2)  # border
-    
+     
     
 def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
     box_width = 300
@@ -726,11 +726,13 @@ def run_game():
         fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
         if chat_input_active == False:
             screen.blit(fps_text, (10, 10))
-        draw_health_bar(screen, 30, 30, my_player['hp'], max_health)
+        draw_health_bar(screen, 10, 45, my_player['hp'], max_health)
         if chat_input_active:
             draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)
             
         draw_hotbar(screen, selected_slot, hotbar)
+        ammo_text = font_fps.render(f"Ammo: {weapons[selected_slot]['ammo']}", True, (255, 0, 0))
+        screen.blit(ammo_text, (10, 80))  # top-left corner
         pg.display.flip()
     pg.quit()
 
