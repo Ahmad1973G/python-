@@ -356,10 +356,11 @@ def run_game():
     while running:
 
         with lock:
-            #Checks for Powerups that don't require server connection
+            #Checks for Powerups and items that don't require server connection
             obj.check_speed()
             obj.check_invulnerability()
-            #Checks for Powerups that don't require server connection
+            #obj.check_item_collision()
+            #Checks for Powerups and items that don't require server connection
 
         for event in pg.event.get():
             if event.type == pg.QUIT:

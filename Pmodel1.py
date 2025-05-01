@@ -77,8 +77,7 @@ class Player(pg.sprite.Sprite):
             self.invulnerability = False
             self.health = self.original_health
             print("Invulnerability powerup deactivated")
-
-
+    
     def heal(self, amount):
         """Heal the player by a specified amount."""
         if(self.health + amount > 0):
