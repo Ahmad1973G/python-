@@ -25,8 +25,11 @@ class Player(pg.sprite.Sprite):
         # New attributes for powerups and items
         self.invulnerability = False  # Tracks if the player is invulnerable
         self.invulnerability_end_time = None  # Time when invulnerability ends
+        self.invulnerability_cooldown_end_time = 0  # Cooldown timer for invulnerability
+
         self.speed_power = False  # Tracks if the player has speed powerup
         self.speed_end_time = None
+        self.speed_cooldown_end_time = 0  # Cooldown timer for speed powerup
 
 
         self.players_image=pg.Surface((20, 20))
@@ -34,32 +37,45 @@ class Player(pg.sprite.Sprite):
         self.players_rect=self.players_image.get_rect(center=(0,0))
     
     def speed_up(self, duration):
-        self.speed_power = True  # Activate speed powerup
-        self.original_speed = self.speed
-        self.speed *= 10
-        self.speed_end_time = time.time() + duration
-        print(f"Speed powerup activated: {self.speed}")
-    
+        """Activate the speed powerup if not on cooldown."""
+        current_time = time.time()
+        if current_time >= self.speed_cooldown_end_time:  # Check if cooldown has expired
+            self.speed_power = True
+            self.original_speed = self.speed
+            self.speed *= 2
+            self.speed_end_time = current_time + duration
+            self.speed_cooldown_end_time = self.speed_end_time + 10  # Add 10 seconds cooldown after powerup ends
+            print(f"Speed powerup activated: {self.speed}")
+        else:
+            remaining_cooldown = int(self.speed_cooldown_end_time - current_time)
+            print(f"Speed powerup is on cooldown. Try again in {remaining_cooldown} seconds.")
+
     def check_speed(self):
         """Check if the speed powerup period has ended."""
         if self.speed_power and time.time() > self.speed_end_time:
-            self.speed_power = False  # Reset speed powerup status
+            self.speed_power = False
             self.speed = self.original_speed
             print("Speed powerup deactivated")
 
     def activate_invulnerability(self, duration):
-        self.invulnerability = True
-        self.original_health = self.health
-        self.health = 9999999  # Set health to a very high value to simulate invulnerability
-        self.invulnerability_end_time = time.time() + duration
-        print(f"Invulnerability activated: {self.health}")
+        """Activate the invulnerability powerup if not on cooldown."""
+        current_time = time.time()
+        if current_time >= self.invulnerability_cooldown_end_time:  # Check if cooldown has expired
+            self.invulnerability = True
+            self.original_health = self.health
+            self.health = 9999999  # Set health to a very high value to simulate invulnerability
+            self.invulnerability_end_time = current_time + duration
+            self.invulnerability_cooldown_end_time = self.invulnerability_end_time + 10  # Add 10 seconds cooldown
+            print(f"Invulnerability activated: {self.health}")
+        else:
+            remaining_cooldown = int(self.invulnerability_cooldown_end_time - current_time)
+            print(f"Invulnerability is on cooldown. Try again in {remaining_cooldown} seconds.")
 
-            
     def check_invulnerability(self):
         """Check if the invulnerability period has ended."""
         if self.invulnerability and time.time() > self.invulnerability_end_time:
             self.invulnerability = False
-            self.health = self.original_health  # Restore original health
+            self.health = self.original_health
             print("Invulnerability powerup deactivated")
 
 
