@@ -97,22 +97,24 @@ class Player(pg.sprite.Sprite):
         }
         return json.dumps(client_loc)
 
-    def print_players(self, players_sprites,players,angle):
+    def print_players(self, players_sprites,players,angle, selected_weapon):
         PINK = (255, 174, 201)
-        for key,data in players_sprites.items():
-            data['image']=pg.image.load('char.png').convert()
+        
+        # Map selected_weapon to the corresponding character image
+        character_filename = f"char_{selected_weapon + 1}.png"
+
+        for key, data in players_sprites.items():
+            # Load and process player sprite
+            data['image'] = pg.image.load(character_filename).convert()
             data['image'].set_colorkey(PINK)
-            #data['rect'].center = (data['rect'].x,data['rect'].y)
+            data['image'] = pg.transform.rotate(data['image'], players[key]['angle'])
+            data['rect'] = data['image'].get_rect(center=(data['rect'].x, data['rect'].y))
 
-            data['image'] = pg.transform.rotate(data['image'],players[key]['angle'])
-            data['rect'] = data['image'].get_rect(center=(data['rect'].x,data['rect'].y))
+            self.screen.blit(data['image'], data['rect'])
 
-            self.screen.blit(data['image'],data['rect'])
         # Draw the main player at the center
-        image = pg.Surface((60, 60))
-        image = pg.image.load('char.png').convert()
+        image = pg.image.load(character_filename).convert()
         image.set_colorkey(PINK)
-
-        image=pg.transform.rotate(image,angle)
+        image = pg.transform.rotate(image, angle)
         rect = image.get_rect(center=(500, 325))
         self.screen.blit(image, rect)
