@@ -386,10 +386,13 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
 
         # Draw item if exists
         item = hotbar[col]
-        if item and "image" in item:
+        if item:
             screen.blit(item["image"], (x + 5, y + 5))
 
-    
+def load_item_image(filename, PICTURE_PATH, SLOT_SIZE):
+    path = os.path.join(PICTURE_PATH, filename)
+    image = pg.image.load(path).convert_alpha()
+    return pg.transform.scale(image, (SLOT_SIZE - 10, SLOT_SIZE - 10))  # scale down
     
 def run_game():
     Socket = ClientSocket.ClientServer()
@@ -409,7 +412,13 @@ def run_game():
     INV_ROWS = 3
     INV_COLS = 9
     SLOT_SIZE = 50
-    hotbar = [None] * 9  # 9 slots
+    picture_path = "C:/webroot"  # raw string for Windows path
+    weapon1_image = load_item_image("char_1.png", picture_path, SLOT_SIZE)
+    weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
+    weapon3_image = load_item_image("char_3.png", picture_path, SLOT_SIZE)
+    hotbar = [{"name": "weapon1", "image": weapon1_image}, {"name": "weapon2", "image": weapon2_image}, 
+             {"name": "weapon3", "image" : weapon3_image}] + [None] * 6     
+    selected_weapon = 0
     selected_slot = 0
     chat_input = ""
     chat_log = []
@@ -525,7 +534,11 @@ def run_game():
             if event.type == pg.QUIT:
                 running = False
             elif event.type == pg.KEYDOWN:
-                if pg.K_1 <= event.key <= pg.K_9:
+                if pg.K_1 <= event.key <= pg.K_3:
+                    selected_weapon = event.key - pg.K_1
+                    selected_slot = event.key - pg.K_1
+                    print("Selected slot:", selected_weapon)
+                elif pg.K_4 <= event.key <= pg.K_9:
                     selected_slot = event.key - pg.K_1
                     print("Selected slot:", selected_slot)
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -721,7 +734,7 @@ def run_game():
                                             (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
                                         )
             
-        obj.print_players(players_sprites, players, angle)
+        obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
         fps = clock.get_fps()
         fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
@@ -732,7 +745,7 @@ def run_game():
             draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)
             
         draw_hotbar(screen, selected_slot, hotbar)
-        ammo_text = font_fps.render(f"Ammo: {weapons[selected_slot]['ammo']}", True, (255, 0, 0))
+        ammo_text = font_fps.render(f"Ammo: {weapons[selected_weapon]['ammo']}", True, (255, 0, 0))
         screen.blit(ammo_text, (10, 80))  # top-left corner
         pg.display.flip()
     pg.quit()
