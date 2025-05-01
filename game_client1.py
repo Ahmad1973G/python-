@@ -194,6 +194,22 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                             my_player['hp'] -= weapons[int(data['shoot'][4])]['damage']
                             hit2 = True
 
+def apply_item_effect(item, my_player, weapons, shared_data, obj):
+    """Apply the effect of the item to the player."""
+    if item['type'] == 'health':
+        my_player['hp'] = min(my_player['hp'] + 25, 100)  # Heal the player
+        print(f"Health increased to {my_player['hp']}")
+    elif item['type'] == 'ammo':
+        weapons[shared_data['used_weapon']]['ammo'] = min(
+            weapons[shared_data['used_weapon']]['ammo'] + 5,
+            weapons[shared_data['used_weapon']]['max_ammo']
+        )
+        print(f"Ammo for weapon {shared_data['used_weapon']} increased to {weapons[shared_data['used_weapon']]['ammo']}")
+    elif item['type'] == 'cooldown_refresh':
+        obj.speed_cooldown_end_time = 0  # Reset speed powerup cooldown
+        obj.invulnerability_cooldown_end_time = 0  # Reset invulnerability cooldown
+        print("Powerup cooldowns refreshed!")
+
 
 def check_if_dead(hp):
     print("dead")
@@ -240,6 +256,16 @@ def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
     print("No collision")
     return False
 
+def check_item_collision(my_player, items, weapons, shared_data, obj):
+    """Check if the player collides with any items and apply their effects."""
+    player_rect = pg.Rect(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
+    for item in items[:]:  # Iterate over a copy of the items list
+        item_rect = pg.Rect(item['x'], item['y'], item['width'], item['height'])
+        if player_rect.colliderect(item_rect):
+            apply_item_effect(item, my_player, weapons, shared_data, obj)
+            items.remove(item)  # Remove the item after it is picked up
+            print(f"Picked up item: {item['type']}")
+
 
 def run_game():
     pg.init()
@@ -257,6 +283,13 @@ def run_game():
         {"damage": 15, "range": 120000, 'bulet_speed': 100, 'ammo': 7, 'max_ammo': 7, 'weapon_id': 3}
 
     ]
+
+    items = [
+    {'x': 200, 'y': 200, 'width': 20, 'height': 20, 'type': 'health'},
+    {'x': 400, 'y': 300, 'width': 20, 'height': 20, 'type': 'ammo'},
+    {'x': 600, 'y': 400, 'width': 20, 'height': 20, 'type': 'cooldown_refresh'},
+]
+    
     moving = False
     move_x = 0
     move_y = 0
@@ -355,12 +388,12 @@ def run_game():
     # thread_movement.start()
     while running:
 
-        with lock:
-            #Checks for Powerups and items that don't require server connection
-            obj.check_speed()
-            obj.check_invulnerability()
-            #obj.check_item_collision()
-            #Checks for Powerups and items that don't require server connection
+        
+        #Checks for Powerups and items that don't require server connection
+        obj.check_speed()
+        obj.check_invulnerability()
+        #check_item_collision()
+        #Checks for Powerups and items that don't require server connection
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -542,6 +575,19 @@ def run_game():
                                         image,
                                         (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
                                     )
+        with lock:
+            for item in items:
+                item_rect = pg.Rect(item['x'] - my_player['x'] + 500, item['y'] - my_player['y'] + 325, item['width'], item['height'])
+                if item['type'] == 'health':
+                    color = (0, 255, 0)  # Green for health
+                elif item['type'] == 'ammo':
+                    color = (0, 0, 255)  # Blue for ammo
+                elif item['type'] == 'cooldown_refresh':
+                    color = (255, 255, 0)  # Yellow for cooldown refresh
+                pg.draw.rect(screen, color, item_rect)
+        
+        check_item_collision(my_player, items, weapons, shared_data, obj)
+
         obj.print_players(players_sprites, players, angle)
         pg.display.flip()
         clock.tick(60)
