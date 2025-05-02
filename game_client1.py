@@ -35,7 +35,6 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 bomb_range = Brange
                 explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
-                screen.fill((0, 0, 0))  # Clear screen
                 pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                 pg.display.flip()
 
@@ -67,8 +66,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     bomb_y = int(float(data['explode'][1]))
                     bomb_range = int(float(data['explode'][2]))
                     explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
-
-                    screen.fill((0, 0, 0))  # Clear screen
+                    
                     pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                     pg.display.flip()
                     time.sleep(0.5)
