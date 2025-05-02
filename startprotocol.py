@@ -1,12 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox, font
-import json
-import os
 from tkinter import ttk
 
 
 class ModernGameLogin:
-    def __init__(self, root):
+    def __init__(self, root, Socket):
         self.root = root
         self.root.title("Diablo")
         
@@ -19,10 +17,6 @@ class ModernGameLogin:
         
         # Set background color - dark theme with reddish tint for Diablo theme
         self.root.configure(bg="#0F0A0A")
-        
-        # Load users data if exists
-        self.users_file = "game_users.json"
-        self.users = self.load_users()
         
         # Create custom fonts
         self.title_font = font.Font(family="Times New Roman", size=38, weight="bold")
@@ -51,22 +45,13 @@ class ModernGameLogin:
         
         self.style.map('TButton',
                       background=[('active', '#333333')])
-        
+
+        self.Socket = Socket
+        self.player_data = None
         # Create widgets
         self.create_widgets(screen_width, screen_height)
-    
-    def load_users(self):
-        if os.path.exists(self.users_file):
-            try:
-                with open(self.users_file, 'r') as f:
-                    return json.load(f)
-            except:
-                return {}
-        return {}
-    
-    def save_users(self):
-        with open(self.users_file, 'w') as f:
-            json.dump(self.users, f)
+
+
     
     def create_widgets(self, screen_width, screen_height):
         # Main container frame (center aligned)
@@ -334,17 +319,22 @@ class ModernGameLogin:
             messagebox.showerror("Error", "Please enter both username and password")
             return
         
-        if username in self.users and self.users[username] == password:
+        success, data = self.Socket.login(username, password)
+        if success:
             # Configure the messagebox style for success
             self.root.option_add('*Dialog.msg.font', 'Helvetica 12')
             self.root.option_add('*Dialog.msg.background', '#121212')
             self.root.option_add('*Dialog.msg.foreground', '#e0e0e0')
             
             messagebox.showinfo("Success", f"Welcome back to Sanctuary, {username}")
+            self.player_data = data
             # Here you would typically launch the game or go to the next screen
             self.root.destroy()  # For demo purposes, just close the window
         else:
-            messagebox.showerror("Error", "Invalid username or password")
+            if data == '1':
+                messagebox.showerror("Error", "Invalid username or password")
+            else:
+                messagebox.showerror("Error", data)
     
     def register(self):
         username = self.username_entry.get()
@@ -354,17 +344,12 @@ class ModernGameLogin:
             messagebox.showerror("Error", "Please enter both username and password")
             return
         
-        if username in self.users:
-            messagebox.showerror("Error", "Username already exists")
+        success, data = self.Socket.register(username, password)
+        if not success:
+            messagebox.showerror("Error", data)
             return
         
-        # For a real application, you would want to hash the password
-        self.users[username] = password
-        self.save_users()
+        self.player_data = data
         
         messagebox.showinfo("Success", f"Account created for {username}. Enter Sanctuary if you dare.")
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = ModernGameLogin(root)
-    root.mainloop()
+        self.root.destroy()

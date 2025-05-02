@@ -29,6 +29,8 @@ class Player(pg.sprite.Sprite):
         self.players_image.fill(pg.Color((255,0,0)))
         self.players_rect=self.players_image.get_rect(center=(0,0))
 
+    
+
     def activate_invulnerability(self, duration):
         self.invulnerability = True
         self.original_health = self.health
@@ -42,10 +44,6 @@ class Player(pg.sprite.Sprite):
         if self.invulnerability and time.time() > self.invulnerability_end_time:
             self.invulnerability = False
             self.health = self.original_health  # Restore original health
-
-    def update(self):
-        """Update player state (e.g., check if invulnerability has expired)."""
-        self.check_invulnerability()
 
 
     def heal(self, amount):

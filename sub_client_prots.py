@@ -1,5 +1,64 @@
 import json
 
+def process_Money(self, client_id, message: str):
+    try:
+        money = int(message)
+        with self.secret_lock:
+            self.secret_players_data[client_id]["PlayerMoney"] = money
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("ACK".encode())
+    except Exception as e:
+        print(f"Error processing life count for {client_id}: {e}")
+
+def process_Ammo(self, client_id, message: str):
+    try:
+        ammo = int(message)
+        with self.secret_lock:
+            self.secret_players_data[client_id]["Playerammo"] = ammo
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("ACK".encode())
+    except Exception as e:
+        print(f"Error processing life count for {client_id}: {e}")
+
+def process_Inventory(self, client_id, message: str):
+    try:
+        items = message.split(';')
+        for item in items:
+            item = int(item)
+        with self.secret_lock:
+            self.secret_players_data[client_id]["Playerslot1"] = items[0]
+            self.secret_players_data[client_id]["Playerslot2"] = items[1]
+            self.secret_players_data[client_id]["Playerslot3"] = items[2]
+            self.secret_players_data[client_id]["Playerslot4"] = items[3]
+            self.secret_players_data[client_id]["Playerslot5"] = items[4]
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("ACK".encode())
+    except Exception as e:
+        print(f"Error processing life count for {client_id}: {e}")
+
+def process_login(self, client_id, message: str):
+    try:
+        messages = message.split(';')
+        username = messages[0]
+        password = messages[1]
+        with self.waiting_login_lock:
+            self.waiting_login[client_id] = (username, password)
+
+    except Exception as e:
+        print(f"Error processing login for {client_id}: {e}")
+
+
+def process_register(self, client_id, message: str):
+    try:
+        messages = message.split(';')
+        username = messages[0]
+        password = messages[1]
+        with self.waiting_register_lock:
+            self.waiting_register[client_id] = (username, password)
+
+    except Exception as e:
+        print(f"Error processing register for {client_id}: {e}")
+
 
 def process_move(self, client_id, message: str):
     try:

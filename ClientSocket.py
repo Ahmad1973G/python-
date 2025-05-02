@@ -81,6 +81,7 @@ class ClientServer:
             self.id = self.recv_ID()
             print("Received the ID packet, ID:", self.id)
             return self.id
+        return None
 
     def MoveServer(self, data):
         try:
@@ -112,6 +113,7 @@ class ClientServer:
                 return False
             print("Server moved successfully")
             return True
+        return None
 
     def sendMOVE(self, x, y):
         # Add newline delimiter to separate messages
@@ -149,7 +151,30 @@ class ClientServer:
         message = message.decode()
         if self.protocol_check(message):
             print("Power sent successfully")
-    
+
+    def sendMONEY(self, money):
+        self.socket.send(f"MONEY {money}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if self.protocol_check(message):
+            print("Power sent successfully")
+
+    def sendAMMO(self, ammo):
+        self.socket.send(f"AMMO {ammo}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if self.protocol_check(message):
+            print("Power sent successfully")
+
+    def sendINVENTORY(self, inventory):
+        self.socket.send(f"INVENTORY {inventory[0]};{inventory[1]};"
+                         f"{inventory[2]};{inventory[3]};{inventory[4]}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if self.protocol_check(message):
+            print("Inventory sent successfully")
+
+
     def sendBOOM(self, x, y, Brange):
         self.socket.send(f"BOOM {x};{y};{Brange}\n".encode())
         message = self.socket.recv(1024)
@@ -209,11 +234,48 @@ class ClientServer:
 
     def login(self, user, password):
         self.socket.send(f"LOGIN {user};{password}".encode())
+        print("user login...")
         message = self.socket.recv(1024)
+        print("Received message:", message)
         message = message.decode()
-        if message == "LOGIN":
-            print("Login successful")
-            return True
-        else:
-            print("Login failed, error:", message)
-            return False
+        if message.startswith("SUCCESS CODE LOGIN"):
+            try:
+                # Extract JSON data and ensure proper formatting
+                player_data = message.split(" ", maxsplit=3)[-1]
+                # Convert single quotes to double quotes for valid JSON
+                player_data = player_data.replace("'", '"')
+                player_data = json.loads(player_data)
+                return True, player_data
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
+                print(f"Raw player data: {player_data}")
+                return False, "Invalid server response format"
+        if message.startswith("FAILED CODE LOGIN"):
+            error = message.split(" ", maxsplit=3)[-1]
+            print("Register failed, error:", error)
+            return False, error
+        return False, "Unknown error"
+
+    def register(self, user, password):
+        self.socket.send(f"REGISTER {user};{password}".encode())
+        print("Registering user...")
+        message = self.socket.recv(1024)
+        print("Received message:", message)
+        message = message.decode()
+        if message.startswith("SUCCESS CODE REGISTER"):
+            try:
+                # Extract JSON data and ensure proper formatting
+                player_data = message.split(" ", maxsplit=3)[-1]
+                # Convert single quotes to double quotes for valid JSON
+                player_data = player_data.replace("'", '"')
+                player_data = json.loads(player_data)
+                return True, player_data
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
+                print(f"Raw player data: {player_data}")
+                return False, "Invalid server response format"
+        if message.startswith("FAILED CODE REGISTER"):
+            error = message.split(" ")[-1]
+            print("Register failed, error:", error)
+            return False, error
+        return False, "Unknown error"
