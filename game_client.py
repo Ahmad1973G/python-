@@ -412,7 +412,7 @@ def run_game():
     INV_ROWS = 3
     INV_COLS = 9
     SLOT_SIZE = 50
-    picture_path = "C:/webroot"  # raw string for Windows path
+    picture_path = "C:/Diablo-Game/python-"  # raw string for Windows path
     weapon1_image = load_item_image("char_1.png", picture_path, SLOT_SIZE)
     weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
     weapon3_image = load_item_image("char_3.png", picture_path, SLOT_SIZE)
