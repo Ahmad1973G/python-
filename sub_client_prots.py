@@ -1,5 +1,42 @@
 import json
 
+def process_chat_recv(self, client_id, message: str):
+    try:
+        with self.logs_lock and self.sequence_lock:
+            self.chat_logs.append([client_id, message, self.sequence_id])
+            self.sequence_id += 1
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("ACK".encode())
+    except Exception as e:
+        print(f"Error processing chat for {client_id}: {e}")
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("e".encode())
+
+def process_chat_send(self, client_id, message: str):
+    try:
+        sequence_id = int(message)
+        with self.logs_lock:
+            copy_logs = self.chat_logs.copy()
+
+        copy_logs = [log for log in copy_logs if log[2] > sequence_id]
+        if not copy_logs or copy_logs == []:
+            with self.clients_lock:
+                self.connected_clients[client_id][1].send("UPDATED".encode())
+            del copy_logs
+            return
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send(f"{self.sequence_id};{json.dumps(copy_logs)}".encode())
+        del copy_logs
+
+    except ValueError:
+        print(f"Error processing chat for {client_id}: Invalid sequence ID")
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("Invalid sequence ID".encode())
+    except Exception as e:
+        print(f"Error processing chat for {client_id}: {e}")
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("e".encode())
+
 def process_Money(self, client_id, message: str):
     try:
         money = int(message)

@@ -16,6 +16,7 @@ class ClientServer:
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.udp_socket.settimeout(5)
         self.id = 0
+        self.chat_sequence = 0
 
     def broadcast_packet(self, packet, port):
         self.udp_socket.sendto(packet, ('255.255.255.255', port))
@@ -183,6 +184,30 @@ class ClientServer:
             print("SOCKET; boom sent successfully")
         else:
             print("SOCKET; Failed to send boom, error:", message)
+
+    def sendCHAT(self, message):
+        self.socket.send(f"CHAT SEND {message}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "ACK":
+            print("SOCKET; chat sent successfully")
+        else:
+            print("SOCKET; Failed to send chat, error:", message)
+
+    def recvCHAT(self):
+        self.socket.send(f"CHAT RECV {self.chat_sequence}".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "UPDATED":
+            print("SOCKET; chat already updated")
+            return True
+        messages = message.split(";")
+        self.chat_sequence = int(messages[0])
+        chat_message = messages[1]
+        chat_messages = json.loads(chat_message)
+        print("SOCKET; chat received successfully")
+        return chat_messages
+
 
     def requestDATA(self):
         try:

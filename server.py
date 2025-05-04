@@ -50,7 +50,8 @@ class SubServer:
         self.waiting_register = {}
         self.secret_players_data = {}
         self.players_cached = {}
-
+        self.chat_logs = []
+        self.sequence_id = 1
         # Add locks for shared resources
         self.clients_lock = threading.Lock()
         self.players_data_lock = threading.Lock()
@@ -63,6 +64,8 @@ class SubServer:
         self.waiting_register_lock = threading.Lock()
         self.secret_lock = threading.Lock()
         self.cache_lock = threading.Lock()
+        self.logs_lock = threading.Lock()
+        self.sequence_lock = threading.Lock()
 
         self.process_move = sub_client_prots.process_move
         self.process_shoot = sub_client_prots.process_shoot
@@ -77,6 +80,8 @@ class SubServer:
         self.process_Ammo = sub_client_prots.process_Ammo
         self.process_Inventory = sub_client_prots.process_Inventory
         self.process_Bomb = sub_client_prots.process_boom
+        self.process_chat_recv = sub_client_prots.process_chat_recv
+        self.process_chat_send = sub_client_prots.process_chat_send
 
         self.protocols = {
             "MOVE": self.process_move,
@@ -89,13 +94,25 @@ class SubServer:
             "MONEY": self.process_Money,
             "AMMO": self.process_Ammo,
             "INVENTORY": self.process_Inventory,
-            "BOMB": self.process_Bomb
+            "BOMB": self.process_Bomb,
+            "CHAT": self.SortChat,
         }
 
         self.receive_protocol = {
             "REQUEST": self.process_request,
             "REQUESTFULL": self.process_requestFull
         }
+
+    def SortChat(self, client_id, data):
+        if data.startswith("SEND"):
+            data = data.split(" ", 1)[-1]
+            self.process_chat_recv(self, client_id, data)
+            return
+        if data.startswith("RECV"):
+            data = data.split(" ", 1)[-1]
+            self.process_chat_send(self, client_id, data)
+            return
+
 
     def getINDEX(self):
         self.lb_socket.send("INDEX".encode())
@@ -327,26 +344,29 @@ class SubServer:
             with self.waiting_login_lock:
                 self.waiting_login = {}
             data = json.loads(data)
-            for client_id, data in data.items():
-                client_id = int(client_id)
-                prot = data[0]
-                if prot.startswith("SUCCESS CODE LOGIN"):
-                    print(f"login for {client_id} successful!")
-                    with self.secret_lock:
-                        self.secret_players_data[client_id] = data[1]
-                    with self.clients_lock:
-                        self.connected_clients[client_id][1].send(f"SUCCESS CODE LOGIN {data[1]}".encode())
-                    continue
-                if prot.startswith("FAILED CODE LOGIN"):
-                    with self.clients_lock:
-                        self.connected_clients[client_id][1].send(prot.encode())
-                    continue
+            self.SortLogin(data)
 
         except socket.timeout:
             print("No data received from load balancer within timeout period")
 
         except Exception as e:
             print(f"Error receiving data from load balancer: {e}")
+
+    def SortLogin(self, data):
+        for client_id, data in data.items():
+            client_id = int(client_id)
+            prot = data[0]
+            if prot.startswith("SUCCESS CODE LOGIN"):
+                print(f"login for {client_id} successful!")
+                with self.secret_lock:
+                    self.secret_players_data[client_id] = data[1]
+                with self.clients_lock:
+                    self.connected_clients[client_id][1].send(f"SUCCESS CODE LOGIN {data[1]}".encode())
+                continue
+            if prot.startswith("FAILED CODE LOGIN"):
+                with self.clients_lock:
+                    self.connected_clients[client_id][1].send(prot.encode())
+                continue
 
     def SendRegister(self):
         try:
@@ -360,25 +380,28 @@ class SubServer:
             with self.waiting_register_lock:
                 self.waiting_register = {}
             data = json.loads(data)
-            for client_id, data in data.items():
-                client_id = int(client_id)
-                prot = data[0]
-                if prot.startswith("SUCCESS CODE REGISTER"):
-                    print(f"register for {client_id} successful!")
-                    with self.secret_lock:
-                        self.secret_players_data[client_id] = data[1]
-
-                    with self.clients_lock:
-                        self.connected_clients[client_id][1].send(f"SUCCESS CODE REGISTER {data[1]}".encode())
-                    continue
-                if prot.startswith("FAILED CODE REGISTER"):
-                    with self.clients_lock:
-                        self.connected_clients[client_id][1].send(prot.encode())
-                    continue
+            self.SortRegister(data)
         except socket.timeout:
             print("No data received from load balancer within timeout period")
         except Exception as e:
             print(f"Error receiving data from load balancer: {e}")
+
+    def SortRegister(self, data):
+        for client_id, data in data.items():
+            client_id = int(client_id)
+            prot = data[0]
+            if prot.startswith("SUCCESS CODE REGISTER"):
+                print(f"register for {client_id} successful!")
+                with self.secret_lock:
+                    self.secret_players_data[client_id] = data[1]
+
+                with self.clients_lock:
+                    self.connected_clients[client_id][1].send(f"SUCCESS CODE REGISTER {data[1]}".encode())
+                continue
+            if prot.startswith("FAILED CODE REGISTER"):
+                with self.clients_lock:
+                    self.connected_clients[client_id][1].send(prot.encode())
+                continue
 
     def SendCache(self):
         try:
