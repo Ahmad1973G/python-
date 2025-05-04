@@ -364,7 +364,20 @@ def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
         input_surface = font_chat.render(chat_input, True, (255, 0, 0))
         screen.blit(input_surface, (box_x + 5, 578))
         pg.draw.rect(screen, (255, 0, 0), (box_x, 575, box_width, 25), 1)
-    
+
+
+def chat_sync_loop(Socket, chat_log):
+    while True:
+        try:
+            new_msgs = Socket.recvCHAT()
+            if new_msgs is True:
+                continue
+            for cid, msg, seq in new_msgs:
+                chat_log.append(f"{cid}: {msg}")
+            time.sleep(0.5)
+        except Exception as e:
+            print("Chat loop error:", e)
+            break
     
 def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=650, slot_size=50, inv_cols=9):
     hotbar_y = screen_height - slot_size - 20
@@ -412,7 +425,7 @@ def run_game():
     INV_ROWS = 3
     INV_COLS = 9
     SLOT_SIZE = 50
-    picture_path = "C:/Diablo-Game/python-"  # raw string for Windows path
+    picture_path = "C:/python_game/python-"  # raw string for Windows path
     weapon1_image = load_item_image("char_1.png", picture_path, SLOT_SIZE)
     weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
     weapon3_image = load_item_image("char_3.png", picture_path, SLOT_SIZE)
@@ -528,6 +541,10 @@ def run_game():
     thread_bomb = threading.Thread(target=bomb, args=(players_sprites, screen, RED, granade_range, my_player, Socket))
     thread_bomb.daemon = True
     thread_bomb.start()
+    
+    thread_chat = threading.Thread(target=chat_sync_loop, args=(Socket, chat_log))
+    thread_chat.daemon = True
+    thread_chat.start()
     # thread_movement.start()
     while running:  
         for event in pg.event.get():
@@ -585,7 +602,8 @@ def run_game():
                 if chat_input_active:
                     if event.key == pg.K_RETURN:
                         if chat_input.strip():
-                            chat_log.append("You: " + chat_input)
+                            Socket.recvCHAT()
+                            Socket.sendCHAT(chat_input)
                         chat_input = ""
                         chat_input_active = False
                     elif event.key == pg.K_ESCAPE:
@@ -720,6 +738,7 @@ def run_game():
             end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
 
             # Draw visible tiles
+            #new_msgs = Socket.recvCHAT()
             if not chat_input_active:
                 for layer in tmx_data.visible_layers:
                     if isinstance(layer, pytmx.TiledTileLayer):
@@ -733,7 +752,7 @@ def run_game():
                                             image,
                                             (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
                                         )
-            
+        
         obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
         fps = clock.get_fps()
