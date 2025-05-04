@@ -233,14 +233,14 @@ def build_collision_kdtree(collidable_tiles):
     pos_to_tile = dict(zip(positions, collidable_tiles))
     return kd_tree, pos_to_tile
 
-"""
-def check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
+
+def check_collision_obj(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
     if player_rect.x - player_rect.width/2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height/2 < coll_obj_y - coll_obj_h:
         return False
     if player_rect.x + player_rect.width/2 < coll_obj_x or player_rect.y - player_rect.height/2 > coll_obj_y:
         return False
     return True
-"""
+
 
 
 def check_collision_nearby(player_rect, kd_tree, pos_to_tile, radius=80):
@@ -406,7 +406,38 @@ def load_item_image(filename, PICTURE_PATH, SLOT_SIZE):
     path = os.path.join(PICTURE_PATH, filename)
     image = pg.image.load(path).convert_alpha()
     return pg.transform.scale(image, (SLOT_SIZE - 10, SLOT_SIZE - 10))  # scale down
-    
+
+
+def check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE):
+    """Check if the player collides with any items and apply their effects."""
+    player_rect = pg.Rect(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
+    for item in items[:]:  # Iterate over a copy of the items list
+        item_rect = pg.Rect(item['x'], item['y'], item['width'], item['height'])
+        if player_rect.colliderect(item_rect):
+            for slot in hotbar:
+                if slot is None:
+                    hotbar[selected_slot] = {"name": item['type'], "image" : load_item_image(item['type'] + ".png", "C:/python_game/python-", SLOT_SIZE)}
+            items.remove(item)  # Remove the item after it is picked up
+            print(f"Picked up item: {item['type']}")
+            
+            
+def apply_item_effect(item, my_player, weapons, shared_data, obj):
+    """Apply the effect of the item to the player."""
+    if item['type'] == 'health':
+        my_player['hp'] = min(my_player['hp'] + 25, 100)  # Heal the player
+        print(f"Health increased to {my_player['hp']}")
+    elif item['type'] == 'ammo':
+        weapons[shared_data['used_weapon']]['ammo'] = min(
+            weapons[shared_data['used_weapon']]['ammo'] + 5,
+            weapons[shared_data['used_weapon']]['max_ammo']
+        )
+        print(f"Ammo for weapon {shared_data['used_weapon']} increased to {weapons[shared_data['used_weapon']]['ammo']}")
+    elif item['type'] == 'cooldown_refresh':
+        obj.speed_cooldown_end_time = 0  # Reset speed powerup cooldown
+        obj.invulnerability_cooldown_end_time = 0  # Reset invulnerability cooldown
+        print("Powerup cooldowns refreshed!")
+        
+        
 def run_game():
     Socket = ClientSocket.ClientServer()
     Socket.connect()
@@ -456,6 +487,7 @@ def run_game():
     max_health = 100
     current_health = 100
     granade_range = 200
+    items = []
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
@@ -640,7 +672,11 @@ def run_game():
                         my_player['x'] += 15
                         move_x = -15
                         
-                           
+                if keys[pg.K_p] and selected_slot >= 3 and hotbar[selected_slot] is not None:
+                    apply_item_effect(hotbar[selected_slot], my_player, weapons, shared_data, obj) 
+                    hotbar[selected_slot] = None  # Remove item after use 
+                    
+                             
                 if check_collision_nearby(my_sprite, kd_tree, pos_to_tile, radius=80):
                         move_x = -move_x
                         move_y = -move_y
@@ -755,14 +791,14 @@ def run_game():
         
         obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
-        fps = clock.get_fps()
+        check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot)
+        fps = clock.get_fps()                
         fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
         if chat_input_active == False:
             screen.blit(fps_text, (10, 10))
         draw_health_bar(screen, 10, 45, my_player['hp'], max_health)
         if chat_input_active:
-            draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)
-            
+            draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)           
         draw_hotbar(screen, selected_slot, hotbar)
         ammo_text = font_fps.render(f"Ammo: {weapons[selected_weapon]['ammo']}", True, (255, 0, 0))
         screen.blit(ammo_text, (10, 80))  # top-left corner
