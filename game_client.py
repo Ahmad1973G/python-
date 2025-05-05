@@ -241,105 +241,6 @@ def check_collision_obj(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_ob
         return False
     return True
 
-
-
-def check_collision_nearby(player_rect, kd_tree, pos_to_tile, radius=80):
-    center = (player_rect.centerx, player_rect.centery)
-    nearby_indices = kd_tree.query_ball_point(center, radius)
-
-    for idx in nearby_indices:
-        x_c, y_c = kd_tree.data[idx]
-        coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h = pos_to_tile[(x_c, y_c)]
-
-        # AABB-style collision check (same logic as your check_collision)
-        if (
-            player_rect.x - player_rect.width / 2 <= coll_obj_x + coll_obj_w and
-            player_rect.x + player_rect.width / 2 >= coll_obj_x and
-            player_rect.y - player_rect.height / 2 <= coll_obj_y and
-            player_rect.y + player_rect.height / 2 >= coll_obj_y - coll_obj_h
-        ):
-            #print(f"Collision with: {coll_obj_x}, {coll_obj_w}, {coll_obj_y}, {coll_obj_h}")
-            return True
-
-    #print("No collision")
-    return False
-
-""""
-def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
-    Checks if the player collides with any of the collidable tiles.
-    for coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h in collidable_tiles:
-        if check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
-            print(coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h)
-            return True
-    print("No collision")
-    return False
-
-
-# Python 3 program for recursive binary search.
-# Modifications needed for the older Python 2 are found in comments.
-
-# Returns index of x in arr if present, else -1
-def binary_search(arr, low, high, x):
-
-    # Check base case
-    if high >= low:
-
-        mid = (high + low) // 2
-
-        # If element is present at the middle itself
-        if arr[mid] == x:
-            return mid
-
-        # If element is smaller than mid, then it can only
-        # be present in left subarray
-        elif arr[mid] > x:
-            return binary_search(arr, low, mid - 1, x)
-
-        # Else the element can only be present in right subarray
-        else:
-            return binary_search(arr, mid + 1, high, x)
-
-    else:
-        # Element is not present in the array
-        return -1
-
-def nearby_collision(player_rect, collidable_tiles, arrx, arry, radius=80):
-    if binary_search(arrx, 0, len(arrx) - 1, player_rect.x - radius) != -1:
-        start_x = binary_search(arrx, 0, len(arrx) - 1, player_rect.x - radius)
-        
-    else:
-        start_x = 0
-    
-    if binary_search(arry, 0, len(arry) - 1, player_rect.y - radius) != -1:
-        start_y = binary_search(arry, 0, len(arry) - 1, player_rect.y - radius)
-        
-    else:
-        start_y = 0
-    
-    if binary_search(arrx, 0, len(arrx) - 1, player_rect.x + radius) != -1:
-        end_x = binary_search(arrx, 0, len(arrx) - 1, player_rect.x + radius)
-        
-    else:
-        end_x = len(arrx) - 1
-    
-    if binary_search(arry, 0, len(arry) - 1, player_rect.y + radius) != -1:
-        end_y = binary_search(arry, 0, len(arry) - 1, player_rect.y + radius)
-        
-    else:
-        end_y = len(arry) - 1
-
-    nearby_tiles = set()
-
-    for i in range (start_x, end_x):
-        if i < start_y or i > end_y:
-            continue
-            
-        
-        
-        
-
-    return nearby_tiles 
-"""
 def draw_health_bar(surface, x, y, current, max, bar_width=200, bar_height=25):
     ratio = current / max
     pg.draw.rect(surface, (255, 0, 0), (x, y, bar_width, bar_height))  # red background
@@ -677,7 +578,7 @@ def run_game():
                     hotbar[selected_slot] = None  # Remove item after use 
                     
                              
-                if check_collision_nearby(my_sprite, kd_tree, pos_to_tile, radius=80):
+                if obj.check_collision_nearby(my_sprite, kd_tree, pos_to_tile, radius=80):
                         move_x = -move_x
                         move_y = -move_y
                         knockback = 8
