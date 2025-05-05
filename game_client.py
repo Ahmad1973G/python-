@@ -334,6 +334,17 @@ def run_game():
     INV_ROWS = 3
     INV_COLS = 9
     SLOT_SIZE = 50
+        # Get directory of the currently running script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Create the full path to the map file
+    map_path = os.path.join(script_dir, "map.tmx")
+
+    # Check if the file exists
+    if os.path.exists(map_path):
+        print(f"Found map file at: {map_path}")
+    else:
+        print("map.tmx not found in the script directory.")
     picture_path = "C:/python_game/python-"  # raw string for Windows path
     weapon1_image = load_item_image("char_1.png", picture_path, SLOT_SIZE)
     weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
@@ -369,7 +380,7 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = obj.tmx_data
+    tmx_data = pytmx.load_pygame(map_path, pixelalpha=True)
     tile_width = tmx_data.tilewidth
     tile_height = tmx_data.tileheight
     map_width = tmx_data.width
@@ -409,7 +420,8 @@ def run_game():
             screen,
             players_sprites,
             my_sprite,
-            weapons
+            weapons,
+            tmx_data,
         )  # Create PlayerSprite objects for each player
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
