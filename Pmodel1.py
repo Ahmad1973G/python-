@@ -105,6 +105,29 @@ class Player(pg.sprite.Sprite):
     def you_dead(self):
         print('dead')
 
+
+    def check_collision_nearby(player_rect, kd_tree, pos_to_tile, radius=80):
+        center = (player_rect.centerx, player_rect.centery)
+        nearby_indices = kd_tree.query_ball_point(center, radius)
+
+        for idx in nearby_indices:
+            x_c, y_c = kd_tree.data[idx]
+            coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h = pos_to_tile[(x_c, y_c)]
+
+            # AABB-style collision check (same logic as your check_collision)
+            if (
+                player_rect.x - player_rect.width / 2 <= coll_obj_x + coll_obj_w and
+                player_rect.x + player_rect.width / 2 >= coll_obj_x and
+                player_rect.y - player_rect.height / 2 <= coll_obj_y and
+                player_rect.y + player_rect.height / 2 >= coll_obj_y - coll_obj_h
+            ):
+                #print(f"Collision with: {coll_obj_x}, {coll_obj_w}, {coll_obj_y}, {coll_obj_h}")
+                return True
+
+    #print("No collision")
+        return False
+
+
     def convert_to_sprite(self, x, y, height, width, player_id):
         # Create a simple representation of the sprite
         sprite = {
