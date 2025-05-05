@@ -1,6 +1,8 @@
 import time
 import pygame as pg
 import json
+import pytmx
+from scipy.spatial import KDTree
 
 class Player(pg.sprite.Sprite):
     
@@ -22,6 +24,9 @@ class Player(pg.sprite.Sprite):
         self.players_sprites = players_sprites
         self.my_sprite = my_sprite
         self.weapons = weapons
+        self.tmx_data = pytmx.load_pygame("c:/python_game/python-/map/map.tmx")
+        self.collidable_tiles = self.get_collidable_tiles(self.tmx_data)
+        self.kd_tree, pos_to_tile = self.build_collision_kdtree(self.collidable_tiles)
         # New attributes for powerups and items
         self.invulnerability = False  # Tracks if the player is invulnerable
         self.invulnerability_end_time = None  # Time when invulnerability ends
@@ -36,6 +41,29 @@ class Player(pg.sprite.Sprite):
         self.players_image.fill(pg.Color((255,0,0)))
         self.players_rect=self.players_image.get_rect(center=(0,0))
     
+    
+    def get_collidable_tiles(self, tmx_data):
+        """Returns a set of tile coordinates that are collidable."""
+        collidable_tiles = set()
+        for layer in self.tmx_data.layers:
+            if isinstance(layer, pytmx.TiledObjectGroup):
+                if layer.name == "no walk no shoot":
+                    for obj in layer:
+                        # Add the coordinates of the collidable tile to the set
+                        new_tile_tup = obj.x - 500, obj.width, obj.y - 330, obj.height
+                        # collidable_tiles.add((obj.x // tmx_data.tilewidth, obj.y // tmx_data.tileheight))
+                        self.collidable_tiles.add(new_tile_tup)
+        return self.collidable_tiles
+
+
+    def build_collision_kdtree(collidable_tiles):
+        # Calculate center positions for KD-tree
+        positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in collidable_tiles]
+        kd_tree = KDTree(positions)
+        pos_to_tile = dict(zip(positions, collidable_tiles))
+        return kd_tree, pos_to_tile
+
+        
     def speed_up(self, duration):
         """Activate the speed powerup if not on cooldown."""
         current_time = time.time()
@@ -106,13 +134,13 @@ class Player(pg.sprite.Sprite):
         print('dead')
 
 
-    def check_collision_nearby(player_rect, kd_tree, pos_to_tile, radius=80):
+    def check_collision_nearby(self, player_rect, radius=80):
         center = (player_rect.centerx, player_rect.centery)
-        nearby_indices = kd_tree.query_ball_point(center, radius)
+        nearby_indices = self.kd_tree.query_ball_point(center, radius)
 
         for idx in nearby_indices:
-            x_c, y_c = kd_tree.data[idx]
-            coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h = pos_to_tile[(x_c, y_c)]
+            x_c, y_c = self.kd_tree.data[idx]
+            coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h = self.pos_to_tile[(x_c, y_c)]
 
             # AABB-style collision check (same logic as your check_collision)
             if (
@@ -126,7 +154,6 @@ class Player(pg.sprite.Sprite):
 
     #print("No collision")
         return False
-
 
     def convert_to_sprite(self, x, y, height, width, player_id):
         # Create a simple representation of the sprite
