@@ -211,29 +211,6 @@ shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False
 lock_shared_data = threading.Lock()
 lock = threading.Lock()
 
-
-def get_collidable_tiles(tmx_data):
-    """Returns a set of tile coordinates that are collidable."""
-    collidable_tiles = set()
-    for layer in tmx_data.layers:
-        if isinstance(layer, pytmx.TiledObjectGroup):
-            if layer.name == "no walk no shoot":
-                for obj in layer:
-                    # Add the coordinates of the collidable tile to the set
-                    new_tile_tup = obj.x - 500, obj.width, obj.y - 330, obj.height
-                    # collidable_tiles.add((obj.x // tmx_data.tilewidth, obj.y // tmx_data.tileheight))
-                    collidable_tiles.add(new_tile_tup)
-    return collidable_tiles
-
-
-def build_collision_kdtree(collidable_tiles):
-    # Calculate center positions for KD-tree
-    positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in collidable_tiles]
-    kd_tree = KDTree(positions)
-    pos_to_tile = dict(zip(positions, collidable_tiles))
-    return kd_tree, pos_to_tile
-
-
 def check_collision_obj(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
     if player_rect.x - player_rect.width/2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height/2 < coll_obj_y - coll_obj_h:
         return False
@@ -392,9 +369,7 @@ def run_game():
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = pytmx.load_pygame("c:/python_game/python-/map/map.tmx")  # <<< your TMX file here
-    collidable_tiles = get_collidable_tiles(tmx_data)  # Get collidable tile coordinates
-    kd_tree, pos_to_tile = build_collision_kdtree(collidable_tiles)
+    tmx_data = obj.tmx_data
     tile_width = tmx_data.tilewidth
     tile_height = tmx_data.tileheight
     map_width = tmx_data.width
@@ -475,9 +450,9 @@ def run_game():
     thread_bomb.daemon = True
     thread_bomb.start()
     
-    thread_chat = threading.Thread(target=chat_sync_loop, args=(Socket, chat_log))
-    thread_chat.daemon = True
-    thread_chat.start()
+    #thread_chat = threading.Thread(target=chat_sync_loop, args=(Socket, chat_log))
+    #thread_chat.daemon = True
+    #thread_chat.start()
     # thread_movement.start()
     while running:  
         for event in pg.event.get():
@@ -535,8 +510,7 @@ def run_game():
                 if chat_input_active:
                     if event.key == pg.K_RETURN:
                         if chat_input.strip():
-                            Socket.recvCHAT()
-                            Socket.sendCHAT(chat_input)
+                            chat_input.append(chat_input)  # Add message to chat log
                         chat_input = ""
                         chat_input_active = False
                     elif event.key == pg.K_ESCAPE:
@@ -578,7 +552,7 @@ def run_game():
                     hotbar[selected_slot] = None  # Remove item after use 
                     
                              
-                if obj.check_collision_nearby(my_sprite, kd_tree, pos_to_tile, radius=80):
+                if obj.check_collision_nearby(my_sprite, radius=80):
                         move_x = -move_x
                         move_y = -move_y
                         knockback = 8
