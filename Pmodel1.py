@@ -1,11 +1,12 @@
 import time  # Import time for managing powerup durations
 import pygame as pg
 import json
-
+import math
+import threading
 class Player(pg.sprite.Sprite):
     def __init__(self, my_player, speed, weapon, power, max_health, acceleration, players, moving,
-             move_offset, coins, screen, players_sprites, my_sprite, weapons, *groups):
-        super().__init__(*groups)  # Pass groups to the Sprite initializer
+             move_offset, coins, screen, players_sprites, my_sprite, weapons,shared_data,lock,lock_shared_data,Socket,Bullet_sprite, *groups):
+        super().__init__(*groups)  # Pass groups to the Sprite
         self.my_player = my_player
         self.speed = speed
         self.weapon = weapon
@@ -21,6 +22,11 @@ class Player(pg.sprite.Sprite):
         self.players_sprites = players_sprites
         self.my_sprite = my_sprite
         self.weapons = weapons
+        self.shared_data=shared_data
+        self.lock=lock
+        self.lock_shared_data=lock_shared_data
+        self.Socket=Socket
+        self.bullet_sprite=Bullet_sprite
         # New attributes for powerups and items
         self.invulnerability = False  # Tracks if the player is invulnerable
         self.invulnerability_end_time = None  # Time when invulnerability ends
@@ -92,10 +98,11 @@ class Player(pg.sprite.Sprite):
         }
         return json.dumps(client_loc)
 
-    def print_players(self, players_sprites,players,angle):
+    def print_players(self, players_sprites,players,angle,used_weapon):
         PINK = (255, 174, 201)
         for key,data in players_sprites.items():
-            data['image']=pg.image.load('char.png').convert()
+
+            data['image']=pg.image.load('char_1.png').convert()
             data['image'].set_colorkey(PINK)
             #data['rect'].center = (data['rect'].x,data['rect'].y)
 
@@ -105,7 +112,12 @@ class Player(pg.sprite.Sprite):
             self.screen.blit(data['image'],data['rect'])
         # Draw the main player at the center
         image = pg.Surface((60, 60))
-        image = pg.image.load('char.png').convert()
+        if used_weapon == 0:
+            image = pg.image.load('char_1.png').convert()
+        elif used_weapon == 1:
+            image = pg.image.load('char_2.png').convert()
+        else:
+            image= pg.image.load('char_3.png').convert()
         image.set_colorkey(PINK)
 
         image=pg.transform.rotate(image,angle)
