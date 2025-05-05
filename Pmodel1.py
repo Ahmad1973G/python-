@@ -7,7 +7,7 @@ from scipy.spatial import KDTree
 class Player(pg.sprite.Sprite):
     
     def __init__(self, my_player, speed, weapon, power, max_health, acceleration, players, moving,
-             move_offset, coins, screen, players_sprites, my_sprite, weapons, *groups):
+             move_offset, coins, screen, players_sprites, my_sprite, weapons, tmx_data *groups):
         super().__init__(*groups)  # Pass groups to the Sprite initializer
         self.my_player = my_player
         self.speed = speed
@@ -24,7 +24,7 @@ class Player(pg.sprite.Sprite):
         self.players_sprites = players_sprites
         self.my_sprite = my_sprite
         self.weapons = weapons
-        self.tmx_data = pytmx.load_pygame("c:/python_game/python-/map/map.tmx")
+        self.tmx_data = tmx_data
         self.collidable_tiles = self.get_collidable_tiles(self.tmx_data)
         self.kd_tree, pos_to_tile = self.build_collision_kdtree(self.collidable_tiles)
         # New attributes for powerups and items
