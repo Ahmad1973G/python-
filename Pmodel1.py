@@ -44,7 +44,7 @@ class Player(pg.sprite.Sprite):
     
     def get_collidable_tiles(self, tmx_data):
         """Returns a set of tile coordinates that are collidable."""
-        collidable_tiles = set()
+        self.collidable_tiles = set()
         for layer in self.tmx_data.layers:
             if isinstance(layer, pytmx.TiledObjectGroup):
                 if layer.name == "no walk no shoot":
@@ -56,11 +56,11 @@ class Player(pg.sprite.Sprite):
         return self.collidable_tiles
 
 
-    def build_collision_kdtree(collidable_tiles):
+    def build_collision_kdtree(self):
         # Calculate center positions for KD-tree
-        positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in collidable_tiles]
+        positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in self.collidable_tiles]
         kd_tree = KDTree(positions)
-        pos_to_tile = dict(zip(positions, collidable_tiles))
+        pos_to_tile = dict(zip(positions, self.collidable_tiles))
         return kd_tree, pos_to_tile
 
         
