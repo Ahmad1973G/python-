@@ -347,7 +347,7 @@ def run_game():
         print(f"Found map file at: {map_path}")
     else:
         print("map.tmx not found in the script directory.")
-    picture_path = "C:/python_game/python-"  # raw string for Windows path
+    picture_path = script_dir
     weapon1_image = load_item_image("char_1.png", picture_path, SLOT_SIZE)
     weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
     weapon3_image = load_item_image("char_3.png", picture_path, SLOT_SIZE)
