@@ -16,6 +16,7 @@ import os
 import startprotocol
 from scipy.spatial import KDTree
 
+
 def load_tmx_map(filename):
     """Load TMX map file and return data."""
     if not os.path.exists(filename):
@@ -31,7 +32,7 @@ def load_tmx_map(filename):
 def bomb(players_sprites, screen, red, Brange, my_player, Socket):
     while True:
         if shared_data['bomb']:
-            with lock:    
+            with lock:
                 print("CLIENT; player activated bomb")
                 bomb_x = my_player['x']
                 bomb_y = my_player['y']
@@ -50,7 +51,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     )
                     if distance <= bomb_range:
                         print(f"Player {player_id} hit by explosion!")
-                
+
                 my_player_center = (500, 325)
                 self_distance = math.sqrt(
                     (my_player_center[0] - explosion_center[0]) ** 2 +
@@ -58,7 +59,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 )
                 if self_distance <= bomb_range:
                     print("CLIENT; You were hit by the explosion!")
-                    
+
                 Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
                 shared_data['bomb'] = False
 
@@ -75,7 +76,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                     pg.display.flip()
                     time.sleep(0.5)
-                    
+
                     my_player_center = (500, 325)
                     self_distance = math.sqrt(
                         (my_player_center[0] - explosion_center[0]) ** 2 +
@@ -83,13 +84,10 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     )
                     if self_distance <= bomb_range:
                         print("CLIENT; You were hit by the explosion!")
-                    
+
                     del shared_data['recived'][key]
 
         time.sleep(0.02)  # Add a small delay to reduce CPU usage
-
-        
-                
 
 
 # def sendmovement(x,y):
@@ -211,20 +209,22 @@ shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False
 lock_shared_data = threading.Lock()
 lock = threading.Lock()
 
+
 def check_collision_obj(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
-    if player_rect.x - player_rect.width/2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height/2 < coll_obj_y - coll_obj_h:
+    if player_rect.x - player_rect.width / 2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height / 2 < coll_obj_y - coll_obj_h:
         return False
-    if player_rect.x + player_rect.width/2 < coll_obj_x or player_rect.y - player_rect.height/2 > coll_obj_y:
+    if player_rect.x + player_rect.width / 2 < coll_obj_x or player_rect.y - player_rect.height / 2 > coll_obj_y:
         return False
     return True
+
 
 def draw_health_bar(surface, x, y, current, max, bar_width=200, bar_height=25):
     ratio = current / max
     pg.draw.rect(surface, (255, 0, 0), (x, y, bar_width, bar_height))  # red background
     pg.draw.rect(surface, (0, 255, 0), (x, y, bar_width * ratio, bar_height))  # green foreground
     pg.draw.rect(surface, (0, 0, 0), (x, y, bar_width, bar_height), 2)  # border
-     
-    
+
+
 def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
     box_width = 300
     box_x = 1000 - box_width  # Align to right side
@@ -250,13 +250,15 @@ def chat_sync_loop(Socket, chat_log):
             new_msgs = Socket.recvCHAT()
             if new_msgs is True:
                 continue
-            for cid, msg, seq in new_msgs:
+            for msg in new_msgs:
+                cid = msg[0]
+                msg = msg[1]
                 chat_log.append(f"{cid}: {msg}")
-            time.sleep(0.5)
         except Exception as e:
             print("Chat loop error:", e)
             break
-    
+
+
 def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=650, slot_size=50, inv_cols=9):
     hotbar_y = screen_height - slot_size - 20
     hotbar_x = (screen_width - inv_cols * slot_size) // 2
@@ -280,6 +282,7 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
         if item:
             screen.blit(item["image"], (x + 5, y + 5))
 
+
 def load_item_image(filename, PICTURE_PATH, SLOT_SIZE):
     path = os.path.join(PICTURE_PATH, filename)
     image = pg.image.load(path).convert_alpha()
@@ -294,11 +297,13 @@ def check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, se
         if player_rect.colliderect(item_rect):
             for slot in hotbar:
                 if slot is None:
-                    hotbar[selected_slot] = {"name": item['type'], "image" : load_item_image(item['type'] + ".png", "C:/python_game/python-", SLOT_SIZE)}
+                    hotbar[selected_slot] = {"name": item['type'],
+                                             "image": load_item_image(item['type'] + ".png", "C:/python_game/python-",
+                                                                      SLOT_SIZE)}
             items.remove(item)  # Remove the item after it is picked up
             print(f"Picked up item: {item['type']}")
-            
-            
+
+
 def apply_item_effect(item, my_player, weapons, shared_data, obj):
     """Apply the effect of the item to the player."""
     if item['type'] == 'health':
@@ -309,13 +314,14 @@ def apply_item_effect(item, my_player, weapons, shared_data, obj):
             weapons[shared_data['used_weapon']]['ammo'] + 5,
             weapons[shared_data['used_weapon']]['max_ammo']
         )
-        print(f"Ammo for weapon {shared_data['used_weapon']} increased to {weapons[shared_data['used_weapon']]['ammo']}")
+        print(
+            f"Ammo for weapon {shared_data['used_weapon']} increased to {weapons[shared_data['used_weapon']]['ammo']}")
     elif item['type'] == 'cooldown_refresh':
         obj.speed_cooldown_end_time = 0  # Reset speed powerup cooldown
         obj.invulnerability_cooldown_end_time = 0  # Reset invulnerability cooldown
         print("Powerup cooldowns refreshed!")
-        
-        
+
+
 def run_game():
     Socket = ClientSocket.ClientServer()
     Socket.connect()
@@ -327,18 +333,18 @@ def run_game():
     pg.init()
     with lock:
         screen = pg.display.set_mode((1000, 650))
-        
+
     font_fps = pg.font.SysFont(None, 40)  # You can change font or size if you want
     font_chat = pg.font.SysFont(None, 24)  # You can change font or size if you want
     chat_input_active = False
     INV_ROWS = 3
     INV_COLS = 9
     SLOT_SIZE = 50
-        # Get directory of the currently running script
+    # Get directory of the currently running script
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Create the full path to the map file
-    map_path = os.path.join(script_dir, "map", "map.tmx")     # Points to: script_dir/map/map.tmx
+    map_path = os.path.join(script_dir, "map", "map.tmx")  # Points to: script_dir/map/map.tmx
 
     print(map_path)
 
@@ -351,8 +357,8 @@ def run_game():
     weapon1_image = load_item_image("char_1.png", picture_path, SLOT_SIZE)
     weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
     weapon3_image = load_item_image("char_3.png", picture_path, SLOT_SIZE)
-    hotbar = [{"name": "weapon1", "image": weapon1_image}, {"name": "weapon2", "image": weapon2_image}, 
-             {"name": "weapon3", "image" : weapon3_image}] + [None] * 6     
+    hotbar = [{"name": "weapon1", "image": weapon1_image}, {"name": "weapon2", "image": weapon2_image},
+              {"name": "weapon3", "image": weapon3_image}] + [None] * 6
     selected_weapon = 0
     selected_slot = 0
     chat_input = ""
@@ -456,19 +462,20 @@ def run_game():
     h = None
     g = None
     # thread_movement = threading.Thread(target=sendmovement, args=())
-    thread_shooting = threading.Thread(target=shoot, args=(weapons, players_sprites, bullet_sprite, screen, my_player))
+    thread_shooting = threading.Thread(target=shoot,
+                                       args=(weapons, players_sprites, bullet_sprite, screen, my_player, Socket))
     thread_shooting.daemon = True
     thread_shooting.start()
 
     thread_bomb = threading.Thread(target=bomb, args=(players_sprites, screen, RED, granade_range, my_player, Socket))
     thread_bomb.daemon = True
     thread_bomb.start()
-    
-    #thread_chat = threading.Thread(target=chat_sync_loop, args=(Socket, chat_log))
-    #thread_chat.daemon = True
-    #thread_chat.start()
+
+    thread_chat = threading.Thread(target=chat_sync_loop, args=(Socket, chat_log))
+    thread_chat.daemon = True
+    thread_chat.start()
     # thread_movement.start()
-    while running:  
+    while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
@@ -514,31 +521,32 @@ def run_game():
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
 
-        # Check for collisions with nearby collision rects
-        #print(f"Here pressed {keys}")
-        #res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
-        #print("Finished")
-        #print(res)
-                
-            if event.type == pg.KEYDOWN:        
+            # Check for collisions with nearby collision rects
+            # print(f"Here pressed {keys}")
+            # res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
+            # print("Finished")
+            # print(res)
+
+            if event.type == pg.KEYDOWN:
                 if chat_input_active:
                     if event.key == pg.K_RETURN:
                         if chat_input.strip():
-                            chat_input.append(chat_input)  # Add message to chat log
+                            chat_log.append(chat_input)  # Append to chat_log list instead
+                            Socket.sendCHAT(chat_input)  # Send message to server
                         chat_input = ""
                         chat_input_active = False
                     elif event.key == pg.K_ESCAPE:
                         chat_input = ""  # Clear input without sending
                         chat_input_active = False
                     elif event.key == pg.K_BACKSPACE:
-                            chat_input = chat_input[:-1]
+                        chat_input = chat_input[:-1]
                     else:
-                            chat_input += event.unicode
+                        chat_input += event.unicode
                 else:
                     if event.key == pg.K_t:
                         chat_input_active = True
 
-    # Movement only if not typing in chat
+        # Movement only if not typing in chat
         if not chat_input_active:
             keys = pg.key.get_pressed()
             my_sprite = my_player['x'], my_player['y'], my_player['width'], my_player['height']
@@ -560,20 +568,18 @@ def run_game():
                     if my_sprite.x < 23450:
                         my_player['x'] += 15
                         move_x = -15
-                        
+
                 if keys[pg.K_p] and selected_slot >= 3 and hotbar[selected_slot] is not None:
-                    apply_item_effect(hotbar[selected_slot], my_player, weapons, shared_data, obj) 
-                    hotbar[selected_slot] = None  # Remove item after use 
-                    
-                             
+                    apply_item_effect(hotbar[selected_slot], my_player, weapons, shared_data, obj)
+                    hotbar[selected_slot] = None  # Remove item after use
+
                 if obj.check_collision_nearby(my_sprite, radius=80):
-                        move_x = -move_x
-                        move_y = -move_y
-                        knockback = 8
-                
+                    move_x = -move_x
+                    move_y = -move_y
+                    knockback = 8
+
             else:
                 knockback -= 1
-
 
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
@@ -663,7 +669,7 @@ def run_game():
             end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
 
             # Draw visible tiles
-            #new_msgs = Socket.recvCHAT()
+            # new_msgs = Socket.recvCHAT()
             if not chat_input_active:
                 for layer in tmx_data.visible_layers:
                     if isinstance(layer, pytmx.TiledTileLayer):
@@ -677,17 +683,17 @@ def run_game():
                                             image,
                                             (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
                                         )
-        
+
         obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
-        check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot)
-        fps = clock.get_fps()                
+        check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
+        fps = clock.get_fps()
         fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
         if chat_input_active == False:
             screen.blit(fps_text, (10, 10))
         draw_health_bar(screen, 10, 45, my_player['hp'], max_health)
         if chat_input_active:
-            draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)           
+            draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)
         draw_hotbar(screen, selected_slot, hotbar)
         ammo_text = font_fps.render(f"Ammo: {weapons[selected_weapon]['ammo']}", True, (255, 0, 0))
         screen.blit(ammo_text, (10, 80))  # top-left corner

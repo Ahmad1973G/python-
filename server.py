@@ -82,6 +82,7 @@ class SubServer:
         self.process_Bomb = sub_client_prots.process_boom
         self.process_chat_recv = sub_client_prots.process_chat_recv
         self.process_chat_send = sub_client_prots.process_chat_send
+        self.process_chat = sub_client_prots.process_chat
 
         self.protocols = {
             "MOVE": self.process_move,
@@ -95,23 +96,13 @@ class SubServer:
             "AMMO": self.process_Ammo,
             "INVENTORY": self.process_Inventory,
             "BOMB": self.process_Bomb,
-            "CHAT": self.SortChat,
+            "CHAT": self.process_chat,
         }
 
         self.receive_protocol = {
             "REQUEST": self.process_request,
             "REQUESTFULL": self.process_requestFull
         }
-
-    def SortChat(self, client_id, data):
-        if data.startswith("SEND"):
-            data = data.split(" ", 1)[-1]
-            self.process_chat_recv(self, client_id, data)
-            return
-        if data.startswith("RECV"):
-            data = data.split(" ", 1)[-1]
-            self.process_chat_send(self, client_id, data)
-            return
 
     def getINDEX(self):
         self.lb_socket.send("INDEX".encode())
