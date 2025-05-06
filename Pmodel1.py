@@ -7,7 +7,7 @@ from scipy.spatial import KDTree
 class Player(pg.sprite.Sprite):
     
     def __init__(self, my_player, speed, weapon, power, max_health, acceleration, players, moving,
-             move_offset, coins, screen, players_sprites, my_sprite, weapons, tmx_data *groups):
+             move_offset, coins, screen, players_sprites, my_sprite, weapons, tmx_data, *groups):
         super().__init__(*groups)  # Pass groups to the Sprite initializer
         self.my_player = my_player
         self.speed = speed
