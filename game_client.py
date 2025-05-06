@@ -338,7 +338,9 @@ def run_game():
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Create the full path to the map file
-    map_path = os.path.join(script_dir, "map.tmx")
+    map_path = os.path.join(script_dir, "map", "map.tmx")     # Points to: script_dir/map/map.tmx
+
+    print(map_path)
 
     # Check if the file exists
     if os.path.exists(map_path):
