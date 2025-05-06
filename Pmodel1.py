@@ -25,8 +25,9 @@ class Player(pg.sprite.Sprite):
         self.my_sprite = my_sprite
         self.weapons = weapons
         self.tmx_data = tmx_data
+        self.collidable_tiles = set()  # Initialize as empty set
         self.collidable_tiles = self.get_collidable_tiles(self.tmx_data)
-        self.kd_tree, pos_to_tile = self.build_collision_kdtree(self.collidable_tiles)
+        self.kd_tree, self.pos_to_tile = self.build_collision_kdtree(self.collidable_tiles)
         # New attributes for powerups and items
         self.invulnerability = False  # Tracks if the player is invulnerable
         self.invulnerability_end_time = None  # Time when invulnerability ends
