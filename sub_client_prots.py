@@ -1,5 +1,17 @@
 import json
 
+
+def process_chat(self, client_id, data):
+    """Handle chat messages by routing to appropriate handler"""
+    if data.startswith("SEND"):
+        data = data.split(" ", 1)[-1]
+        self.process_chat_recv(self, client_id, data)
+        return
+    elif data.startswith("RECV"):
+        data = data.split(" ", 1)[-1]
+        self.process_chat_send(self, client_id, data)
+        return
+
 def process_chat_recv(self, client_id, message: str):
     try:
         with self.logs_lock and self.sequence_lock:
@@ -99,8 +111,8 @@ def process_register(self, client_id, message: str):
 
 def process_move(self, client_id, message: str):
     try:
-        x = message.split(';')[0]
-        y = message.split(';')[1]
+        x = int(float(message.split(';')[0]))
+        y = int(float(message.split(';')[1]))
 
         with self.elements_lock:
             self.updated_elements[client_id]['x'] = x
