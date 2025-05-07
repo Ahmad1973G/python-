@@ -82,6 +82,7 @@ class SubServer:
         self.process_Bomb = sub_client_prots.process_boom
         self.process_chat_recv = sub_client_prots.process_chat_recv
         self.process_chat_send = sub_client_prots.process_chat_send
+        self.process_chat = sub_client_prots.process_chat
 
         self.protocols = {
             "MOVE": self.process_move,
@@ -95,7 +96,7 @@ class SubServer:
             "AMMO": self.process_Ammo,
             "INVENTORY": self.process_Inventory,
             "BOMB": self.process_Bomb,
-            "CHAT": self.SortChat,
+            "CHAT": self.process_chat,
         }
 
         self.receive_protocol = {
@@ -103,23 +104,12 @@ class SubServer:
             "REQUESTFULL": self.process_requestFull
         }
 
-    def SortChat(self, client_id, data):
-        if data.startswith("SEND"):
-            data = data.split(" ", 1)[-1]
-            self.process_chat_recv(self, client_id, data)
-            return
-        if data.startswith("RECV"):
-            data = data.split(" ", 1)[-1]
-            self.process_chat_send(self, client_id, data)
-            return
-
-
     def getINDEX(self):
         self.lb_socket.send("INDEX".encode())
         data = self.lb_socket.recv(1024).decode()
         if data.startswith("INDEX CODE 2"):
             self.server_index = int(data.split(";")[-1])
-            print("Server INDEX:", self.server_id)
+            print("Server INDEX:", self.server_index)
         else:
             print("Failed to get server ID from load balancer, error:", data)
 
@@ -214,7 +204,6 @@ class SubServer:
                 except Exception as e:
                     pass
 
-
     def getRIGHT(self):
         self.lb_socket.send(f"RIGHT".encode())
         data = self.lb_socket.recv(1024).decode()
@@ -231,9 +220,6 @@ class SubServer:
         if players_to_this:
             welcome_thread = threading.Thread(target=self.WelcomePlayers, args=(players_to_this,))
             welcome_thread.start()
-
-
-
 
     def CheckIfMoving(self, client_id):
         with self.moving_lock:
@@ -259,7 +245,6 @@ class SubServer:
             data = json.loads(data)
             self.different_server_players = data
 
-
     def lb_connect_protocol(self):
         print("Listening on UDP for load balancer on", get_ip_address())
         while not self.is_connected_to_lb:
@@ -279,15 +264,14 @@ class SubServer:
                 print(f"Error receiving UDP packet: {e}")
                 self.lb_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-
     def handle_lb(self):
         self.getINDEX()
         self.getBORDERS()
         while True:
             try:
-                #self.SendInfoLB()
-                #self.getRIGHT()
-                #self.getSEND()
+                # self.SendInfoLB()
+                # self.getRIGHT()
+                # self.getSEND()
                 self.SendRegister()
                 self.SendLogin()
                 self.SendCache()
@@ -430,10 +414,10 @@ class SubServer:
                 while client_id in self.connected_clients.keys():
                     client_id = random.randint(1, 1000)
                 self.connected_clients[client_id] = (addr, conn)
-            
+
             with self.players_data_lock:
                 self.players_data[client_id] = {}
-            
+
             conn.send(f"ID CODE 69 {client_id}".encode())
             print("Sent ID to client")
             return client_id
@@ -472,16 +456,16 @@ class SubServer:
         with self.clients_lock:
             conn = self.connected_clients[client_id][1]
             client_address = self.connected_clients[client_id][0]
-        
+
         with self.counter_lock:
             self.players_counter[client_id] = 0
-        
+
         with self.elements_lock:
             self.updated_elements[client_id] = {}
-        
+
         with self.players_data_lock:
             self.players_data[client_id] = {}
-        
+
         print(f"Connected to client {client_id} at {client_address}")
         try:
             while True:
@@ -502,15 +486,15 @@ class SubServer:
             with self.clients_lock:
                 if client_id in self.connected_clients:
                     del self.connected_clients[client_id]
-            
+
             with self.players_data_lock:
                 if client_id in self.players_data:
                     del self.players_data[client_id]
-            
+
             with self.counter_lock:
                 if client_id in self.players_counter:
                     del self.players_counter[client_id]
-            
+
             with self.elements_lock:
                 self.updated_elements[client_id] = {'dead': True}
                 start_time = time.time()
