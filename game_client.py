@@ -300,10 +300,10 @@ def check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, se
         item_rect = pg.Rect(item['x'], item['y'], item['width'], item['height'])
         if player_rect.colliderect(item_rect):
             for slot in hotbar:
-                if slot is None:
+                if slot is None or (slot['name'] == item['type'] and slot['amount'] < 4):
                     hotbar[selected_slot] = {"name": item['type'],
                                              "image": load_item_image(item['type'] + ".png", "C:/python_game/python-",
-                                                                      SLOT_SIZE)}
+                                                                      SLOT_SIZE), "amount": slot['amount'] + 1}
             items.remove(item)  # Remove the item after it is picked up
             print(f"Picked up item: {item['type']}")
 
@@ -362,8 +362,8 @@ def run_game():
     weapon1_image = load_item_image("char_1.png", picture_path, SLOT_SIZE)
     weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
     weapon3_image = load_item_image("char_3.png", picture_path, SLOT_SIZE)
-    hotbar = [{"name": "weapon1", "image": weapon1_image}, {"name": "weapon2", "image": weapon2_image},
-              {"name": "weapon3", "image": weapon3_image}] + [None] * 6
+    hotbar = [{"name": "weapon1", "image": weapon1_image, "amount": 1}, {"name": "weapon2", "image": weapon2_image, "amount": 1},
+              {"name": "weapon3", "image": weapon3_image, "amount": 1}] + [None] * 6
     selected_weapon = 0
     selected_slot = 0
     chat_input = ""
@@ -553,12 +553,10 @@ def run_game():
                         chat_input_active = True
 
         # Movement only if not typing in chat
-        pressedKeys = pg.key.get_pressed()
-        if pressedKeys[pg.K_RSHIFT] or pressedKeys[pg.K_LSHIFT]:
-            auto_move = not auto_move
-            
         if not chat_input_active:
             keys = pg.key.get_pressed()
+            if keys[pg.K_RSHIFT] or keys[pg.K_LSHIFT]:
+                auto_move = not auto_move           
             my_sprite = my_player['x'], my_player['y'], my_player['width'], my_player['height']
             my_sprite = pg.Rect(my_sprite)
             if knockback == 0:
@@ -603,7 +601,11 @@ def run_game():
 
                 if keys[pg.K_p] and selected_slot >= 3 and hotbar[selected_slot] is not None:
                     apply_item_effect(hotbar[selected_slot], my_player, weapons, shared_data, obj)
-                    hotbar[selected_slot] = None  # Remove item after use
+                    if hotbar[selected_slot]['amount'] > 1:
+                        hotbar[selected_slot]['amount'] -= 1
+                        
+                    elif hotbar[selected_slot]['amount'] == 1 and selected_slot >= 3:
+                        hotbar[selected_slot] = None  # Remove item after use
 
                 if obj.check_collision_nearby(my_sprite, radius=80):
                     move_x = -move_x
