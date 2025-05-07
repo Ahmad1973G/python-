@@ -263,7 +263,7 @@ def chat_sync_loop(Socket, chat_log, chat_input_active):
             break
 
 
-def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=650, slot_size=50, inv_cols=9):
+def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=650, slot_size=50, inv_cols=10):
     hotbar_y = screen_height - slot_size - 20
     hotbar_x = (screen_width - inv_cols * slot_size) // 2
 
@@ -275,7 +275,7 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
         pg.draw.rect(screen, (60, 60, 60), (x, y, slot_size, slot_size))
 
         # Highlight selected slot
-        if col == selected_slot:
+        if col == selected_slot or col == selected_slot - 48:
             pg.draw.rect(screen, (255, 255, 0), (x - 2, y - 2, slot_size + 4, slot_size + 4), 3)
 
         # Border
@@ -325,7 +325,14 @@ def apply_item_effect(item, my_player, weapons, shared_data, obj):
         obj.invulnerability_cooldown_end_time = 0  # Reset invulnerability cooldown
         print("Powerup cooldowns refreshed!")
 
+def receive_data_loop(Socket):
+    """Thread to receive data from the server."""
+    while True:
+        recived = Socket.requestDATA()
 
+        with lock_shared_data:
+            shared_data['recived'] = recived
+            
 def run_game():
     Socket = ClientSocket.ClientServer()
     Socket.connect()
@@ -342,7 +349,7 @@ def run_game():
     font_chat = pg.font.SysFont(None, 24)  # You can change font or size if you want
     chat_input_active = False
     INV_ROWS = 3
-    INV_COLS = 9
+    INV_COLS = 10
     SLOT_SIZE = 50
     auto_move = False
     # Get directory of the currently running script
@@ -363,7 +370,7 @@ def run_game():
     weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
     weapon3_image = load_item_image("char_3.png", picture_path, SLOT_SIZE)
     hotbar = [{"name": "weapon1", "image": weapon1_image, "amount": 1}, {"name": "weapon2", "image": weapon2_image, "amount": 1},
-              {"name": "weapon3", "image": weapon3_image, "amount": 1}] + [None] * 6
+              {"name": "weapon3", "image": weapon3_image, "amount": 1}] + [None] * 7
     selected_weapon = 0
     selected_slot = 0
     chat_input = ""
@@ -481,17 +488,34 @@ def run_game():
     thread_chat.daemon = True
     thread_chat.start()
     # thread_movement.start()
+    
+    thread_movement = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y']))
+    thread_movement.daemon = True
+    thread_movement.start()
+    
+    theread_angle = threading.Thread(target=Socket.sendANGLE, args=(angle))
+    theread_angle.daemon = True
+    theread_angle.start()
+    
+    thread_sendchat = threading.Thread(target=Socket.sendCHAT, args=(chat_input))
+    thread_sendchat.daemon = True
+    thread_sendchat.start()
+    
+    thread_recivedata = threading.Thread(target=receive_data_loop, args=(Socket))
+    thread_recivedata.daemon = True
+    thread_recivedata.start()
+    
     while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
             elif event.type == pg.KEYDOWN:
-                if pg.K_1 <= event.key <= pg.K_3:
-                    selected_weapon = event.key - pg.K_1
-                    selected_slot = event.key - pg.K_1
+                if pg.K_0 <= event.key <= pg.K_2:
+                    selected_weapon = event.key
+                    selected_slot = event.key
                     print("Selected slot:", selected_weapon)
-                elif pg.K_4 <= event.key <= pg.K_9:
-                    selected_slot = event.key - pg.K_1
+                elif pg.K_3 <= event.key <= pg.K_9:
+                    selected_slot = event.key
                     print("Selected slot:", selected_slot)
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 shared_data['fire'] = True
@@ -513,7 +537,6 @@ def run_game():
                         angle = (direction / abs(direction)) * (
                                 (-(mouse[0] - 500)) / abs(mouse[0] - 500)) * 90 + angle + (
                                         1 + (-direction) / abs(direction)) * 90
-                Socket.sendANGLE(angle)
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_1:
                     shared_data['used_weapon'] = 0
@@ -538,7 +561,6 @@ def run_game():
                     if event.key == pg.K_RETURN:
                         if chat_input.strip():
                             chat_log.append(chat_input)  # Append to chat_log list instead
-                            Socket.sendCHAT(chat_input)  # Send message to server
                         chat_input = ""
                         chat_input_active = False
                     elif event.key == pg.K_ESCAPE:
@@ -634,11 +656,6 @@ def run_game():
             # while not kys[pg.K_r]:
             #    kys = pg.key.get_pressed()
             time.sleep(5)
-            Socket.sendMOVE(my_player['x'], my_player['y'])
-        recived = Socket.requestDATA()
-
-        with lock_shared_data:
-            shared_data['recived'] = recived
 
         found = False
         for key, data in recived.items():
@@ -693,7 +710,6 @@ def run_game():
             else:
                 my_player['x'] -= move_x
                 my_player['y'] -= move_y
-            Socket.sendMOVE(my_player['x'], my_player['y'])
         #world_offset = (500 - my_player['x'], 325 - my_player['y'])
 
         start_col = my_player['x'] // tile_width
@@ -727,9 +743,11 @@ def run_game():
         draw_health_bar(screen, 10, 45, my_player['hp'], max_health)
         if chat_input_active:
             draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)
-        draw_hotbar(screen, selected_slot, hotbar)
+        if selected_weapon >= 48:
+            selected_weapon -= 48
         ammo_text = font_fps.render(f"Ammo: {weapons[selected_weapon]['ammo']}", True, (255, 0, 0))
         screen.blit(ammo_text, (10, 80))  # top-left corner
+        draw_hotbar(screen, selected_slot, hotbar)
         pg.display.flip()
     pg.quit()
 
