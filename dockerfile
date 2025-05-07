@@ -1,43 +1,36 @@
-FROM python:3.9-slim
+FROM python:3.9
 
-# Install dependencies for pygame, X11, and other necessary libraries
+# Install X11 dependencies and other required packages
 RUN apt-get update && apt-get install -y \
+    xvfb \
+    x11vnc \
+    python3-tk \
     libsdl2-dev \
     libsdl2-image-dev \
     libsdl2-mixer-dev \
     libsdl2-ttf-dev \
     libfreetype6-dev \
     libportmidi-dev \
-    python3-dev \
-    python3-numpy \
-    python3-tk \
-    x11-xserver-utils \
-    xvfb \
-    xorg \
-    libx11-dev \
-    libxext-dev \
-    libasound2-dev \
-    libpulse-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set up working directory
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Install Python dependencies directly
+RUN pip install --no-cache-dir pygame pytmx scipy numpy python-dotenv
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy all game files
+# Copy the game files
 COPY . .
 
-# Set up display environment variable
-ENV DISPLAY=:0
+# Set up the virtual display
+ENV DISPLAY=:99
 
-# Create a script to run the game with Xvfb
-RUN echo '#!/bin/bash\nXvfb :0 -screen 0 1024x768x24 &\npython game_client.py' > /app/start_game.sh && \
-    chmod +x /app/start_game.sh
+# Create a simple entrypoint script
+RUN echo '#!/bin/bash\nXvfb :99 -screen 0 1024x768x16 &\nx11vnc -display :99 -forever -nopw -shared &\npython paste.py' > /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Command to run when container starts
-CMD ["/app/start_game.sh"]
+# Expose the VNC port
+EXPOSE 5900
+
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
