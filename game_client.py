@@ -139,6 +139,7 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                         if data['rect'].colliderect(bullet_sprite['rect']):
                             print(
                                 "hit" + " " + key + ' ' + 'with weapon' + ' ' + str(shared_data['used_weapon'] + 1))
+                            Socket.sendDAMAGE(weapons[shared_data['used_weapon']]['damage'])
                             hit = True
                 end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
                     weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
@@ -196,12 +197,13 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                             hit2 = True
 
 
-def check_if_dead(hp):
-    print("dead")
-    x = 500
-    y = 500
-    dis_to_mid = [x - 500, y - 325]
-    return x, y, dis_to_mid, 50, 20, 7
+def check_if_dead(hp, Socket):
+    if hp <= 0:
+        print("dead")
+        x = 500
+        y = 500
+        dis_to_mid = [x - 500, y - 325]
+        return x, y, dis_to_mid, 50, 20, 7
 
 
 shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False, 'recived': {}}
@@ -244,8 +246,10 @@ def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
         pg.draw.rect(screen, (255, 0, 0), (box_x, 575, box_width, 25), 1)
 
 
-def chat_sync_loop(Socket, chat_log):
+def chat_sync_loop(Socket, chat_log, chat_input_active):
     while True:
+        if not chat_input_active:
+            continue
         try:
             new_msgs = Socket.recvCHAT()
             if new_msgs is True:
@@ -340,6 +344,7 @@ def run_game():
     INV_ROWS = 3
     INV_COLS = 9
     SLOT_SIZE = 50
+    auto_move = False
     # Get directory of the currently running script
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -376,6 +381,7 @@ def run_game():
 
     ]
     moving = False
+    diraction = 0
     move_x = 0
     move_y = 0
     angle = 0
@@ -471,7 +477,7 @@ def run_game():
     thread_bomb.daemon = True
     thread_bomb.start()
 
-    thread_chat = threading.Thread(target=chat_sync_loop, args=(Socket, chat_log))
+    thread_chat = threading.Thread(target=chat_sync_loop, args=(Socket, chat_log, chat_input_active))
     thread_chat.daemon = True
     thread_chat.start()
     # thread_movement.start()
@@ -547,27 +553,53 @@ def run_game():
                         chat_input_active = True
 
         # Movement only if not typing in chat
+        pressedKeys = pg.key.get_pressed()
+        if pressedKeys[pg.K_RSHIFT] or pressedKeys[pg.K_LSHIFT]:
+            auto_move = not auto_move
+            
         if not chat_input_active:
             keys = pg.key.get_pressed()
             my_sprite = my_player['x'], my_player['y'], my_player['width'], my_player['height']
             my_sprite = pg.Rect(my_sprite)
             if knockback == 0:
+                if auto_move:
+                    if my_sprite.y > -270 and diraction == 'up':
+                        my_player['y'] -= 15
+                        move_y = 15
+                        diraction = 'up'
+                    if my_sprite.y < 21150 and diraction == 'down':
+                        my_player['y'] += 15
+                        move_y = -15
+                        diraction = 'down'
+                    if my_sprite.x > -400 and diraction == 'left':
+                        my_player['x'] -= 15
+                        move_x = 15
+                        diraction = 'left'
+                    if my_sprite.x < 23450 and diraction == 'right':
+                        my_player['x'] += 15
+                        move_x = -15
+                        diraction = 'right'
+                        
                 if keys[pg.K_w]:
                     if my_sprite.y > -270:
                         my_player['y'] -= 15
                         move_y = 15
+                        diraction = 'up'
                 if keys[pg.K_s]:
                     if my_sprite.y < 21150:
                         my_player['y'] += 15
                         move_y = -15
+                        diraction = 'down'
                 if keys[pg.K_a]:
                     if my_sprite.x > -400:
                         my_player['x'] -= 15
                         move_x = 15
+                        diraction = 'left'
                 if keys[pg.K_d]:
                     if my_sprite.x < 23450:
                         my_player['x'] += 15
                         move_x = -15
+                        diraction = 'right'
 
                 if keys[pg.K_p] and selected_slot >= 3 and hotbar[selected_slot] is not None:
                     apply_item_effect(hotbar[selected_slot], my_player, weapons, shared_data, obj)
@@ -660,33 +692,32 @@ def run_game():
                 my_player['x'] -= move_x
                 my_player['y'] -= move_y
             Socket.sendMOVE(my_player['x'], my_player['y'])
-        world_offset = (500 - my_player['x'], 325 - my_player['y'])
+        #world_offset = (500 - my_player['x'], 325 - my_player['y'])
 
-        with lock:
-            start_col = my_player['x'] // tile_width
-            start_row = my_player['y'] // tile_height
-            end_col = (my_player['x'] + SCREEN_WIDTH) // tile_width + 2
-            end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
+        start_col = my_player['x'] // tile_width
+        start_row = my_player['y'] // tile_height
+        end_col = (my_player['x'] + SCREEN_WIDTH) // tile_width + 2
+        end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
 
-            # Draw visible tiles
-            # new_msgs = Socket.recvCHAT()
-            if not chat_input_active:
-                for layer in tmx_data.visible_layers:
-                    if isinstance(layer, pytmx.TiledTileLayer):
-                        layer_index = tmx_data.layers.index(layer)  # <<< fix here
-                        for x in range(start_col, end_col):
-                            for y in range(start_row, end_row):
-                                if 0 <= x < map_width and 0 <= y < map_height:
-                                    image = tmx_data.get_tile_image(x, y, layer_index)
-                                    if image:
-                                        screen.blit(
-                                            image,
-                                            (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
-                                        )
+        # Draw visible tiles
+        # new_msgs = Socket.recvCHAT()
+        if not chat_input_active:
+            for layer in tmx_data.visible_layers:
+                if isinstance(layer, pytmx.TiledTileLayer):
+                    layer_index = tmx_data.layers.index(layer)  # <<< fix here
+                    for x in range(start_col, end_col):
+                        for y in range(start_row, end_row):
+                            if 0 <= x < map_width and 0 <= y < map_height:
+                                image = tmx_data.get_tile_image(x, y, layer_index)
+                                if image:
+                                    screen.blit(
+                                        image,
+                                        (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
+                                    )
 
         obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
-        check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
+        #check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
         fps = clock.get_fps()
         fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
         if chat_input_active == False:
