@@ -286,7 +286,25 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
         if item:
             screen.blit(item["image"], (x + 5, y + 5))
 
+def draw_item(screen, item, picture_path):
+    """
+    Draws the item's image on the screen at its (x, y) position.
 
+    item: a dict with keys 'x', 'y', 'width', 'height', 'type'
+    picture_path: the base directory where item images are stored
+    screen: the pygame display surface
+    """
+    item_type = item['type']
+    image_path = os.path.join(picture_path, f"{item_type}.png")
+
+    try:
+        image = pg.image.load(image_path).convert_alpha()
+        image = pg.transform.scale(image, (item['width'], item['height']))
+        screen.blit(image, (item['x'], item['y']))
+    except FileNotFoundError:
+        print(f"Image for item type '{item_type}' not found at: {image_path}")
+    
+    
 def load_item_image(filename, PICTURE_PATH, SLOT_SIZE):
     path = os.path.join(PICTURE_PATH, filename)
     image = pg.image.load(path).convert_alpha()
@@ -354,11 +372,12 @@ def run_game():
     auto_move = False
     # Get directory of the currently running script
     script_dir = os.path.dirname(os.path.abspath(__file__))
-
+    item_path = os.path.join(script_dir)  # Points to: script_dir/items
+    print("nigga", item_path)
     # Create the full path to the map file
     map_path = os.path.join(script_dir, "map", "map.tmx")  # Points to: script_dir/map/map.tmx
 
-    print(map_path)
+    #print(map_path)
 
     # Check if the file exists
     if os.path.exists(map_path):
