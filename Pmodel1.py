@@ -1,9 +1,10 @@
-import time  # Import time for managing powerup durations
+import time
 import pygame as pg
 import json
 import math
 import threading
 class Player(pg.sprite.Sprite):
+    
     def __init__(self, my_player, speed, weapon, power, max_health, acceleration, players, moving,
              move_offset, coins, screen, players_sprites, my_sprite, weapons,shared_data,lock,lock_shared_data,Socket,Bullet_sprite, *groups):
         super().__init__(*groups)  # Pass groups to the Sprite
@@ -72,6 +73,10 @@ class Player(pg.sprite.Sprite):
     def update_players_sprites(self, players, players_sprites):
         self.players = players
         self.players_sprites = players_sprites
+    
+    def update_from_server(self, server_data):
+        if 'powerup' in server_data and server_data['powerup'] == "invulnerability":
+            self.is_invulnerable = time.time() < server_data['invulnerable_until']
 
     def you_dead(self):
         print('dead')
@@ -123,4 +128,3 @@ class Player(pg.sprite.Sprite):
         image=pg.transform.rotate(image,angle)
         rect = image.get_rect(center=(500, 325))
         self.screen.blit(image, rect)
-

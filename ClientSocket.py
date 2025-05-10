@@ -103,7 +103,7 @@ class ClientServer:
 
     def protocol_check(self, data: str):
         if data == "ACK":
-            print("ACK received")
+            # print("ACK received")
             return True
 
         if data.startswith("MOVING"):
@@ -133,7 +133,8 @@ class ClientServer:
         message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
-            print("Angle sent successfully")
+            pass
+            # print("Angle sent successfully")
 
     def sendDAMAGE(self, damage):
         self.socket.send(f"DAMAGE {damage}".encode())
@@ -148,6 +149,15 @@ class ClientServer:
         message = message.decode()
         if self.protocol_check(message):
             print("Power sent successfully")
+    
+    def sendBOOM(self, x, y, Brange):
+        self.socket.send(f"BOOM {x};{y};{Brange}\n".encode())
+        message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "ACK":
+            print("SOCKET; boom sent successfully")
+        else:
+            print("SOCKET; Failed to send boom, error:", message)
 
     def requestDATA(self):
         try:
