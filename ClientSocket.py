@@ -154,7 +154,7 @@ class ClientServer:
             self.socket.send("REQUEST".encode())
             data = self.socket.recv(1024)
             if not data:
-                return None
+                return {}
 
             data = data.decode()
             if data == "WARNING":
@@ -168,10 +168,10 @@ class ClientServer:
 
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
-            return None
+            return {}
         except socket.error as e:
             print(f"Socket error: {e}")
-            return None
+            return {}
 
     def requestDATAFULL(self):
         try:
@@ -192,10 +192,10 @@ class ClientServer:
 
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
-            return None
+            return {}
         except socket.error as e:
             print(f"Socket error: {e}")
-            return None
+            return  {}
 
     def login(self, user, password):
         self.socket.send(f"LOGIN {user};{password}".encode())

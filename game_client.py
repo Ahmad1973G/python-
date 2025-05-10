@@ -61,9 +61,10 @@ def my_shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket)
                     bullet_sprite['rect'].x = shot_offset[0] + 500
                     bullet_sprite['rect'].y = 325 - shot_offset[1]
                     bullet_sprite['image'].fill((0, 255, 0))
-                    #with lock:
-                    screen.blit(bullet_sprite['image'],bullet_sprite['rect'])
+                    with lock:
+                        screen.blit(bullet_sprite['image'],bullet_sprite['rect'])
                     pg.display.flip()
+                    screen.fill()
                     # --------------------------------------------------------------
                     for key, data in players_sprites.items():
                         if data['rect'].colliderect(bullet_sprite['rect']):
