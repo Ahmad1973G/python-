@@ -31,7 +31,7 @@ def my_shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket)
                 shot_offset[0] -= 500
                 shot_offset[1] = 325 - shot_offset[1]
                 added_dis = range1 * weapons[shared_data['used_weapon']]['bulet_speed']
-                #------------------------------------------------------------------------------
+                # ------------------------------------------------------------------------------
                 direction = shot_offset[1] / shot_offset[0]
                 shot_offset[0] = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
                     weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
@@ -45,7 +45,7 @@ def my_shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket)
                 end1 += my_player['x'] - 500
                 end2 += my_player['y'] - 325
                 Socket.sendSHOOT(my_player['x'], my_player['y'], end1, end2, shared_data['used_weapon'])
-                #---------------------------------------------------------------
+                # ---------------------------------------------------------------
                 while abs(range1) < weapons[shared_data['used_weapon']]['range'] - 1 and not hit:
                     range1 += added_dis
                     # direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
@@ -62,9 +62,8 @@ def my_shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket)
                     bullet_sprite['rect'].y = 325 - shot_offset[1]
                     bullet_sprite['image'].fill((0, 255, 0))
                     with lock:
-                        screen.blit(bullet_sprite['image'],bullet_sprite['rect'])
+                        screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
                     pg.display.flip()
-                    screen.fill()
                     # --------------------------------------------------------------
                     for key, data in players_sprites.items():
                         if data['rect'].colliderect(bullet_sprite['rect']):
@@ -76,11 +75,11 @@ def my_shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket)
                 shared_data['fire'] = False
 
 
-def other_shoot(weapons,bullet_sprite, screen, my_player, Socket):
+def other_shoot(weapons, bullet_sprite, screen, my_player, Socket):
     while True:
         with lock_shared_data:
             temp = shared_data['recived']
-        if temp != None and type(temp) != str:
+        if temp != {}:
             for key, data in temp.items():
                 if 'shoot' in data:
                     start_pos = [int(float(data['shoot'][0])), int(float(data['shoot'][1]))]
@@ -109,10 +108,10 @@ def other_shoot(weapons,bullet_sprite, screen, my_player, Socket):
                             end_pos[1] = (end_pos[1] / abs(end_pos[1]) * math.sqrt(range1))
                             end_pos[0] = 0
                         bullet_sprite['image'].fill((255, 0, 255))
-                        bullet_sprite['rect'] =bullet_sprite['image'].get_rect(
+                        bullet_sprite['rect'] = bullet_sprite['image'].get_rect(
                             center=(end_pos[0] + start_pos[0], start_pos[1] - end_pos[1]))
                         with lock:
-                            screen.blit(bullet_sprite['image'],bullet_sprite['rect'])
+                            screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
                             pg.display.flip()
                         image = pg.Surface((60, 60))
                         image.fill(pg.Color('blue'))
@@ -120,9 +119,10 @@ def other_shoot(weapons,bullet_sprite, screen, my_player, Socket):
                         # --------------------------------------------------------------
                         if rect.colliderect(bullet_sprite['rect']):
                             print("got hit")
-                            # Socket.sendDAMAGE(weapons[int(data['shoot'][4])]['damage'])
-                            my_player['hp'] -=weapons[int(data['shoot'][4])]['damage']
+                            #    Socket.sendDAMAGE(weapons[int(data['shoot'][4])]['damage'])
+                            my_player['hp'] -= weapons[int(data['shoot'][4])]['damage']
                             hit2 = True
+
 def load_tmx_map(filename):
     """Load TMX map file and return data."""
     if not os.path.exists(filename):
@@ -209,14 +209,14 @@ def run_game():
     with lock:
         screen = pg.display.set_mode((1000, 650))
     clock = pg.time.Clock()
-    my_player = {'x': 500, 'y': 500, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 400, 'y': 400, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
 
     weapons = [
-        {"damage": 30, "range": 7000, 'bulet_speed': 70, 'ammo': 50, 'max_ammo': 50, 'weapon_id': 1},
-        {"damage": 20, "range": 50000, 'bulet_speed': 150, 'ammo': 20, 'max_ammo': 20, 'weapon_id': 2},
+        {"damage": 25, "range": 10000, 'bulet_speed': 70, 'ammo': 50, 'max_ammo': 50, 'weapon_id': 1},
+        {"damage": 20, "range": 70000, 'bulet_speed': 80, 'ammo': 20, 'max_ammo': 20, 'weapon_id': 2},
         {"damage": 15, "range": 120000, 'bulet_speed': 100, 'ammo': 7, 'max_ammo': 7, 'weapon_id': 3}
 
     ]
@@ -383,7 +383,6 @@ def run_game():
             time.sleep(5)
             Socket.sendMOVE(my_player['x'], my_player['y'])
         recived = Socket.requestDATA()
-        print(recived)
         if recived!=None:
             with lock_shared_data:
                 shared_data['recived'] = recived
@@ -443,8 +442,7 @@ def run_game():
             Socket.sendMOVE(my_player['x'], my_player['y'])
         world_offset = (500 - my_player['x'], 325 - my_player['y'])
 
-        with lock:
-            screen.blit(map_surface, world_offset)
+        screen.blit(map_surface, world_offset)
         obj.print_players(players_sprites, players, angle,shared_data['used_weapon'])
         pg.display.flip()
         clock.tick(60)
