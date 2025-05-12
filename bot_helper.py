@@ -15,7 +15,7 @@ def run():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
-            elif event.type == pg.MOUSEMOTION:
+            elif event.type == pg.MOUSEBUTTONDOWN:
                 mouse = pg.mouse.get_pos()
                 bot.SeNdTArGeT(mouse[0], mouse[1])
 

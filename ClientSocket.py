@@ -174,6 +174,7 @@ class ClientServer:
                 return "KICK"
             else:
                 # Assuming the data is just JSON without prefix
+                print(data)
                 return json.loads(data)
 
         except json.JSONDecodeError as e:
