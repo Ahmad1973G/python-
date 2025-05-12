@@ -111,15 +111,19 @@ def process_register(self, client_id, message: str):
 
 def process_move(self, client_id, message: str):
     try:
-        x = int(float(message.split(';')[0]))
-        y = int(float(message.split(';')[1]))
+        messages = message.split(';')
+        x = int(float(messages[0]))
+        y = int(float(messages[1]))
+        weapon = int(messages[2])
 
         with self.elements_lock:
             self.updated_elements[client_id]['x'] = x
             self.updated_elements[client_id]['y'] = y
+            self.updated_elements[client_id]['weapon'] = weapon
         with self.players_data_lock:
             self.players_data[client_id]['x'] = x
             self.players_data[client_id]['y'] = y
+            self.players_data[client_id]['weapon'] = weapon
 
         self.CheckIfMovingFULL(client_id)
         self.CheckForLB(client_id, x, y)
