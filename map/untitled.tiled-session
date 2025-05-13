@@ -1,0 +1,74 @@
+{
+    "activeFile": "../map.tmx",
+    "expandedProjectPaths": [
+    ],
+    "file.lastUsedOpenFilter": "כל הקבצים (*)",
+    "fileStates": {
+        "../map.tmx": {
+            "scale": 0.125,
+            "selectedLayer": 5,
+            "viewCenter": {
+                "x": 384,
+                "y": 18108
+            }
+        },
+        "../map.tmx#Back": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#DesertMockup": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#DesertTilemap16x16": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#Mockup2": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#Pillar": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#Pyramid": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#Pyramid with Door": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#TX Plant": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#TX Props": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#TX Struct": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#TX Tileset Grass": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#TX Tileset Stone Ground": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#TX Tileset Wall": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#fence_Bottom_left.png": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#freelavatileset-Sheet": {
+            "scaleInDock": 1
+        },
+        "../map.tmx#spritesheet": {
+            "scaleInDock": 1
+        },
+        "C:/webroot/lava.tsx": {
+            "scaleInDock": 1
+        }
+    },
+    "openFiles": [
+        "../map.tmx"
+    ],
+    "project": "untitled.tiled-project",
+    "recentFiles": [
+        "../map.tmx"
+    ]
+}
