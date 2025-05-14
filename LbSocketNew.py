@@ -229,7 +229,7 @@ class LoadBalancer:
                 try:
                     with self.db_lock:  # Protect database access
                         db = self.get_db()
-                        if db.login(username, password):
+                        if db.login(username, password) is True:
                             clients[client_id] = ("FAILED CODE REGISTER 2", None)
                             continue
                         if db.user_exists(username):
