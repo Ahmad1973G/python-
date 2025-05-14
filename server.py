@@ -11,7 +11,6 @@ import sub_lb_prots
 import bots
 import os
 import pytmx
-
 # Configuration
 LB_PORT = 5002
 UDP_PORT = LB_PORT + 1
@@ -29,26 +28,31 @@ def get_ip_address():
     return ip_address
 
 
-def build_collision_kdtree(collidable_tiles):
-    # Calculate center positions for KD-tree
-    positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in collidable_tiles]
-    kd_tree = KDTree(positions)
-    pos_to_tile = dict(zip(positions, collidable_tiles))
-    return kd_tree, pos_to_tile
-
-
-def get_collidable_tiles(tmx_data):
-    """Returns a set of tile coordinates that are collidable."""
+def get_collidable_tiles_optimized(tmx_data):
+    """Optimized version of collision tile processing"""
     collidable_tiles = set()
     for layer in tmx_data.layers:
-        if isinstance(layer, pytmx.TiledObjectGroup):
-            if layer.name == "no walk no shoot":
-                for obj in layer:
-                    # Add the coordinates of the collidable tile to the set
-                    new_tile_tup = obj.x - 500, obj.width, obj.y - 330, obj.height
-                    # collidable_tiles.add((obj.x // tmx_data.tilewidth, obj.y // tmx_data.tileheight))
-                    collidable_tiles.add(new_tile_tup)
+        if isinstance(layer, pytmx.TiledObjectGroup) and layer.name == "no walk no shoot":
+            # Process all objects in batch
+            collidable_tiles.update(
+                (obj.x - 500, obj.width, obj.y - 330, obj.height)
+                for obj in layer
+            )
     return collidable_tiles
+
+
+def build_collision_kdtree_optimized(collidable_tiles):
+    """Optimized version of KD-tree building"""
+    # Pre-calculate all positions in one go
+    positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in collidable_tiles]
+
+    # Build KD-tree with faster algorithm
+    kd_tree = KDTree(positions, leafsize=16)  # Increased leaf size for better performance
+
+    # Create position mapping using dict comprehension
+    pos_to_tile = {pos: tile for pos, tile in zip(positions, collidable_tiles)}
+
+    return kd_tree, pos_to_tile
 
 
 class SubServer:
@@ -97,6 +101,7 @@ class SubServer:
         self.cache_lock = threading.Lock()
         self.logs_lock = threading.Lock()
         self.sequence_lock = threading.Lock()
+        self.bots_lock = threading.Lock()
 
         self.process_move = sub_client_prots.process_move
         self.process_shoot = sub_client_prots.process_shoot
@@ -151,10 +156,12 @@ class SubServer:
         script_dir = os.path.dirname(__file__)
         map_path = os.path.join(script_dir, "map", "map.tmx")
 
-        tmx_data = pytmx.load_pygame(map_path)
-        collidable_tiles = get_collidable_tiles(tmx_data)
-        self.kd_tree, self.pos_to_tile = build_collision_kdtree(collidable_tiles)
-        self.SetBots()
+        tmx_data = pytmx.TiledMap(map_path, load_all_tiles=False)
+        print("Loaded map data successfully")
+        collidable_tiles = get_collidable_tiles_optimized(tmx_data)
+        print("Extracted collidable tiles successfully")
+        self.kd_tree, self.pos_to_tile = build_collision_kdtree_optimized(collidable_tiles)
+        print("Built KD-tree successfully")
 
     def get_random_bot_position(self, borders):
         bot_x, bot_y = (random.randint(borders[0], borders[0] + self.server_borders[0]),
@@ -162,30 +169,55 @@ class SubServer:
         return bot_x, bot_y
 
     def SetBots(self):
-        if self.server_index == 1:
-            borders = (0, 0)
-        elif self.server_index == 2:
-            borders = (self.server_borders[0], 0)
-        elif self.server_index == 3:
-            borders = self.server_borders
-        else:
-            borders = (0, self.server_borders[1])
+        borders = {
+            1: (0, 0),
+            2: (self.server_borders[0], 0),
+            3: self.server_borders,
+            4: (0, self.server_borders[1])
+        }.get(self.server_index, (0, 0))
 
-        positions: List[tuple] = []
-        for i in range(100):
-            bot_x, bot_y = self.get_random_bot_position(borders)
-            while (bot_x, bot_y) in positions:
-                bot_x, bot_y = self.get_random_bot_position(borders)
-            positions.append((bot_x, bot_y))
-            bot_type = random.randint(0, 1)
-            if bot_type == 0:
-                bot_type = True
-            else:
-                bot_type = False
-            bot = bots.Bot(bot_x, bot_y, bot_type, 0 ,0, self.kd_tree, self.pos_to_tile)
+        # Generate more positions than needed to avoid too many collisions
+        all_positions = set()
+        while len(all_positions) < 100:
+            x = borders[0] + random.randint(0, self.server_borders[0])
+            y = borders[1] + random.randint(0, self.server_borders[1])
+            all_positions.add((x, y))
+
+        # Create bots in batch
+        positions = list(all_positions)[:100]  # Take first 100 positions
+        bot_types = [random.random() < 0.5 for _ in range(100)]  # Pre-generate all bot types
+
+        # Create bots and update data structures in batch
+        for i, ((x, y), is_type_0) in enumerate(zip(positions, bot_types)):
+            bot = bots.Bot(x, y, is_type_0, 0, 0, self.kd_tree, self.pos_to_tile)
+
+            # Update both dictionaries at once under a single lock
+            with self.players_data_lock:
+                self.players_data[i] = {
+                    'x': x,
+                    'y': y,
+                    'type': is_type_0,
+                    'angle': 0,
+                    'health': 100
+                }
             self.bots[i] = bot
+    def CheckForBots(self, x, y):
+        for bot_id, bot in self.bots.items():
+            if abs(bot.my_x - x) < 1000 or abs(bot.my_y - y) < 650:
+                bot.SeNdTArGeT(x, y)
 
+    def MovingBots(self):
+        for bot_id, bot in self.bots.items():
+            if bot.moving:
+                with self.players_data_lock:
+                    self.players_data[bot_id]['x'] = bot.my_x
+                    self.players_data[bot_id]['y'] = bot.my_y
 
+                with self.elements_lock:
+                    self.updated_elements[bot_id]['x'] = bot.my_x
+                    self.updated_elements[bot_id]['y'] = bot.my_y
+
+                self.CheckForBots(bot.my_x, bot.my_y)
 
     def AskForID(self, conn):
         try:
@@ -273,14 +305,15 @@ class SubServer:
     def handle_lb(self):
         self.getINDEX(self)
         self.getBORDERS(self)
+        self.SetBots()
         while True:
             try:
                 # self.SendInfoLB()
                 # self.getRIGHT()
                 # self.getSEND()
-                self.SendRegister()
-                self.SendLogin()
-                self.SendCache()
+                self.SendRegister(self)
+                self.SendLogin(self)
+                self.SendCache(self)
             except socket.timeout:
                 print("No data received from load balancer within timeout period")
             except Exception as e:
@@ -415,11 +448,12 @@ class SubServer:
 
             with self.elements_lock:
                 self.updated_elements[client_id] = {'disconect': True}
-                start_time = time.time()
-                while True:
-                    if time.time() - start_time > 10:
+            start_time = time.time()
+            while True:
+                if time.time() - start_time > 10:
+                    with self.elements_lock:
                         del self.updated_elements[client_id]
-                        break
+                    break
             conn.close()
 
     def process_player_data(self, client_id, message: str):
