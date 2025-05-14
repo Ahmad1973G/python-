@@ -168,7 +168,7 @@ class SubServer:
                         random.randint(borders[1], borders[1] + self.server_borders[1]))
         return bot_x, bot_y
 
-    def SetBots(self):
+    def SetBots(self, amount):
         borders = {
             1: (0, 0),
             2: (self.server_borders[0], 0),
@@ -178,14 +178,14 @@ class SubServer:
 
         # Generate more positions than needed to avoid too many collisions
         all_positions = set()
-        while len(all_positions) < 100:
+        while len(all_positions) < amount:
             x = borders[0] + random.randint(0, self.server_borders[0])
             y = borders[1] + random.randint(0, self.server_borders[1])
             all_positions.add((x, y))
 
         # Create bots in batch
-        positions = list(all_positions)[:100]  # Take first 100 positions
-        bot_types = [random.random() < 0.5 for _ in range(100)]  # Pre-generate all bot types
+        positions = list(all_positions)[:amount]  # Take first x positions
+        bot_types = [random.random() < 0.5 for _ in range(amount)]  # Pre-generate all bot types
 
         # Create bots and update data structures in batch
         for i, ((x, y), is_type_0) in enumerate(zip(positions, bot_types)):
@@ -202,7 +202,8 @@ class SubServer:
                 }
             with self.elements_lock:
                 self.updated_elements[i] = {}
-            self.bots[i] = bot
+            with self.bots_lock:
+                self.bots[i] = bot
 
     def CheckForBots(self, x, y):
         with self.bots_lock:
@@ -335,7 +336,7 @@ class SubServer:
     def handle_lb(self):
         self.getINDEX(self)
         self.getBORDERS(self)
-        self.SetBots()
+        self.SetBots(25)
         while True:
             try:
                 # self.SendInfoLB()
