@@ -226,7 +226,7 @@ class ClientServer:
         try:
             with self.lock:
                 self.socket.send("REQUEST".encode())
-                data = self.socket.recv(1024)
+                data = self.socket.recv(100000)
             if not data:
                 return None
 
@@ -251,7 +251,7 @@ class ClientServer:
         try:
             with self.lock:
                 self.socket.send("REQUESTFULL".encode())
-                data = self.socket.recv(1024)
+                data = self.socket.recv(100000)
             if not data:
                 return None
 
@@ -267,6 +267,7 @@ class ClientServer:
 
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
+            print(data)
             return None
         except socket.error as e:
             print(f"Socket error: {e}")

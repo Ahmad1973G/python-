@@ -97,7 +97,7 @@ def SendLogin(self):
         with self.waiting_login_lock:
             self.waiting_login = {}
         data = json.loads(data)
-        self.SortLogin(data)
+        self.SortLogin(self, data)
 
     except socket.timeout:
         print("No data received from load balancer within timeout period")
@@ -133,7 +133,7 @@ def SendRegister(self):
         with self.waiting_register_lock:
             self.waiting_register = {}
         data = json.loads(data)
-        self.SortRegister(data)
+        self.SortRegister(self, data)
     except socket.timeout:
         print("No data received from load balancer within timeout period")
     except Exception as e:

@@ -200,24 +200,54 @@ class SubServer:
                     'angle': 0,
                     'health': 100
                 }
+            with self.elements_lock:
+                self.updated_elements[i] = {}
             self.bots[i] = bot
+
     def CheckForBots(self, x, y):
-        for bot_id, bot in self.bots.items():
-            if abs(bot.my_x - x) < 1000 or abs(bot.my_y - y) < 650:
-                bot.SeNdTArGeT(x, y)
+        with self.bots_lock:
+            for bot_id, bot in self.bots.items():
+                if abs(bot.my_x - x) < 1000 or abs(bot.my_y - y) < 650:
+                    bot.SeNdTArGeT(x, y)
 
     def MovingBots(self):
-        for bot_id, bot in self.bots.items():
-            if bot.moving:
-                with self.players_data_lock:
-                    self.players_data[bot_id]['x'] = bot.my_x
-                    self.players_data[bot_id]['y'] = bot.my_y
+        with self.bots_lock:
+            for bot_id, bot in self.bots.items():
+                if bot.moving:
+                    with self.players_data_lock:
+                        self.players_data[bot_id]['x'] = bot.my_x
+                        self.players_data[bot_id]['y'] = bot.my_y
 
-                with self.elements_lock:
-                    self.updated_elements[bot_id]['x'] = bot.my_x
-                    self.updated_elements[bot_id]['y'] = bot.my_y
+                    with self.elements_lock:
+                        self.updated_elements[bot_id]['x'] = bot.my_x
+                        self.updated_elements[bot_id]['y'] = bot.my_y
 
-                self.CheckForBots(bot.my_x, bot.my_y)
+                else:
+                    with self.elements_lock:
+                        if bot_id in self.updated_elements:
+                            if 'x' in self.updated_elements[bot_id]:
+                                del self.updated_elements[bot_id]['x']
+                                del self.updated_elements[bot_id]['y']
+
+    def ShootingBots(self):
+        with self.bots_lock:
+            for bot_id, bot in self.bots.items():
+                if bot.shooting:
+                    with self.elements_lock:
+                        self.updated_elements[bot_id]['shoot'] = [bot.my_x, bot.my_y, bot.closest_x, bot.closest_y]
+                else:
+                    with self.elements_lock:
+                        if bot_id in self.updated_elements:
+                            if 'shoot' in self.updated_elements[bot_id]:
+                                del self.updated_elements[bot_id]['shoot']
+
+    def BotManage(self):
+        while True:
+            with self.bots_lock:
+                if len(self.bots) < 100:
+                    continue
+            self.MovingBots()
+            self.ShootingBots()
 
     def AskForID(self, conn):
         try:
@@ -485,7 +515,11 @@ class SubServer:
         lb_thread.join()
 
         if self.is_connected_to_lb:
-            self.client_connect_protocol()
+            clients_thread = threading.Thread(target=self.client_connect_protocol)
+            clients_thread.start()
+
+            bots_thread = threading.Thread(target=self.BotManage)
+            bots_thread.start()
         else:
             print("Load balancer not properly connected, not listening to clients.")
 
