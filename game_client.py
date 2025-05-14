@@ -2,6 +2,8 @@ import pygame as pg
 import json
 import tkinter as tk
 from tkinter import messagebox, font
+from tkinter import ttkimport tkinter as tk
+from tkinter import messagebox, font
 from tkinter import ttk
 from pygame.examples.music_drop_fade import starting_pos
 import random
@@ -13,7 +15,8 @@ import pytmx
 import math
 import sys
 import os
-import startprotocol
+import startprotocolimport startprotocol
+from scipy.spatial import KDTree
 
 def load_tmx_map(filename):
     """Load TMX map file and return data."""
@@ -209,7 +212,7 @@ lock_shared_data = threading.Lock()
 lock = threading.Lock()
 
 
-def get_collidable_tiles(tmx_data, collidable_tileset_name="Obstacles"):
+def get_collidable_tiles(tmx_data):
     """Returns a set of tile coordinates that are collidable."""
     collidable_tiles = set()
     for layer in tmx_data.layers:
@@ -223,16 +226,47 @@ def get_collidable_tiles(tmx_data, collidable_tileset_name="Obstacles"):
     return collidable_tiles
 
 
+def build_collision_kdtree(collidable_tiles):
+    # Calculate center positions for KD-tree
+    positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in collidable_tiles]
+    kd_tree = KDTree(positions)
+    pos_to_tile = dict(zip(positions, collidable_tiles))
+    return kd_tree, pos_to_tile
+
+"""
 def check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
-    if player_rect.x > coll_obj_x + coll_obj_w or player_rect.y < coll_obj_y - coll_obj_h:
+    if player_rect.x - player_rect.width/2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height/2 < coll_obj_y - coll_obj_h:
         return False
-    if player_rect.x + player_rect.width < coll_obj_x or player_rect.y - player_rect.height > coll_obj_y:
+    if player_rect.x + player_rect.width/2 < coll_obj_x or player_rect.y - player_rect.height/2 > coll_obj_y:
         return False
     return True
+"""
 
 
+def check_collision_nearby(player_rect, kd_tree, pos_to_tile, radius=80):
+    center = (player_rect.centerx, player_rect.centery)
+    nearby_indices = kd_tree.query_ball_point(center, radius)
+
+    for idx in nearby_indices:
+        x_c, y_c = kd_tree.data[idx]
+        coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h = pos_to_tile[(x_c, y_c)]
+
+        # AABB-style collision check (same logic as your check_collision)
+        if (
+            player_rect.x - player_rect.width / 2 <= coll_obj_x + coll_obj_w and
+            player_rect.x + player_rect.width / 2 >= coll_obj_x and
+            player_rect.y - player_rect.height / 2 <= coll_obj_y and
+            player_rect.y + player_rect.height / 2 >= coll_obj_y - coll_obj_h
+        ):
+            #print(f"Collision with: {coll_obj_x}, {coll_obj_w}, {coll_obj_y}, {coll_obj_h}")
+            return True
+
+    #print("No collision")
+    return False
+
+""""
 def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
-    """Checks if the player collides with any of the collidable tiles."""
+    Checks if the player collides with any of the collidable tiles.
     for coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h in collidable_tiles:
         if check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
             print(coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h)
@@ -241,7 +275,133 @@ def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
     return False
 
 
+# Python 3 program for recursive binary search.
+# Modifications needed for the older Python 2 are found in comments.
+
+# Returns index of x in arr if present, else -1
+def binary_search(arr, low, high, x):
+
+    # Check base case
+    if high >= low:
+
+        mid = (high + low) // 2
+
+        # If element is present at the middle itself
+        if arr[mid] == x:
+            return mid
+
+        # If element is smaller than mid, then it can only
+        # be present in left subarray
+        elif arr[mid] > x:
+            return binary_search(arr, low, mid - 1, x)
+
+        # Else the element can only be present in right subarray
+        else:
+            return binary_search(arr, mid + 1, high, x)
+
+    else:
+        # Element is not present in the array
+        return -1
+
+def nearby_collision(player_rect, collidable_tiles, arrx, arry, radius=80):
+    if binary_search(arrx, 0, len(arrx) - 1, player_rect.x - radius) != -1:
+        start_x = binary_search(arrx, 0, len(arrx) - 1, player_rect.x - radius)
+        
+    else:
+        start_x = 0
+    
+    if binary_search(arry, 0, len(arry) - 1, player_rect.y - radius) != -1:
+        start_y = binary_search(arry, 0, len(arry) - 1, player_rect.y - radius)
+        
+    else:
+        start_y = 0
+    
+    if binary_search(arrx, 0, len(arrx) - 1, player_rect.x + radius) != -1:
+        end_x = binary_search(arrx, 0, len(arrx) - 1, player_rect.x + radius)
+        
+    else:
+        end_x = len(arrx) - 1
+    
+    if binary_search(arry, 0, len(arry) - 1, player_rect.y + radius) != -1:
+        end_y = binary_search(arry, 0, len(arry) - 1, player_rect.y + radius)
+        
+    else:
+        end_y = len(arry) - 1
+
+    nearby_tiles = set()
+
+    for i in range (start_x, end_x):
+        if i < start_y or i > end_y:
+            continue
+            
+        
+        
+        
+
+    return nearby_tiles 
+"""
+def draw_health_bar(surface, x, y, current, max, bar_width=200, bar_height=25):
+    ratio = current / max
+    pg.draw.rect(surface, (255, 0, 0), (x, y, bar_width, bar_height))  # red background
+    pg.draw.rect(surface, (0, 255, 0), (x, y, bar_width * ratio, bar_height))  # green foreground
+    pg.draw.rect(surface, (0, 0, 0), (x, y, bar_width, bar_height), 2)  # border
+     
+    
+def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
+    box_width = 300
+    box_x = 1000 - box_width  # Align to right side
+    log_y = 350  # Starting Y position for log
+
+    # Draw chat messages (right side)
+    for msg in reversed(chat_log[-5:]):
+        text_surface = font_chat.render(msg, True, (255, 0, 0))
+        screen.blit(text_surface, (box_x + 10, log_y))
+        log_y -= 25
+
+    # Draw input box
+    if chat_input_active:
+        pg.draw.rect(screen, (0, 0, 0), (box_x, 575, box_width, 25))
+        input_surface = font_chat.render(chat_input, True, (255, 0, 0))
+        screen.blit(input_surface, (box_x + 5, 578))
+        pg.draw.rect(screen, (255, 0, 0), (box_x, 575, box_width, 25), 1)
+    
+    
+def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=650, slot_size=50, inv_cols=9):
+    hotbar_y = screen_height - slot_size - 20
+    hotbar_x = (screen_width - inv_cols * slot_size) // 2
+
+    for col in range(inv_cols):
+        x = hotbar_x + col * slot_size
+        y = hotbar_y
+
+        # Background slot
+        pg.draw.rect(screen, (60, 60, 60), (x, y, slot_size, slot_size))
+
+        # Highlight selected slot
+        if col == selected_slot:
+            pg.draw.rect(screen, (255, 255, 0), (x - 2, y - 2, slot_size + 4, slot_size + 4), 3)
+
+        # Border
+        pg.draw.rect(screen, (255, 255, 255), (x, y, slot_size, slot_size), 2)
+
+        # Draw item if exists
+        item = hotbar[col]
+        if item:
+            screen.blit(item["image"], (x + 5, y + 5))
+
+def load_item_image(filename, PICTURE_PATH, SLOT_SIZE):
+    path = os.path.join(PICTURE_PATH, filename)
+    image = pg.image.load(path).convert_alpha()
+    return pg.transform.scale(image, (SLOT_SIZE - 10, SLOT_SIZE - 10))  # scale down
+    
 def run_game():
+    Socket = ClientSocket.ClientServer()
+    Socket.connect()
+    root = tk.Tk()
+    app = startprotocol.ModernGameLogin(root, Socket)
+    root.title("Login")
+    root.mainloop()
+
     Socket = ClientSocket.ClientServer()
     Socket.connect()
     root = tk.Tk()
@@ -252,6 +412,23 @@ def run_game():
     pg.init()
     with lock:
         screen = pg.display.set_mode((1000, 650))
+        
+    font_fps = pg.font.SysFont(None, 40)  # You can change font or size if you want
+    font_chat = pg.font.SysFont(None, 24)  # You can change font or size if you want
+    chat_input_active = False
+    INV_ROWS = 3
+    INV_COLS = 9
+    SLOT_SIZE = 50
+    picture_path = "C:/webroot"  # raw string for Windows path
+    weapon1_image = load_item_image("char_1.png", picture_path, SLOT_SIZE)
+    weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
+    weapon3_image = load_item_image("char_3.png", picture_path, SLOT_SIZE)
+    hotbar = [{"name": "weapon1", "image": weapon1_image}, {"name": "weapon2", "image": weapon2_image}, 
+             {"name": "weapon3", "image" : weapon3_image}] + [None] * 6     
+    selected_weapon = 0
+    selected_slot = 0
+    chat_input = ""
+    chat_log = []
     clock = pg.time.Clock()
     my_player = {'x': 300, 'y': 300, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
@@ -270,13 +447,15 @@ def run_game():
     angle = 0
     knockback = 0
     death = pg.image.load('dead.png').convert()
+    max_health = 100
+    current_health = 100
     granade_range = 200
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = pytmx.load_pygame("c:/webroot/map.tmx")  # <<< your TMX file here
-    collidable_tiles = get_collidable_tiles(tmx_data,
-                                            collidable_tileset_name="Obstacles")  # Get collidable tile coordinates
+    tmx_data = pytmx.load_pygame("c:/python_game/python-/map/map.tmx")  # <<< your TMX file here
+    collidable_tiles = get_collidable_tiles(tmx_data)  # Get collidable tile coordinates
+    kd_tree, pos_to_tile = build_collision_kdtree(collidable_tiles)
     tile_width = tmx_data.tilewidth
     tile_height = tmx_data.tileheight
     map_width = tmx_data.width
@@ -358,18 +537,26 @@ def run_game():
     thread_bomb.daemon = True
     thread_bomb.start()
     # thread_movement.start()
-    while running:
-
+    while running:  
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
+            elif event.type == pg.KEYDOWN:
+                if pg.K_1 <= event.key <= pg.K_3:
+                    selected_weapon = event.key - pg.K_1
+                    selected_slot = event.key - pg.K_1
+                    print("Selected slot:", selected_weapon)
+                elif pg.K_4 <= event.key <= pg.K_9:
+                    selected_slot = event.key - pg.K_1
+                    print("Selected slot:", selected_slot)
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 shared_data['fire'] = True
             elif event.type == pg.MOUSEMOTION:
                 mouse = pg.mouse.get_pos()
-                if mouse[0] == 500:
-                    if mouse[1] == 325:
+                if mouse[0] == 500 or chat_input_active:
+                    if mouse[1] == 325 or chat_input_active:
                         angle = 0
+
                     else:
                         angle = (1 + (-(325 - mouse[1])) / abs(325 - mouse[1])) * 90
                 else:
@@ -396,36 +583,62 @@ def run_game():
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
 
-        keys = pg.key.get_pressed()
         # Check for collisions with nearby collision rects
         #print(f"Here pressed {keys}")
         #res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
         #print("Finished")
-
         #print(res)
-        if knockback == 0:
-            if keys[pg.K_w]:
-                new_rect = pg.Rect(my_player['x'], my_player['y'] - 5, my_player['width'], my_player['height'])
-                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
-                    my_player['y'] -= 5
-                    move_y = 5
-            if keys[pg.K_s]:
-                new_rect = pg.Rect(my_player['x'], my_player['y'] + 5, my_player['width'], my_player['height'])
-                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
-                    my_player['y'] += 5
-                    move_y = -5
-            if keys[pg.K_a]:
-                new_rect = pg.Rect(my_player['x'] - 5, my_player['y'], my_player['width'], my_player['height'])
-                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
-                    my_player['x'] -= 5
-                    move_x = 5
-            if keys[pg.K_d]:
-                new_rect = pg.Rect(my_player['x'] + 5, my_player['y'], my_player['width'], my_player['height'])
-                if not check_tile_collision(new_rect, collidable_tiles, tile_width, tile_height):
-                    my_player['x'] += 5
-                    move_x = -5
-        else:
-            knockback -= 1
+                
+            if event.type == pg.KEYDOWN:        
+                if chat_input_active:
+                    if event.key == pg.K_RETURN:
+                        if chat_input.strip():
+                            chat_log.append("You: " + chat_input)
+                        chat_input = ""
+                        chat_input_active = False
+                    elif event.key == pg.K_ESCAPE:
+                        chat_input = ""  # Clear input without sending
+                        chat_input_active = False
+                    elif event.key == pg.K_BACKSPACE:
+                            chat_input = chat_input[:-1]
+                    else:
+                            chat_input += event.unicode
+                else:
+                    if event.key == pg.K_t:
+                        chat_input_active = True
+
+    # Movement only if not typing in chat
+        if not chat_input_active:
+            keys = pg.key.get_pressed()
+            my_sprite = my_player['x'], my_player['y'], my_player['width'], my_player['height']
+            my_sprite = pg.Rect(my_sprite)
+            if knockback == 0:
+                if keys[pg.K_w]:
+                    if my_sprite.y > -270:
+                        my_player['y'] -= 15
+                        move_y = 15
+                if keys[pg.K_s]:
+                    if my_sprite.y < 21150:
+                        my_player['y'] += 15
+                        move_y = -15
+                if keys[pg.K_a]:
+                    if my_sprite.x > -400:
+                        my_player['x'] -= 15
+                        move_x = 15
+                if keys[pg.K_d]:
+                    if my_sprite.x < 23450:
+                        my_player['x'] += 15
+                        move_x = -15
+                        
+                           
+                if check_collision_nearby(my_sprite, kd_tree, pos_to_tile, radius=80):
+                        move_x = -move_x
+                        move_y = -move_y
+                        knockback = 8
+                
+            else:
+                knockback -= 1
+
 
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
@@ -515,21 +728,34 @@ def run_game():
             end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
 
             # Draw visible tiles
-            for layer in tmx_data.visible_layers:
-                if isinstance(layer, pytmx.TiledTileLayer):
-                    layer_index = tmx_data.layers.index(layer)  # <<< fix here
-                    for x in range(start_col, end_col):
-                        for y in range(start_row, end_row):
-                            if 0 <= x < map_width and 0 <= y < map_height:
-                                image = tmx_data.get_tile_image(x, y, layer_index)
-                                if image:
-                                    screen.blit(
-                                        image,
-                                        (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
-                                    )
-        obj.print_players(players_sprites, players, angle)
-        pg.display.flip()
+            if not chat_input_active:
+                for layer in tmx_data.visible_layers:
+                    if isinstance(layer, pytmx.TiledTileLayer):
+                        layer_index = tmx_data.layers.index(layer)  # <<< fix here
+                        for x in range(start_col, end_col):
+                            for y in range(start_row, end_row):
+                                if 0 <= x < map_width and 0 <= y < map_height:
+                                    image = tmx_data.get_tile_image(x, y, layer_index)
+                                    if image:
+                                        screen.blit(
+                                            image,
+                                            (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
+                                        )
+            
+        obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
+        fps = clock.get_fps()
+        fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
+        if chat_input_active == False:
+            screen.blit(fps_text, (10, 10))
+        draw_health_bar(screen, 10, 45, my_player['hp'], max_health)
+        if chat_input_active:
+            draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)
+            
+        draw_hotbar(screen, selected_slot, hotbar)
+        ammo_text = font_fps.render(f"Ammo: {weapons[selected_weapon]['ammo']}", True, (255, 0, 0))
+        screen.blit(ammo_text, (10, 80))  # top-left corner
+        pg.display.flip()
     pg.quit()
 
 

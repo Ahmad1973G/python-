@@ -50,6 +50,9 @@ class SubServer:
         self.waiting_register = {}
         self.secret_players_data = {}
         self.players_cached = {}
+        self.waiting_register = {}
+        self.secret_players_data = {}
+        self.players_cached = {}
 
         # Add locks for shared resources
         self.clients_lock = threading.Lock()
@@ -60,6 +63,9 @@ class SubServer:
         self.other_server_lock = threading.Lock()
         self.moving_lock = threading.Lock()
         self.waiting_login_lock = threading.Lock()
+        self.waiting_register_lock = threading.Lock()
+        self.secret_lock = threading.Lock()
+        self.cache_lock = threading.Lock()
         self.waiting_register_lock = threading.Lock()
         self.secret_lock = threading.Lock()
         self.cache_lock = threading.Lock()
@@ -76,6 +82,7 @@ class SubServer:
         self.process_Money = sub_client_prots.process_Money
         self.process_Ammo = sub_client_prots.process_Ammo
         self.process_Inventory = sub_client_prots.process_Inventory
+        self.process_Bomb = sub_client_prots.process_boom
 
         self.protocols = {
             "MOVE": self.process_move,
@@ -88,6 +95,7 @@ class SubServer:
             "MONEY": self.process_Money,
             "AMMO": self.process_Ammo,
             "INVENTORY": self.process_Inventory,
+            "BOMB": self.process_Bomb
         }
 
         self.receive_protocol = {
@@ -109,8 +117,8 @@ class SubServer:
         data = self.lb_socket.recv(1024).decode()
         if data.startswith("BORDERS CODE 2"):
             data = data.split()[-1]
-            self.server_borders[0] = int(float(data.split(";")[0]))
-            self.server_borders[1] = int(float(data.split(";")[1]))
+            self.server_borders[0] = int(float(float(data.split(";")[0])))
+            self.server_borders[1] = int(float(float(data.split(";")[1])))
         else:
             print("Failed to get server ID from load balancer, error:", data)
 
@@ -196,6 +204,7 @@ class SubServer:
                     pass
 
 
+
     def getRIGHT(self):
         self.lb_socket.send(f"RIGHT".encode())
         data = self.lb_socket.recv(1024).decode()
@@ -241,6 +250,7 @@ class SubServer:
             self.different_server_players = data
 
 
+
     def lb_connect_protocol(self):
         print("Listening on UDP for load balancer on", get_ip_address())
         while not self.is_connected_to_lb:
@@ -253,6 +263,8 @@ class SubServer:
                         self.is_connected_to_lb = True
                         lb_thread = threading.Thread(target=self.handle_lb)
                         lb_thread.start()
+                        lb_thread = threading.Thread(target=self.handle_lb)
+                        lb_thread.start()
                         break
             except socket.timeout:
                 print("No UDP packet received within timeout period")
@@ -261,14 +273,18 @@ class SubServer:
                 self.lb_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
+
     def handle_lb(self):
         self.getINDEX()
         self.getBORDERS()
         while True:
             try:
-                #self.SendInfoLB()
-                #self.getRIGHT()
-                #self.getSEND()
+                ##self.SendInfoLB()
+                ##self.getRIGHT()
+                ##self.getSEND()
+                self.SendRegister()
+                self.SendLogin()
+                self.SendCache()
                 self.SendRegister()
                 self.SendLogin()
                 self.SendCache()
@@ -315,14 +331,36 @@ class SubServer:
 
     def SendLogin(self):
         try:
+            try:
             with self.waiting_login_lock:
-                if not self.waiting_login:
-                    return
-                str_login = f"LOGIN {json.dumps(self.waiting_login)}"
+                    if not self.waiting_login:
+                        return
+                    str_login = f"LOGIN {json.dumps(self.waiting_login)}"
+            print("Sending login data to load balancer:", str_login)
             print("Sending login data to load balancer:", str_login)
             self.lb_socket.send(str_login.encode())
             data = self.lb_socket.recv(1024).decode()
+            data = self.lb_socket.recv(1024).decode()
             with self.waiting_login_lock:
+                self.waiting_login = {}
+            data = json.loads(data)
+            for client_id, data in data.items():
+                client_id = int(client_id)
+                prot = data[0]
+                if prot.startswith("SUCCESS CODE LOGIN"):
+                    print(f"login for {client_id} successful!")
+                    with self.secret_lock:
+                        self.secret_players_data[client_id] = data[1]
+                    with self.clients_lock:
+                        self.connected_clients[client_id][1].send(f"SUCCESS CODE LOGIN {data[1]}".encode())
+                    continue
+                if prot.startswith("FAILED CODE LOGIN"):
+                    with self.clients_lock:
+                        self.connected_clients[client_id][1].send(prot.encode())
+                    continue
+
+        except socket.timeout:
+            print("No data received from load balancer within timeout period")
                 self.waiting_login = {}
             data = json.loads(data)
             for client_id, data in data.items():
@@ -395,6 +433,57 @@ class SubServer:
             print("No data received from load balancer within timeout period")
         except Exception as e:
             print(f"Error receiving data from load balancer: {e}")
+            print(f"Error receiving data from load balancer: {e}")
+
+    def SendRegister(self):
+        try:
+            with self.waiting_register_lock:
+                if not self.waiting_register:
+                    return
+                print(self.waiting_register)
+                str_register = f"REGISTER {json.dumps(self.waiting_register)}"
+            self.lb_socket.send(str_register.encode())
+            data = self.lb_socket.recv(1024).decode()
+            with self.waiting_register_lock:
+                self.waiting_register = {}
+            data = json.loads(data)
+            for client_id, data in data.items():
+                client_id = int(client_id)
+                prot = data[0]
+                if prot.startswith("SUCCESS CODE REGISTER"):
+                    print(f"register for {client_id} successful!")
+                    with self.secret_lock:
+                        self.secret_players_data[client_id] = data[1]
+
+                    with self.clients_lock:
+                        self.connected_clients[client_id][1].send(f"SUCCESS CODE REGISTER {data[1]}".encode())
+                    continue
+                if prot.startswith("FAILED CODE REGISTER"):
+                    with self.clients_lock:
+                        self.connected_clients[client_id][1].send(prot.encode())
+                    continue
+        except socket.timeout:
+            print("No data received from load balancer within timeout period")
+        except Exception as e:
+            print(f"Error receiving data from load balancer: {e}")
+
+    def SendCache(self):
+        try:
+            with self.cache_lock:
+                if not self.players_cached:
+                    return
+                str_cache = f"CACHE {json.dumps(self.players_cached)}"
+            print("Sending cache data to load balancer:", str_cache)
+            self.lb_socket.send(str_cache.encode())
+            data = self.lb_socket.recv(1024).decode()
+            with self.cache_lock:
+                self.players_cached = {}
+            if data == "ACK":
+                print("Cache data sent successfully")
+        except socket.timeout:
+            print("No data received from load balancer within timeout period")
+        except Exception as e:
+            print(f"Error receiving data from load balancer: {e}")
 
     def sendID(self):
         try:
@@ -408,7 +497,7 @@ class SubServer:
             
             with self.players_data_lock:
                 self.players_data[client_id] = {}
-            
+                        
             conn.send(f"ID CODE 69 {client_id}".encode())
             print("Sent ID to client")
             return client_id
@@ -447,16 +536,16 @@ class SubServer:
         with self.clients_lock:
             conn = self.connected_clients[client_id][1]
             client_address = self.connected_clients[client_id][0]
-        
+                
         with self.counter_lock:
             self.players_counter[client_id] = 0
-        
+                
         with self.elements_lock:
             self.updated_elements[client_id] = {}
-        
+                
         with self.players_data_lock:
             self.players_data[client_id] = {}
-        
+                
         print(f"Connected to client {client_id} at {client_address}")
         try:
             while True:
@@ -474,18 +563,21 @@ class SubServer:
             with self.cache_lock and self.secret_lock:
                 self.players_cached[client_id] = self.secret_players_data[client_id]
                 del self.secret_players_data[client_id]
+            with self.cache_lock and self.secret_lock:
+                self.players_cached[client_id] = self.secret_players_data[client_id]
+                del self.secret_players_data[client_id]
             with self.clients_lock:
                 if client_id in self.connected_clients:
                     del self.connected_clients[client_id]
-            
+                        
             with self.players_data_lock:
                 if client_id in self.players_data:
                     del self.players_data[client_id]
-            
+                        
             with self.counter_lock:
                 if client_id in self.players_counter:
                     del self.players_counter[client_id]
-            
+                        
             with self.elements_lock:
                 self.updated_elements[client_id] = {'dead': True}
                 start_time = time.time()
@@ -497,7 +589,7 @@ class SubServer:
 
     def process_player_data(self, client_id, message: str):
         try:
-            messages = message.split(' ', maxsplit=1)
+            messages = message.split(' ', maxsplit=1, maxsplit=1)
             protocol = messages[0]
             data = messages[-1]
             if protocol in self.protocols.keys():
@@ -532,3 +624,4 @@ class SubServer:
 if __name__ == "__main__":
     server = SubServer()
     server.run()
+
