@@ -118,10 +118,10 @@ class ClientServer:
             return True
         return None
 
-    def sendMOVE(self, x, y):
+    def sendMOVE(self, x, y, weapon: int):
         # Add newline delimiter to separate messages
         with self.lock:
-            self.socket.send(f"MOVE {x};{y}".encode())
+            self.socket.send(f"MOVE {x};{y};{weapon}".encode())
             message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):

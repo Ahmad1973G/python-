@@ -1,4 +1,5 @@
-pygame==2.5.2
-pytmx==3.32
-scipy==1.11.3
-numpy==1.26.0
+pygame>=2.0.0
+pytmx>=3.21.7
+scipy>=1.9.1
+numpy>=1.24.4
+python-dotenv>=0.15.0

@@ -57,11 +57,11 @@ class Player(pg.sprite.Sprite):
         return self.collidable_tiles
 
 
-    def build_collision_kdtree(self):
+    def build_collision_kdtree(self, collidable_tiles):
         # Calculate center positions for KD-tree
-        positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in self.collidable_tiles]
+        positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in collidable_tiles]
         kd_tree = KDTree(positions)
-        pos_to_tile = dict(zip(positions, self.collidable_tiles))
+        pos_to_tile = dict(zip(positions, collidable_tiles))
         return kd_tree, pos_to_tile
 
         
@@ -182,6 +182,8 @@ class Player(pg.sprite.Sprite):
         PINK = (255, 174, 201)
         
         # Map selected_weapon to the corresponding character image
+        if selected_weapon >= 48:
+            selected_weapon -= 48
         character_filename = f"char_{selected_weapon + 1}.png"
 
         for key, data in players_sprites.items():
