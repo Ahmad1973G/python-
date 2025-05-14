@@ -12,6 +12,7 @@ class Bots ():
         self.my_x=my_x
         self.my_y=my_y
         self.hp=150
+        self.shooting=False
         self.moving=True
         self.bot_rect={
             "image": pygame.Surface((60, 60)),
@@ -64,6 +65,7 @@ class Bots ():
             self.closest_y=y
             self.closest_x=x
             self.new_target=True
+            self.shooting=False
             self.moving=True
         else:
             self.moving=False
@@ -131,6 +133,7 @@ class Bots ():
 
                             time.sleep(0.001)
                 if target_x and target_y:
+                    self.shooting=True
                     self.moving=False
             elif target_x and target_y and not self.new_target:
                 time.sleep(0.001)
