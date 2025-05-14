@@ -4,7 +4,7 @@ import threading
 import time
 import random
 from typing import Union, Tuple, Dict, Any, Optional
-import database 
+import database  
 
 thread_local = threading.local()
 
@@ -230,6 +230,12 @@ class LoadBalancer:
                     with self.db_lock:  # Protect database access
                         db = self.get_db()
                         if db.login(username, password):
+                            clients[client_id] = ("FAILED CODE REGISTER 2", None)
+                            continue
+                        if db.user_exists(username):
+                            clients[client_id] = ("FAILED CODE REGISTER 3", None)
+                            continue
+                        if db.login(username, password) is True:
                             clients[client_id] = ("FAILED CODE REGISTER 2", None)
                             continue
                         if db.user_exists(username):
