@@ -329,6 +329,7 @@ def run_game():
     app = startprotocol.ModernGameLogin(root, Socket)
     root.title("Login")
     root.mainloop()
+    app.player_data
 
     pg.init()
     with lock:

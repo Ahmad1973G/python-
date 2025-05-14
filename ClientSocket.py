@@ -317,7 +317,7 @@ class ClientServer:
                 print(f"Raw player data: {player_data}")
                 return False, "Invalid server response format"
         if message.startswith("FAILED CODE REGISTER"):
-            error = message.split(" ")[-1]
+            error = message.split(" ", 3)[-1]
             print("Register failed, error:", error)
             return False, error
         return False, "Unknown error"

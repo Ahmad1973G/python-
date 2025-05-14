@@ -383,8 +383,13 @@ class SubServer:
                     self.connected_clients[client_id][1].send(f"SUCCESS CODE REGISTER {data[1]}".encode())
                 continue
             if prot.startswith("FAILED CODE REGISTER"):
+                result = prot
+                if prot == "FAILED CODE REGISTER 2":
+                    result = "FAILED CODE REGISTER User already exists, try logging in"
+                elif prot == "FAILED CODE REGISTER 3":
+                    result = "FAILED CODE REGISTER Username already taken, try another one"
                 with self.clients_lock:
-                    self.connected_clients[client_id][1].send(prot.encode())
+                    self.connected_clients[client_id][1].send(result.encode())
                 continue
 
     def SendCache(self):
@@ -480,9 +485,10 @@ class SubServer:
             print(f"Error handling client {client_address}: {e}")
         finally:
             print(f"Client {client_address} disconnected.")
-            with self.cache_lock and self.secret_lock:
-                self.players_cached[client_id] = self.secret_players_data[client_id]
-                del self.secret_players_data[client_id]
+            if client_id in self.players_cached and client_id in self.secret_players_data:
+                with self.cache_lock and self.secret_lock:
+                    self.players_cached[client_id] = self.secret_players_data[client_id]
+                    del self.secret_players_data[client_id]
             with self.clients_lock:
                 if client_id in self.connected_clients:
                     del self.connected_clients[client_id]

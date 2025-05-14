@@ -171,6 +171,7 @@ class LoadBalancer:
         try:
             data = json.loads(data)
             for client_id, properties in data.items():
+                properties = properties[0]
                 with self.db_lock:
                     db = self.get_db()
                     db.updateplayer(properties['PlayerID'], properties['PlayerModel'], properties['PlayerLifecount'],
@@ -228,6 +229,12 @@ class LoadBalancer:
                 try:
                     with self.db_lock:  # Protect database access
                         db = self.get_db()
+                        if db.login(username, password):
+                            clients[client_id] = ("FAILED CODE REGISTER 2", None)
+                            continue
+                        if db.user_exists(username):
+                            clients[client_id] = ("FAILED CODE REGISTER 3", None)
+                            continue
                         db.createplayer(1, username, password)
                         data = db.getallplayer(username)
                         clients[client_id] = ("SUCCESS CODE REGISTER", data)
