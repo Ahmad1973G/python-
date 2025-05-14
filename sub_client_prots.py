@@ -162,9 +162,8 @@ def process_shoot(self, client_id, message: str):
 def process_damage_taken(self, client_id, message: str):
     try:
         damage = message
-        with self.elements_lock:
-            self.updated_elements[client_id]['health'] -= damage
-        with self.players_data_lock:
+        with self.elements_lock and self.players_data_lock:
+            self.updated_elements[client_id]['health'] = self.players_data[client_id]['health'] - damage
             self.players_data[client_id]['health'] -= damage
         with self.clients_lock:
             self.connected_clients[client_id][1].send("ACK".encode())

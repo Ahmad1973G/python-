@@ -1,9 +1,16 @@
 import socket
-import json
 import threading
 import random
 import time
+
+from scipy.spatial import KDTree
+from typing import List
+
 import sub_client_prots
+import sub_lb_prots
+import bots
+import os
+import pytmx
 
 # Configuration
 LB_PORT = 5002
@@ -20,6 +27,28 @@ def get_ip_address():
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
     return ip_address
+
+
+def build_collision_kdtree(collidable_tiles):
+    # Calculate center positions for KD-tree
+    positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in collidable_tiles]
+    kd_tree = KDTree(positions)
+    pos_to_tile = dict(zip(positions, collidable_tiles))
+    return kd_tree, pos_to_tile
+
+
+def get_collidable_tiles(tmx_data):
+    """Returns a set of tile coordinates that are collidable."""
+    collidable_tiles = set()
+    for layer in tmx_data.layers:
+        if isinstance(layer, pytmx.TiledObjectGroup):
+            if layer.name == "no walk no shoot":
+                for obj in layer:
+                    # Add the coordinates of the collidable tile to the set
+                    new_tile_tup = obj.x - 500, obj.width, obj.y - 330, obj.height
+                    # collidable_tiles.add((obj.x // tmx_data.tilewidth, obj.y // tmx_data.tileheight))
+                    collidable_tiles.add(new_tile_tup)
+    return collidable_tiles
 
 
 class SubServer:
@@ -52,6 +81,8 @@ class SubServer:
         self.players_cached = {}
         self.chat_logs = []
         self.sequence_id = 1
+        self.bots = {}
+
         # Add locks for shared resources
         self.clients_lock = threading.Lock()
         self.players_data_lock = threading.Lock()
@@ -84,6 +115,19 @@ class SubServer:
         self.process_chat_send = sub_client_prots.process_chat_send
         self.process_chat = sub_client_prots.process_chat
 
+        self.getINDEX = sub_lb_prots.getINDEX
+        self.getRIGHT = sub_lb_prots.getRIGHT
+        self.getBORDERS = sub_lb_prots.getBORDERS
+        self.getSEND = sub_lb_prots.getSEND
+        self.AddToLB = sub_lb_prots.AddToLB
+        self.CheckForLB = sub_lb_prots.CheckForLB
+        self.SendInfoLB = sub_lb_prots.SendInfoLB
+        self.SendRegister = sub_lb_prots.SendRegister
+        self.SendLogin = sub_lb_prots.SendLogin
+        self.SendCache = sub_lb_prots.SendCache
+        self.SortRegister = sub_lb_prots.SortRegister
+        self.SortLogin = sub_lb_prots.SortLogin
+
         self.protocols = {
             "MOVE": self.process_move,
             "SHOOT": self.process_shoot,
@@ -104,59 +148,44 @@ class SubServer:
             "REQUESTFULL": self.process_requestFull
         }
 
-    def getINDEX(self):
-        self.lb_socket.send("INDEX".encode())
-        data = self.lb_socket.recv(1024).decode()
-        if data.startswith("INDEX CODE 2"):
-            self.server_index = int(data.split(";")[-1])
-            print("Server INDEX:", self.server_index)
-        else:
-            print("Failed to get server ID from load balancer, error:", data)
+        script_dir = os.path.dirname(__file__)
+        map_path = os.path.join(script_dir, "map", "map.tmx")
 
-    def getBORDERS(self):
-        self.lb_socket.send("BORDERS".encode())
-        data = self.lb_socket.recv(1024).decode()
-        if data.startswith("BORDERS CODE 2"):
-            data = data.split()[-1]
-            self.server_borders[0] = int(float(data.split(";")[0]))
-            self.server_borders[1] = int(float(data.split(";")[1]))
-        else:
-            print("Failed to get server ID from load balancer, error:", data)
+        tmx_data = pytmx.load_pygame(map_path)
+        collidable_tiles = get_collidable_tiles(tmx_data)
+        self.kd_tree, self.pos_to_tile = build_collision_kdtree(collidable_tiles)
+        self.SetBots()
 
-    def AddToLB(self, client_id):
-        info = self.players_data[client_id]
-        info['server'] = self.server_id
-        with self.lb_lock:
-            self.players_to_lb[client_id] = info
+    def get_random_bot_position(self, borders):
+        bot_x, bot_y = (random.randint(borders[0], borders[0] + self.server_borders[0]),
+                        random.randint(borders[1], borders[1] + self.server_borders[1]))
+        return bot_x, bot_y
 
-    def CheckForLB(self, client_id, x, y):
+    def SetBots(self):
         if self.server_index == 1:
-            if x > self.server_borders[0] or y > self.server_borders[1]:
-                self.AddToLB(client_id)
-                return
-        if self.server_index == 2:
-            if x < self.server_borders[0] or y < self.server_borders[1]:
-                self.AddToLB(client_id)
-                return
-        if self.server_index == 3:
-            if x < self.server_borders[0] or y < self.server_borders[1]:
-                self.AddToLB(client_id)
-                return
-        if self.server_index == 4:
-            if x > self.server_borders[0] or y < self.server_borders[1]:
-                self.AddToLB(client_id)
-                return
-
-    def SendInfoLB(self):
-        with self.lb_lock:
-            self.lb_socket.send(("INFO " + json.dumps(self.players_to_lb)).encode())
-
-        data = self.lb_socket.recv(1024).decode()
-        if data == "ACK":
-            return
+            borders = (0, 0)
+        elif self.server_index == 2:
+            borders = (self.server_borders[0], 0)
+        elif self.server_index == 3:
+            borders = self.server_borders
         else:
-            print("Failed to send data to load balancer, error:", data)
-            return
+            borders = (0, self.server_borders[1])
+
+        positions: List[tuple] = []
+        for i in range(100):
+            bot_x, bot_y = self.get_random_bot_position(borders)
+            while (bot_x, bot_y) in positions:
+                bot_x, bot_y = self.get_random_bot_position(borders)
+            positions.append((bot_x, bot_y))
+            bot_type = random.randint(0, 1)
+            if bot_type == 0:
+                bot_type = True
+            else:
+                bot_type = False
+            bot = bots.Bot(bot_x, bot_y, bot_type, 0 ,0, self.kd_tree, self.pos_to_tile)
+            self.bots[i] = bot
+
+
 
     def AskForID(self, conn):
         try:
@@ -175,6 +204,7 @@ class SubServer:
 
     def WelcomePlayers(self, players):
         while True:
+            conn = None
             try:
                 with self.clients_lock:
                     conn, addr = self.server_socket.accept()
@@ -199,27 +229,10 @@ class SubServer:
 
             except Exception as e:
                 print(f"Error accepting connection from client: {e}")
-                try:
+                if conn is not None:
                     conn.close()
-                except Exception as e:
-                    pass
 
-    def getRIGHT(self):
-        self.lb_socket.send(f"RIGHT".encode())
-        data = self.lb_socket.recv(1024).decode()
-        data = json.loads(data)
-        players_to_this = []
 
-        with self.moving_lock:
-            for client_id, server in data.items():
-                if server is True:
-                    players_to_this.append(client_id)
-                    continue
-                self.moving_servers[client_id] = server
-
-        if players_to_this:
-            welcome_thread = threading.Thread(target=self.WelcomePlayers, args=(players_to_this,))
-            welcome_thread.start()
 
     def CheckIfMoving(self, client_id):
         with self.moving_lock:
@@ -237,13 +250,6 @@ class SubServer:
 
             self.connected_clients[client_id][1].send(f"MOVING {ip}".encode())
 
-    def getSEND(self):
-        with self.other_server_lock:
-            self.different_server_players = {}
-            self.lb_socket.send(f"SEND".encode())
-            data = self.lb_socket.recv(1024).decode()
-            data = json.loads(data)
-            self.different_server_players = data
 
     def lb_connect_protocol(self):
         print("Listening on UDP for load balancer on", get_ip_address())
@@ -265,8 +271,8 @@ class SubServer:
                 self.lb_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def handle_lb(self):
-        self.getINDEX()
-        self.getBORDERS()
+        self.getINDEX(self)
+        self.getBORDERS(self)
         while True:
             try:
                 # self.SendInfoLB()
@@ -316,100 +322,6 @@ class SubServer:
             return True
         return False
 
-    def SendLogin(self):
-        try:
-            with self.waiting_login_lock:
-                if not self.waiting_login:
-                    return
-                str_login = f"LOGIN {json.dumps(self.waiting_login)}"
-            print("Sending login data to load balancer:", str_login)
-            self.lb_socket.send(str_login.encode())
-            data = self.lb_socket.recv(1024).decode()
-            with self.waiting_login_lock:
-                self.waiting_login = {}
-            data = json.loads(data)
-            self.SortLogin(data)
-
-        except socket.timeout:
-            print("No data received from load balancer within timeout period")
-
-        except Exception as e:
-            print(f"Error receiving data from load balancer: {e}")
-
-    def SortLogin(self, data):
-        for client_id, data in data.items():
-            client_id = int(client_id)
-            prot = data[0]
-            if prot.startswith("SUCCESS CODE LOGIN"):
-                print(f"login for {client_id} successful!")
-                with self.secret_lock:
-                    self.secret_players_data[client_id] = data[1]
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send(f"SUCCESS CODE LOGIN {data[1]}".encode())
-                continue
-            if prot.startswith("FAILED CODE LOGIN"):
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send(prot.encode())
-                continue
-
-    def SendRegister(self):
-        try:
-            with self.waiting_register_lock:
-                if not self.waiting_register:
-                    return
-                print(self.waiting_register)
-                str_register = f"REGISTER {json.dumps(self.waiting_register)}"
-            self.lb_socket.send(str_register.encode())
-            data = self.lb_socket.recv(1024).decode()
-            with self.waiting_register_lock:
-                self.waiting_register = {}
-            data = json.loads(data)
-            self.SortRegister(data)
-        except socket.timeout:
-            print("No data received from load balancer within timeout period")
-        except Exception as e:
-            print(f"Error receiving data from load balancer: {e}")
-
-    def SortRegister(self, data):
-        for client_id, data in data.items():
-            client_id = int(client_id)
-            prot = data[0]
-            if prot.startswith("SUCCESS CODE REGISTER"):
-                print(f"register for {client_id} successful!")
-                with self.secret_lock:
-                    self.secret_players_data[client_id] = data[1]
-
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send(f"SUCCESS CODE REGISTER {data[1]}".encode())
-                continue
-            if prot.startswith("FAILED CODE REGISTER"):
-                result = prot
-                if prot == "FAILED CODE REGISTER 2":
-                    result = "FAILED CODE REGISTER User already exists, try logging in"
-                elif prot == "FAILED CODE REGISTER 3":
-                    result = "FAILED CODE REGISTER Username already taken, try another one"
-                with self.clients_lock:
-                    self.connected_clients[client_id][1].send(result.encode())
-                continue
-
-    def SendCache(self):
-        try:
-            with self.cache_lock:
-                if not self.players_cached:
-                    return
-                str_cache = f"CACHE {json.dumps(self.players_cached)}"
-            print("Sending cache data to load balancer:", str_cache)
-            self.lb_socket.send(str_cache.encode())
-            data = self.lb_socket.recv(1024).decode()
-            with self.cache_lock:
-                self.players_cached = {}
-            if data == "ACK":
-                print("Cache data sent successfully")
-        except socket.timeout:
-            print("No data received from load balancer within timeout period")
-        except Exception as e:
-            print(f"Error receiving data from load balancer: {e}")
-
     def sendID(self):
         try:
             conn, addr = self.server_socket.accept()
@@ -417,7 +329,7 @@ class SubServer:
             client_id = random.randint(1, 1000)
             with self.clients_lock:
                 while client_id in self.connected_clients.keys():
-                    client_id = random.randint(1, 1000)
+                    client_id = random.randint(100, 1000)
                 self.connected_clients[client_id] = (addr, conn)
 
             with self.players_data_lock:
@@ -502,7 +414,7 @@ class SubServer:
                     del self.players_counter[client_id]
 
             with self.elements_lock:
-                self.updated_elements[client_id] = {'dead': True}
+                self.updated_elements[client_id] = {'disconect': True}
                 start_time = time.time()
                 while True:
                     if time.time() - start_time > 10:
