@@ -1,5 +1,54 @@
 import json
 
+
+def process_chat(self, client_id, data):
+    """Handle chat messages by routing to appropriate handler"""
+    if data.startswith("SEND"):
+        data = data.split(" ", 1)[-1]
+        self.process_chat_recv(self, client_id, data)
+        return
+    elif data.startswith("RECV"):
+        data = data.split(" ", 1)[-1]
+        self.process_chat_send(self, client_id, data)
+        return
+
+def process_chat_recv(self, client_id, message: str):
+    try:
+        with self.logs_lock and self.sequence_lock:
+            self.chat_logs.append([client_id, message, self.sequence_id])
+            self.sequence_id += 1
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("ACK".encode())
+    except Exception as e:
+        print(f"Error processing chat for {client_id}: {e}")
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("e".encode())
+
+def process_chat_send(self, client_id, message: str):
+    try:
+        sequence_id = int(message)
+        with self.logs_lock:
+            copy_logs = self.chat_logs.copy()
+
+        copy_logs = [log for log in copy_logs if log[2] > sequence_id]
+        if not copy_logs or copy_logs == []:
+            with self.clients_lock:
+                self.connected_clients[client_id][1].send("UPDATED".encode())
+            del copy_logs
+            return
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send(f"{self.sequence_id};{json.dumps(copy_logs)}".encode())
+        del copy_logs
+
+    except ValueError:
+        print(f"Error processing chat for {client_id}: Invalid sequence ID")
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("Invalid sequence ID".encode())
+    except Exception as e:
+        print(f"Error processing chat for {client_id}: {e}")
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("e".encode())
+
 def process_Money(self, client_id, message: str):
     try:
         money = int(message)
@@ -62,15 +111,19 @@ def process_register(self, client_id, message: str):
 
 def process_move(self, client_id, message: str):
     try:
-        x = message.split(';')[0]
-        y = message.split(';')[1]
+        messages = message.split(';')
+        x = int(float(messages[0]))
+        y = int(float(messages[1]))
+        weapon = int(messages[2])
 
         with self.elements_lock:
             self.updated_elements[client_id]['x'] = x
             self.updated_elements[client_id]['y'] = y
+            self.updated_elements[client_id]['weapon'] = weapon
         with self.players_data_lock:
             self.players_data[client_id]['x'] = x
             self.players_data[client_id]['y'] = y
+            self.players_data[client_id]['weapon'] = weapon
 
         self.CheckIfMovingFULL(client_id)
         self.CheckForLB(client_id, x, y)

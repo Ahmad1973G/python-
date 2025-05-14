@@ -16,6 +16,9 @@ class ClientServer:
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.udp_socket.settimeout(5)
         self.id = 0
+        self.chat_sequence = 0
+
+        self.lock = threading.Lock()
 
     def broadcast_packet(self, packet, port):
         self.udp_socket.sendto(packet, ('255.255.255.255', port))
@@ -115,79 +118,115 @@ class ClientServer:
             return True
         return None
 
-    def sendMOVE(self, x, y):
+    def sendMOVE(self, x, y, weapon: int):
         # Add newline delimiter to separate messages
-        self.socket.send(f"MOVE {x};{y}".encode())
-        message = self.socket.recv(1024)
+        with self.lock:
+            self.socket.send(f"MOVE {x};{y};{weapon}".encode())
+            message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
             print("Move sent successfully")
 
     def sendSHOOT(self, start_x, start_y, end_x, end_y, weapon):
-        self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y};{weapon}".encode())
-        message = self.socket.recv(1024)
+        with self.lock:
+            self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y};{weapon}".encode())
+            message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
             print("Shoot sent successfully")
 
     def sendANGLE(self, angle):
-        self.socket.send(f"ANGLE {angle}".encode())
-        message = self.socket.recv(1024)
+        with self.lock:
+            self.socket.send(f"ANGLE {angle}".encode())
+            message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
             pass
             # print("Angle sent successfully")
 
     def sendDAMAGE(self, damage):
-        self.socket.send(f"DAMAGE {damage}".encode())
-        message = self.socket.recv(1024)
+        with self.lock:
+            self.socket.send(f"DAMAGE {damage}".encode())
+            message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
             print("Damage sent successfully")
 
     def sendPOWER(self, power):
-        self.socket.send(f"POWER {power}".encode())
-        message = self.socket.recv(1024)
+        with self.lock:
+            self.socket.send(f"POWER {power}".encode())
+            message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
             print("Power sent successfully")
 
     def sendMONEY(self, money):
-        self.socket.send(f"MONEY {money}".encode())
-        message = self.socket.recv(1024)
+        with self.lock:
+            self.socket.send(f"MONEY {money}".encode())
+            message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
             print("Power sent successfully")
 
     def sendAMMO(self, ammo):
-        self.socket.send(f"AMMO {ammo}".encode())
-        message = self.socket.recv(1024)
+        with self.lock:
+            self.socket.send(f"AMMO {ammo}".encode())
+            message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
             print("Power sent successfully")
 
     def sendINVENTORY(self, inventory):
-        self.socket.send(f"INVENTORY {inventory[0]};{inventory[1]};"
+        with self.lock:
+            self.socket.send(f"INVENTORY {inventory[0]};{inventory[1]};"
                          f"{inventory[2]};{inventory[3]};{inventory[4]}".encode())
-        message = self.socket.recv(1024)
+            message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
             print("Inventory sent successfully")
 
 
     def sendBOOM(self, x, y, Brange):
-        self.socket.send(f"BOMB {x};{y};{Brange}\n".encode())
-        message = self.socket.recv(1024)
+        with self.lock:
+            self.socket.send(f"BOMB {x};{y};{Brange}\n".encode())
+            message = self.socket.recv(1024)
         message = message.decode()
         if message == "ACK":
             print("SOCKET; boom sent successfully")
         else:
             print("SOCKET; Failed to send boom, error:", message)
 
+    def sendCHAT(self, message):
+        with self.lock:
+            self.socket.send(f"CHAT SEND {message}".encode())
+            message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "ACK":
+            print("SOCKET; chat sent successfully")
+        else:
+            print("SOCKET; Failed to send chat, error:", message)
+
+    def recvCHAT(self):
+        with self.lock:
+            self.socket.send(f"CHAT RECV {self.chat_sequence}".encode())
+            message = self.socket.recv(1024)
+        message = message.decode()
+        if message == "UPDATED":
+            print("SOCKET; chat already updated")
+            return True
+        messages = message.split(";")
+        self.chat_sequence = int(messages[0])
+        chat_message = messages[1]
+        chat_messages = json.loads(chat_message)
+        print("SOCKET; chat received successfully")
+        return chat_messages
+
+
     def requestDATA(self):
         try:
-            self.socket.send("REQUEST".encode())
-            data = self.socket.recv(1024)
+            with self.lock:
+                self.socket.send("REQUEST".encode())
+                data = self.socket.recv(1024)
             if not data:
                 return None
 
@@ -210,8 +249,9 @@ class ClientServer:
 
     def requestDATAFULL(self):
         try:
-            self.socket.send("REQUESTFULL".encode())
-            data = self.socket.recv(1024)
+            with self.lock:
+                self.socket.send("REQUESTFULL".encode())
+                data = self.socket.recv(1024)
             if not data:
                 return None
 
@@ -233,9 +273,10 @@ class ClientServer:
             return None
 
     def login(self, user, password):
-        self.socket.send(f"LOGIN {user};{password}".encode())
-        print("user login...")
-        message = self.socket.recv(1024)
+        with self.lock:
+            self.socket.send(f"LOGIN {user};{password}".encode())
+            print("user login...")
+            message = self.socket.recv(1024)
         print("Received message:", message)
         message = message.decode()
         if message.startswith("SUCCESS CODE LOGIN"):
@@ -257,9 +298,10 @@ class ClientServer:
         return False, "Unknown error"
 
     def register(self, user, password):
-        self.socket.send(f"REGISTER {user};{password}".encode())
-        print("Registering user...")
-        message = self.socket.recv(1024)
+        with self.lock:
+            self.socket.send(f"REGISTER {user};{password}".encode())
+            print("Registering user...")
+            message = self.socket.recv(1024)
         print("Received message:", message)
         message = message.decode()
         if message.startswith("SUCCESS CODE REGISTER"):
@@ -275,7 +317,7 @@ class ClientServer:
                 print(f"Raw player data: {player_data}")
                 return False, "Invalid server response format"
         if message.startswith("FAILED CODE REGISTER"):
-            error = message.split(" ")[-1]
+            error = message.split(" ", 3)[-1]
             print("Register failed, error:", error)
             return False, error
         return False, "Unknown error"

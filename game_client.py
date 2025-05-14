@@ -2,8 +2,6 @@ import pygame as pg
 import json
 import tkinter as tk
 from tkinter import messagebox, font
-from tkinter import ttkimport tkinter as tk
-from tkinter import messagebox, font
 from tkinter import ttk
 from pygame.examples.music_drop_fade import starting_pos
 import random
@@ -15,8 +13,9 @@ import pytmx
 import math
 import sys
 import os
-import startprotocolimport startprotocol
+import startprotocol
 from scipy.spatial import KDTree
+
 
 def load_tmx_map(filename):
     """Load TMX map file and return data."""
@@ -32,50 +31,27 @@ def load_tmx_map(filename):
 
 def bomb(players_sprites, screen, red, Brange, my_player, Socket):
     while True:
-        if shared_data['bomb']:  
-            print("CLIENT; player activated bomb")
-            bomb_x = my_player['x']
-            bomb_y = my_player['y']
-            bomb_range = Brange
-            explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
-
-            screen.fill((0, 0, 0))  # Clear screen
-            pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
-            pg.display.flip()
-
-            for player_id, player_data in players_sprites.items():
-                player_center = player_data['rect'].center
-                distance = math.sqrt(
-                    (player_center[0] - explosion_center[0]) ** 2 +
-                    (player_center[1] - explosion_center[1]) ** 2
-                )
-                if distance <= bomb_range:
-                    print(f"Player {player_id} hit by explosion!")
-            
-            my_player_center = (500, 325)
-            self_distance = math.sqrt(
-                (my_player_center[0] - explosion_center[0]) ** 2 +
-                (my_player_center[1] - explosion_center[1]) ** 2
-            )
-            if self_distance <= bomb_range:
-                print("CLIENT; You were hit by the explosion!")
-                
-            Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
-            shared_data['bomb'] = False
-
-        for key, data in list(shared_data['recived'].items()):
-            if 'explode' in data:
-                print("CLIENT; someone activated bomb")
-                bomb_x = int(float(data['explode'][0]))
-                bomb_y = int(float(data['explode'][1]))
-                bomb_range = int(float(data['explode'][2]))
+        if shared_data['bomb']:
+            with lock:
+                print("CLIENT; player activated bomb")
+                bomb_x = my_player['x']
+                bomb_y = my_player['y']
+                bomb_range = Brange
                 explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
                 screen.fill((0, 0, 0))  # Clear screen
                 pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                 pg.display.flip()
-                time.sleep(0.5)
-                
+
+                for player_id, player_data in players_sprites.items():
+                    player_center = player_data['rect'].center
+                    distance = math.sqrt(
+                        (player_center[0] - explosion_center[0]) ** 2 +
+                        (player_center[1] - explosion_center[1]) ** 2
+                    )
+                    if distance <= bomb_range:
+                        print(f"Player {player_id} hit by explosion!")
+
                 my_player_center = (500, 325)
                 self_distance = math.sqrt(
                     (my_player_center[0] - explosion_center[0]) ** 2 +
@@ -83,32 +59,55 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 )
                 if self_distance <= bomb_range:
                     print("CLIENT; You were hit by the explosion!")
-                
-                del shared_data['recived'][key]
+
+                Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
+                shared_data['bomb'] = False
+
+        with lock:
+            for key, data in list(shared_data['recived'].items()):
+                if 'explode' in data:
+                    print("CLIENT; someone activated bomb")
+                    bomb_x = int(float(data['explode'][0]))
+                    bomb_y = int(float(data['explode'][1]))
+                    bomb_range = int(float(data['explode'][2]))
+                    explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
+
+                    screen.fill((0, 0, 0))  # Clear screen
+                    pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
+                    pg.display.flip()
+                    time.sleep(0.5)
+
+                    my_player_center = (500, 325)
+                    self_distance = math.sqrt(
+                        (my_player_center[0] - explosion_center[0]) ** 2 +
+                        (my_player_center[1] - explosion_center[1]) ** 2
+                    )
+                    if self_distance <= bomb_range:
+                        print("CLIENT; You were hit by the explosion!")
+
+                    del shared_data['recived'][key]
 
         time.sleep(0.02)  # Add a small delay to reduce CPU usage
-
-        
-                
 
 
 # def sendmovement(x,y):
 # while True:
 # if moving:
 # Socket.sendMOVE(x,y)
-def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
-    hit = False
-    # pg.mixer.init()
-    # sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
-    # sound_effect.set_volume(0.5)
+
+
+
+def my_shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
+    pg.mixer.init()
+    sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
+    sound_effect.set_volume(0.5)
     while True:
-        shot_offset = (0, 0)
         if shared_data['fire']:
 
             if weapons[shared_data['used_weapon']]['ammo'] == 0:
                 print('out of ammo')
             else:
-                # sound_effect.play()
+                sound_effect.play()
                 hit = False
                 range1 = 1
                 weapons[shared_data['used_weapon']]['ammo'] -= 1
@@ -116,7 +115,21 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                 shot_offset[0] -= 500
                 shot_offset[1] = 325 - shot_offset[1]
                 added_dis = range1 * weapons[shared_data['used_weapon']]['bulet_speed']
-
+                # ------------------------------------------------------------------------------
+                direction = shot_offset[1] / shot_offset[0]
+                shot_offset[0] = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
+                    weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
+                shot_offset[1] = direction * shot_offset[
+                    0]
+                end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
+                    weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
+                end2 = direction * end1
+                end1 += 500
+                end2 = 325 - end2
+                end1 += my_player['x'] - 500
+                end2 += my_player['y'] - 325
+                Socket.sendSHOOT(my_player['x'], my_player['y'], end1, end2, shared_data['used_weapon'])
+                # ---------------------------------------------------------------
                 while abs(range1) < weapons[shared_data['used_weapon']]['range'] - 1 and not hit:
                     range1 += added_dis
                     # direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
@@ -134,23 +147,18 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                     bullet_sprite['image'].fill((0, 255, 0))
                     with lock:
                         screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
-                        pg.display.flip()
-
+                    pg.display.flip()
                     # --------------------------------------------------------------
                     for key, data in players_sprites.items():
                         if data['rect'].colliderect(bullet_sprite['rect']):
                             print(
-                                "hit" + " " + key + ' ' + 'with weapon' + ' ' + str(shared_data['used_weapon'] + 1))
+                                "hit" + " " + key + ' ' + 'with weapon' + ' ' + str(
+                                    shared_data['used_weapon'] + 1))
                             hit = True
-                end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
-                    weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
-                end2 = direction * end1
-                end1 += 500
-                end2 = 325 - end2
-                end1 += my_player['x'] - 500
-                end2 += my_player['y'] - 325
-                Socket.sendSHOOT(my_player['x'], my_player['y'], end1, end2, shared_data['used_weapon'])
+
                 shared_data['fire'] = False
+def other_shoot(weapons, bullet_sprite, screen, my_player, Socket):
+    while True:
         with lock_shared_data:
             temp = shared_data['recived']
         if temp != {}:
@@ -198,155 +206,27 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                             hit2 = True
 
 
-def check_if_dead(hp):
-    print("dead")
-    x = 500
-    y = 500
-    dis_to_mid = [x - 500, y - 325]
-    return x, y, dis_to_mid, 50, 20, 7
-
-
 shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False, 'recived': {}}
 
 lock_shared_data = threading.Lock()
 lock = threading.Lock()
 
 
-def get_collidable_tiles(tmx_data):
-    """Returns a set of tile coordinates that are collidable."""
-    collidable_tiles = set()
-    for layer in tmx_data.layers:
-        if isinstance(layer, pytmx.TiledObjectGroup):
-            if layer.name == "no walk no shoot":
-                for obj in layer:
-                    # Add the coordinates of the collidable tile to the set
-                    new_tile_tup = obj.x - 500, obj.width, obj.y - 330, obj.height
-                    # collidable_tiles.add((obj.x // tmx_data.tilewidth, obj.y // tmx_data.tileheight))
-                    collidable_tiles.add(new_tile_tup)
-    return collidable_tiles
-
-
-def build_collision_kdtree(collidable_tiles):
-    # Calculate center positions for KD-tree
-    positions = [(x + w / 2, y - h / 2) for (x, w, y, h) in collidable_tiles]
-    kd_tree = KDTree(positions)
-    pos_to_tile = dict(zip(positions, collidable_tiles))
-    return kd_tree, pos_to_tile
-
-"""
-def check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
-    if player_rect.x - player_rect.width/2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height/2 < coll_obj_y - coll_obj_h:
+def check_collision_obj(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
+    if player_rect.x - player_rect.width / 2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height / 2 < coll_obj_y - coll_obj_h:
         return False
-    if player_rect.x + player_rect.width/2 < coll_obj_x or player_rect.y - player_rect.height/2 > coll_obj_y:
+    if player_rect.x + player_rect.width / 2 < coll_obj_x or player_rect.y - player_rect.height / 2 > coll_obj_y:
         return False
     return True
-"""
 
 
-def check_collision_nearby(player_rect, kd_tree, pos_to_tile, radius=80):
-    center = (player_rect.centerx, player_rect.centery)
-    nearby_indices = kd_tree.query_ball_point(center, radius)
-
-    for idx in nearby_indices:
-        x_c, y_c = kd_tree.data[idx]
-        coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h = pos_to_tile[(x_c, y_c)]
-
-        # AABB-style collision check (same logic as your check_collision)
-        if (
-            player_rect.x - player_rect.width / 2 <= coll_obj_x + coll_obj_w and
-            player_rect.x + player_rect.width / 2 >= coll_obj_x and
-            player_rect.y - player_rect.height / 2 <= coll_obj_y and
-            player_rect.y + player_rect.height / 2 >= coll_obj_y - coll_obj_h
-        ):
-            #print(f"Collision with: {coll_obj_x}, {coll_obj_w}, {coll_obj_y}, {coll_obj_h}")
-            return True
-
-    #print("No collision")
-    return False
-
-""""
-def check_tile_collision(player_rect, collidable_tiles, tilewidth, tileheight):
-    Checks if the player collides with any of the collidable tiles.
-    for coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h in collidable_tiles:
-        if check_collision(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
-            print(coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h)
-            return True
-    print("No collision")
-    return False
-
-
-# Python 3 program for recursive binary search.
-# Modifications needed for the older Python 2 are found in comments.
-
-# Returns index of x in arr if present, else -1
-def binary_search(arr, low, high, x):
-
-    # Check base case
-    if high >= low:
-
-        mid = (high + low) // 2
-
-        # If element is present at the middle itself
-        if arr[mid] == x:
-            return mid
-
-        # If element is smaller than mid, then it can only
-        # be present in left subarray
-        elif arr[mid] > x:
-            return binary_search(arr, low, mid - 1, x)
-
-        # Else the element can only be present in right subarray
-        else:
-            return binary_search(arr, mid + 1, high, x)
-
-    else:
-        # Element is not present in the array
-        return -1
-
-def nearby_collision(player_rect, collidable_tiles, arrx, arry, radius=80):
-    if binary_search(arrx, 0, len(arrx) - 1, player_rect.x - radius) != -1:
-        start_x = binary_search(arrx, 0, len(arrx) - 1, player_rect.x - radius)
-        
-    else:
-        start_x = 0
-    
-    if binary_search(arry, 0, len(arry) - 1, player_rect.y - radius) != -1:
-        start_y = binary_search(arry, 0, len(arry) - 1, player_rect.y - radius)
-        
-    else:
-        start_y = 0
-    
-    if binary_search(arrx, 0, len(arrx) - 1, player_rect.x + radius) != -1:
-        end_x = binary_search(arrx, 0, len(arrx) - 1, player_rect.x + radius)
-        
-    else:
-        end_x = len(arrx) - 1
-    
-    if binary_search(arry, 0, len(arry) - 1, player_rect.y + radius) != -1:
-        end_y = binary_search(arry, 0, len(arry) - 1, player_rect.y + radius)
-        
-    else:
-        end_y = len(arry) - 1
-
-    nearby_tiles = set()
-
-    for i in range (start_x, end_x):
-        if i < start_y or i > end_y:
-            continue
-            
-        
-        
-        
-
-    return nearby_tiles 
-"""
 def draw_health_bar(surface, x, y, current, max, bar_width=200, bar_height=25):
     ratio = current / max
     pg.draw.rect(surface, (255, 0, 0), (x, y, bar_width, bar_height))  # red background
     pg.draw.rect(surface, (0, 255, 0), (x, y, bar_width * ratio, bar_height))  # green foreground
     pg.draw.rect(surface, (0, 0, 0), (x, y, bar_width, bar_height), 2)  # border
-     
-    
+
+
 def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
     box_width = 300
     box_x = 1000 - box_width  # Align to right side
@@ -364,9 +244,26 @@ def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
         input_surface = font_chat.render(chat_input, True, (255, 0, 0))
         screen.blit(input_surface, (box_x + 5, 578))
         pg.draw.rect(screen, (255, 0, 0), (box_x, 575, box_width, 25), 1)
-    
-    
-def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=650, slot_size=50, inv_cols=9):
+
+
+def chat_sync_loop(Socket, chat_log, chat_input_active):
+    while True:
+        if not chat_input_active:
+            continue
+        try:
+            new_msgs = Socket.recvCHAT()
+            if new_msgs is True:
+                continue
+            for msg in new_msgs:
+                cid = msg[0]
+                msg = msg[1]
+                chat_log.append(f"{cid}: {msg}")
+        except Exception as e:
+            print("Chat loop error:", e)
+            break
+
+
+def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=650, slot_size=50, inv_cols=10):
     hotbar_y = screen_height - slot_size - 20
     hotbar_x = (screen_width - inv_cols * slot_size) // 2
 
@@ -378,7 +275,7 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
         pg.draw.rect(screen, (60, 60, 60), (x, y, slot_size, slot_size))
 
         # Highlight selected slot
-        if col == selected_slot:
+        if col == selected_slot or col == selected_slot - 48:
             pg.draw.rect(screen, (255, 255, 0), (x - 2, y - 2, slot_size + 4, slot_size + 4), 3)
 
         # Border
@@ -389,11 +286,71 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
         if item:
             screen.blit(item["image"], (x + 5, y + 5))
 
+def draw_item(screen, item, picture_path):
+    """
+    Draws the item's image on the screen at its (x, y) position.
+
+    item: a dict with keys 'x', 'y', 'width', 'height', 'type'
+    picture_path: the base directory where item images are stored
+    screen: the pygame display surface
+    """
+    item_type = item['type']
+    image_path = os.path.join(picture_path, f"{item_type}.png")
+
+    try:
+        image = pg.image.load(image_path).convert_alpha()
+        image = pg.transform.scale(image, (item['width'], item['height']))
+        screen.blit(image, (item['x'], item['y']))
+    except FileNotFoundError:
+        print(f"Image for item type '{item_type}' not found at: {image_path}")
+    
+    
 def load_item_image(filename, PICTURE_PATH, SLOT_SIZE):
     path = os.path.join(PICTURE_PATH, filename)
     image = pg.image.load(path).convert_alpha()
     return pg.transform.scale(image, (SLOT_SIZE - 10, SLOT_SIZE - 10))  # scale down
-    
+
+
+def check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE):
+    """Check if the player collides with any items and apply their effects."""
+    player_rect = pg.Rect(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
+    for item in items[:]:  # Iterate over a copy of the items list
+        item_rect = pg.Rect(item['x'], item['y'], item['width'], item['height'])
+        if player_rect.colliderect(item_rect):
+            for slot in hotbar:
+                if slot is None or (slot['name'] == item['type'] and slot['amount'] < 4):
+                    hotbar[selected_slot] = {"name": item['type'],
+                                             "image": load_item_image(item['type'] + ".png", "C:/python_game/python-",
+                                                                      SLOT_SIZE), "amount": slot['amount'] + 1}
+            items.remove(item)  # Remove the item after it is picked up
+            print(f"Picked up item: {item['type']}")
+
+
+def apply_item_effect(item, my_player, weapons, shared_data, obj):
+    """Apply the effect of the item to the player."""
+    if item['type'] == 'health':
+        my_player['hp'] = min(my_player['hp'] + 25, 100)  # Heal the player
+        print(f"Health increased to {my_player['hp']}")
+    elif item['type'] == 'ammo':
+        weapons[shared_data['used_weapon']]['ammo'] = min(
+            weapons[shared_data['used_weapon']]['ammo'] + 5,
+            weapons[shared_data['used_weapon']]['max_ammo']
+        )
+        print(
+            f"Ammo for weapon {shared_data['used_weapon']} increased to {weapons[shared_data['used_weapon']]['ammo']}")
+    elif item['type'] == 'cooldown_refresh':
+        obj.speed_cooldown_end_time = 0  # Reset speed powerup cooldown
+        obj.invulnerability_cooldown_end_time = 0  # Reset invulnerability cooldown
+        print("Powerup cooldowns refreshed!")
+
+def receive_data_loop(Socket):
+    """Thread to receive data from the server."""
+    while True:
+        recived = Socket.requestDATA()
+
+        with lock_shared_data:
+            shared_data['recived'] = recived
+            
 def run_game():
     Socket = ClientSocket.ClientServer()
     Socket.connect()
@@ -401,30 +358,39 @@ def run_game():
     app = startprotocol.ModernGameLogin(root, Socket)
     root.title("Login")
     root.mainloop()
-
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
-    root = tk.Tk()
-    app = startprotocol.ModernGameLogin(root, Socket)
-    root.title("Login")
-    root.mainloop()
+    app.player_data
 
     pg.init()
     with lock:
         screen = pg.display.set_mode((1000, 650))
-        
+
     font_fps = pg.font.SysFont(None, 40)  # You can change font or size if you want
     font_chat = pg.font.SysFont(None, 24)  # You can change font or size if you want
     chat_input_active = False
     INV_ROWS = 3
-    INV_COLS = 9
+    INV_COLS = 10
     SLOT_SIZE = 50
-    picture_path = "C:/webroot"  # raw string for Windows path
+    auto_move = False
+    # Get directory of the currently running script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    item_path = os.path.join(script_dir)  # Points to: script_dir/items
+    print("nigga", item_path)
+    # Create the full path to the map file
+    map_path = os.path.join(script_dir, "map", "map.tmx")  # Points to: script_dir/map/map.tmx
+
+    #print(map_path)
+
+    # Check if the file exists
+    if os.path.exists(map_path):
+        print(f"Found map file at: {map_path}")
+    else:
+        print("map.tmx not found in the script directory.")
+    picture_path = script_dir
     weapon1_image = load_item_image("char_1.png", picture_path, SLOT_SIZE)
     weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
     weapon3_image = load_item_image("char_3.png", picture_path, SLOT_SIZE)
-    hotbar = [{"name": "weapon1", "image": weapon1_image}, {"name": "weapon2", "image": weapon2_image}, 
-             {"name": "weapon3", "image" : weapon3_image}] + [None] * 6     
+    hotbar = [{"name": "weapon1", "image": weapon1_image, "amount": 1}, {"name": "weapon2", "image": weapon2_image, "amount": 1},
+              {"name": "weapon3", "image": weapon3_image, "amount": 1}] + [None] * 7
     selected_weapon = 0
     selected_slot = 0
     chat_input = ""
@@ -442,6 +408,7 @@ def run_game():
 
     ]
     moving = False
+    diraction = 0
     move_x = 0
     move_y = 0
     angle = 0
@@ -450,12 +417,11 @@ def run_game():
     max_health = 100
     current_health = 100
     granade_range = 200
+    items = []
     BLACK = (0, 0, 0)
     move_offset = (0, 0)
     world_offset = (0, 0)
-    tmx_data = pytmx.load_pygame("c:/python_game/python-/map/map.tmx")  # <<< your TMX file here
-    collidable_tiles = get_collidable_tiles(tmx_data)  # Get collidable tile coordinates
-    kd_tree, pos_to_tile = build_collision_kdtree(collidable_tiles)
+    tmx_data = pytmx.load_pygame(map_path, pixelalpha=True)
     tile_width = tmx_data.tilewidth
     tile_height = tmx_data.tileheight
     map_width = tmx_data.width
@@ -495,7 +461,8 @@ def run_game():
             screen,
             players_sprites,
             my_sprite,
-            weapons
+            weapons,
+            tmx_data,
         )  # Create PlayerSprite objects for each player
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
@@ -528,26 +495,48 @@ def run_game():
     h = None
     g = None
     # thread_movement = threading.Thread(target=sendmovement, args=())
-    thread_shooting = threading.Thread(target=shoot,
-                                       args=(weapons, players_sprites, bullet_sprite, screen, my_player, Socket))
+    thread_shooting = threading.Thread(target=my_shoot,args=(weapons, players_sprites, bullet_sprite, screen, my_player, Socket))
     thread_shooting.daemon = True
     thread_shooting.start()
-
+    thread_shooting2 = threading.Thread(target=other_shoot,args=(weapons, bullet_sprite, screen, my_player, Socket))
+    thread_shooting2.daemon = True
+    thread_shooting2.start()
     thread_bomb = threading.Thread(target=bomb, args=(players_sprites, screen, RED, granade_range, my_player, Socket))
     thread_bomb.daemon = True
     thread_bomb.start()
+
+    thread_chat = threading.Thread(target=chat_sync_loop, args=(Socket, chat_log, chat_input_active))
+    thread_chat.daemon = True
+    thread_chat.start()
     # thread_movement.start()
-    while running:  
+    
+    thread_movement = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y']))
+    thread_movement.daemon = True
+    thread_movement.start()
+    
+    theread_angle = threading.Thread(target=Socket.sendANGLE, args=(angle))
+    theread_angle.daemon = True
+    theread_angle.start()
+    
+    thread_sendchat = threading.Thread(target=Socket.sendCHAT, args=(chat_input))
+    thread_sendchat.daemon = True
+    thread_sendchat.start()
+    
+    thread_recivedata = threading.Thread(target=receive_data_loop, args=(Socket))
+    thread_recivedata.daemon = True
+    thread_recivedata.start()
+    
+    while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
             elif event.type == pg.KEYDOWN:
-                if pg.K_1 <= event.key <= pg.K_3:
-                    selected_weapon = event.key - pg.K_1
-                    selected_slot = event.key - pg.K_1
+                if pg.K_0 <= event.key <= pg.K_2:
+                    selected_weapon = event.key
+                    selected_slot = event.key
                     print("Selected slot:", selected_weapon)
-                elif pg.K_4 <= event.key <= pg.K_9:
-                    selected_slot = event.key - pg.K_1
+                elif pg.K_3 <= event.key <= pg.K_9:
+                    selected_slot = event.key
                     print("Selected slot:", selected_slot)
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 shared_data['fire'] = True
@@ -569,7 +558,6 @@ def run_game():
                         angle = (direction / abs(direction)) * (
                                 (-(mouse[0] - 500)) / abs(mouse[0] - 500)) * 90 + angle + (
                                         1 + (-direction) / abs(direction)) * 90
-                Socket.sendANGLE(angle)
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_1:
                     shared_data['used_weapon'] = 0
@@ -583,62 +571,92 @@ def run_game():
                 elif event.key == pg.K_r:
                     weapons[shared_data['used_weapon']]['ammo'] = weapons[shared_data['used_weapon']]['max_ammo']
 
-        # Check for collisions with nearby collision rects
-        #print(f"Here pressed {keys}")
-        #res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
-        #print("Finished")
-        #print(res)
-                
-            if event.type == pg.KEYDOWN:        
+            # Check for collisions with nearby collision rects
+            # print(f"Here pressed {keys}")
+            # res = check_tile_collision(my_player, collidable_tiles, tile_width, tile_height)
+            # print("Finished")
+            # print(res)
+
+            if event.type == pg.KEYDOWN:
                 if chat_input_active:
                     if event.key == pg.K_RETURN:
                         if chat_input.strip():
-                            chat_log.append("You: " + chat_input)
+                            chat_log.append(chat_input)  # Append to chat_log list instead
                         chat_input = ""
                         chat_input_active = False
                     elif event.key == pg.K_ESCAPE:
                         chat_input = ""  # Clear input without sending
                         chat_input_active = False
                     elif event.key == pg.K_BACKSPACE:
-                            chat_input = chat_input[:-1]
+                        chat_input = chat_input[:-1]
                     else:
-                            chat_input += event.unicode
+                        chat_input += event.unicode
                 else:
                     if event.key == pg.K_t:
                         chat_input_active = True
 
-    # Movement only if not typing in chat
+        # Movement only if not typing in chat
         if not chat_input_active:
             keys = pg.key.get_pressed()
+            if keys[pg.K_RSHIFT] or keys[pg.K_LSHIFT]:
+                auto_move = not auto_move           
             my_sprite = my_player['x'], my_player['y'], my_player['width'], my_player['height']
             my_sprite = pg.Rect(my_sprite)
             if knockback == 0:
+                if auto_move:
+                    if my_sprite.y > -270 and diraction == 'up':
+                        my_player['y'] -= 15
+                        move_y = 15
+                        diraction = 'up'
+                    if my_sprite.y < 21150 and diraction == 'down':
+                        my_player['y'] += 15
+                        move_y = -15
+                        diraction = 'down'
+                    if my_sprite.x > -400 and diraction == 'left':
+                        my_player['x'] -= 15
+                        move_x = 15
+                        diraction = 'left'
+                    if my_sprite.x < 23450 and diraction == 'right':
+                        my_player['x'] += 15
+                        move_x = -15
+                        diraction = 'right'
+                        
                 if keys[pg.K_w]:
                     if my_sprite.y > -270:
                         my_player['y'] -= 15
                         move_y = 15
+                        diraction = 'up'
                 if keys[pg.K_s]:
                     if my_sprite.y < 21150:
                         my_player['y'] += 15
                         move_y = -15
+                        diraction = 'down'
                 if keys[pg.K_a]:
                     if my_sprite.x > -400:
                         my_player['x'] -= 15
                         move_x = 15
+                        diraction = 'left'
                 if keys[pg.K_d]:
                     if my_sprite.x < 23450:
                         my_player['x'] += 15
                         move_x = -15
+                        diraction = 'right'
+
+                if keys[pg.K_p] and selected_slot >= 3 and hotbar[selected_slot] is not None:
+                    apply_item_effect(hotbar[selected_slot], my_player, weapons, shared_data, obj)
+                    if hotbar[selected_slot]['amount'] > 1:
+                        hotbar[selected_slot]['amount'] -= 1
                         
-                           
-                if check_collision_nearby(my_sprite, kd_tree, pos_to_tile, radius=80):
-                        move_x = -move_x
-                        move_y = -move_y
-                        knockback = 8
-                
+                    elif hotbar[selected_slot]['amount'] == 1 and selected_slot >= 3:
+                        hotbar[selected_slot] = None  # Remove item after use
+
+                if obj.check_collision_nearby(my_sprite, radius=80):
+                    move_x = -move_x
+                    move_y = -move_y
+                    knockback = 8
+
             else:
                 knockback -= 1
-
 
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
@@ -659,11 +677,6 @@ def run_game():
             # while not kys[pg.K_r]:
             #    kys = pg.key.get_pressed()
             time.sleep(5)
-            Socket.sendMOVE(my_player['x'], my_player['y'])
-        recived = Socket.requestDATA()
-
-        with lock_shared_data:
-            shared_data['recived'] = recived
 
         found = False
         for key, data in recived.items():
@@ -718,32 +731,32 @@ def run_game():
             else:
                 my_player['x'] -= move_x
                 my_player['y'] -= move_y
-            Socket.sendMOVE(my_player['x'], my_player['y'])
-        world_offset = (500 - my_player['x'], 325 - my_player['y'])
+        #world_offset = (500 - my_player['x'], 325 - my_player['y'])
 
-        with lock:
-            start_col = my_player['x'] // tile_width
-            start_row = my_player['y'] // tile_height
-            end_col = (my_player['x'] + SCREEN_WIDTH) // tile_width + 2
-            end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
+        start_col = my_player['x'] // tile_width
+        start_row = my_player['y'] // tile_height
+        end_col = (my_player['x'] + SCREEN_WIDTH) // tile_width + 2
+        end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
 
-            # Draw visible tiles
-            if not chat_input_active:
-                for layer in tmx_data.visible_layers:
-                    if isinstance(layer, pytmx.TiledTileLayer):
-                        layer_index = tmx_data.layers.index(layer)  # <<< fix here
-                        for x in range(start_col, end_col):
-                            for y in range(start_row, end_row):
-                                if 0 <= x < map_width and 0 <= y < map_height:
-                                    image = tmx_data.get_tile_image(x, y, layer_index)
-                                    if image:
-                                        screen.blit(
-                                            image,
-                                            (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
-                                        )
-            
+        # Draw visible tiles
+        # new_msgs = Socket.recvCHAT()
+        if not chat_input_active:
+            for layer in tmx_data.visible_layers:
+                if isinstance(layer, pytmx.TiledTileLayer):
+                    layer_index = tmx_data.layers.index(layer)  # <<< fix here
+                    for x in range(start_col, end_col):
+                        for y in range(start_row, end_row):
+                            if 0 <= x < map_width and 0 <= y < map_height:
+                                image = tmx_data.get_tile_image(x, y, layer_index)
+                                if image:
+                                    screen.blit(
+                                        image,
+                                        (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
+                                    )
+
         obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
+        #check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
         fps = clock.get_fps()
         fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
         if chat_input_active == False:
@@ -751,10 +764,11 @@ def run_game():
         draw_health_bar(screen, 10, 45, my_player['hp'], max_health)
         if chat_input_active:
             draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active)
-            
-        draw_hotbar(screen, selected_slot, hotbar)
+        if selected_weapon >= 48:
+            selected_weapon -= 48
         ammo_text = font_fps.render(f"Ammo: {weapons[selected_weapon]['ammo']}", True, (255, 0, 0))
         screen.blit(ammo_text, (10, 80))  # top-left corner
+        draw_hotbar(screen, selected_slot, hotbar)
         pg.display.flip()
     pg.quit()
 

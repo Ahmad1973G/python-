@@ -187,3 +187,10 @@ class database:
     def getusernamesandpasswords(self):
         self.c.execute("SELECT Username, Password FROM players")
         return self.c.fetchall()
+
+    def user_exists(self, Username):
+        self.c.execute("SELECT * FROM players WHERE Username = ?", (Username,))
+        result = self.c.fetchone()
+        if result is None:
+            return False
+        return True
