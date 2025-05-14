@@ -94,19 +94,20 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
 # while True:
 # if moving:
 # Socket.sendMOVE(x,y)
-def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
-    hit = False
-    # pg.mixer.init()
-    # sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
-    # sound_effect.set_volume(0.5)
+
+
+
+def my_shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
+    pg.mixer.init()
+    sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
+    sound_effect.set_volume(0.5)
     while True:
-        shot_offset = (0, 0)
         if shared_data['fire']:
 
             if weapons[shared_data['used_weapon']]['ammo'] == 0:
                 print('out of ammo')
             else:
-                # sound_effect.play()
+                sound_effect.play()
                 hit = False
                 range1 = 1
                 weapons[shared_data['used_weapon']]['ammo'] -= 1
@@ -114,7 +115,21 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                 shot_offset[0] -= 500
                 shot_offset[1] = 325 - shot_offset[1]
                 added_dis = range1 * weapons[shared_data['used_weapon']]['bulet_speed']
-
+                # ------------------------------------------------------------------------------
+                direction = shot_offset[1] / shot_offset[0]
+                shot_offset[0] = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
+                    weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
+                shot_offset[1] = direction * shot_offset[
+                    0]
+                end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
+                    weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
+                end2 = direction * end1
+                end1 += 500
+                end2 = 325 - end2
+                end1 += my_player['x'] - 500
+                end2 += my_player['y'] - 325
+                Socket.sendSHOOT(my_player['x'], my_player['y'], end1, end2, shared_data['used_weapon'])
+                # ---------------------------------------------------------------
                 while abs(range1) < weapons[shared_data['used_weapon']]['range'] - 1 and not hit:
                     range1 += added_dis
                     # direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
@@ -132,24 +147,18 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                     bullet_sprite['image'].fill((0, 255, 0))
                     with lock:
                         screen.blit(bullet_sprite['image'], bullet_sprite['rect'])
-                        pg.display.flip()
-
+                    pg.display.flip()
                     # --------------------------------------------------------------
                     for key, data in players_sprites.items():
                         if data['rect'].colliderect(bullet_sprite['rect']):
                             print(
-                                "hit" + " " + key + ' ' + 'with weapon' + ' ' + str(shared_data['used_weapon'] + 1))
-                            Socket.sendDAMAGE(weapons[shared_data['used_weapon']]['damage'])
+                                "hit" + " " + key + ' ' + 'with weapon' + ' ' + str(
+                                    shared_data['used_weapon'] + 1))
                             hit = True
-                end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
-                    weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
-                end2 = direction * end1
-                end1 += 500
-                end2 = 325 - end2
-                end1 += my_player['x'] - 500
-                end2 += my_player['y'] - 325
-                Socket.sendSHOOT(my_player['x'], my_player['y'], end1, end2, shared_data['used_weapon'])
+
                 shared_data['fire'] = False
+def other_shoot(weapons, bullet_sprite, screen, my_player, Socket):
+    while True:
         with lock_shared_data:
             temp = shared_data['recived']
         if temp != {}:
@@ -195,15 +204,6 @@ def shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
                             #    Socket.sendDAMAGE(weapons[int(data['shoot'][4])]['damage'])
                             my_player['hp'] -= weapons[int(data['shoot'][4])]['damage']
                             hit2 = True
-
-
-def check_if_dead(hp, Socket):
-    if hp <= 0:
-        print("dead")
-        x = 500
-        y = 500
-        dis_to_mid = [x - 500, y - 325]
-        return x, y, dis_to_mid, 50, 20, 7
 
 
 shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False, 'recived': {}}
@@ -494,11 +494,12 @@ def run_game():
     h = None
     g = None
     # thread_movement = threading.Thread(target=sendmovement, args=())
-    thread_shooting = threading.Thread(target=shoot,
-                                       args=(weapons, players_sprites, bullet_sprite, screen, my_player, Socket))
+    thread_shooting = threading.Thread(target=my_shoot,args=(weapons, players_sprites, bullet_sprite, screen, my_player, Socket))
     thread_shooting.daemon = True
     thread_shooting.start()
-
+    thread_shooting2 = threading.Thread(target=other_shoot,args=(weapons, bullet_sprite, screen, my_player, Socket))
+    thread_shooting2.daemon = True
+    thread_shooting2.start()
     thread_bomb = threading.Thread(target=bomb, args=(players_sprites, screen, RED, granade_range, my_player, Socket))
     thread_bomb.daemon = True
     thread_bomb.start()
