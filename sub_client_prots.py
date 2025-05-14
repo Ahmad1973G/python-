@@ -26,6 +26,7 @@ def process_chat_recv(self, client_id, message: str):
 
 def process_chat_send(self, client_id, message: str):
     try:
+        print("got request to send chat from client {}".format(client_id))
         sequence_id = int(message)
         with self.logs_lock:
             copy_logs = self.chat_logs.copy()
