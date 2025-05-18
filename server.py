@@ -563,8 +563,8 @@ class SubServer:
             clients_thread = threading.Thread(target=self.client_connect_protocol)
             clients_thread.start()
 
-            bots_thread = threading.Thread(target=self.BotManage)
-            bots_thread.start()
+            #bots_thread = threading.Thread(target=self.BotManage)
+            #bots_thread.start()
         else:
             print("Load balancer not properly connected, not listening to clients.")
 
