@@ -827,8 +827,10 @@ def run_game(data, Socket):
                 if 'dead_bot' in data:
                     bot_pos = data['dead_bot']
                     print(f"Bot died at position: {bot_pos['x']}, {bot_pos['y']}")
-                    spawn_item(items, my_player['x'], my_player['y'], item_path, 50, 50, 'health')
+                    spawn_item(items, my_player['x' + 50], my_player['y' + 25], item_path, 50, 50, 'health')
+                    render_item(screen, my_player['x'], my_player['y'], item_path, my_player['x'] - 500, my_player['y'] - 325, 50, 50,'health')
                     spawn_item(items, my_player['x'], my_player['y'], item_path, 50, 50, 'ammo')
+                    render_item(screen, my_player['x'], my_player['y'], item_path, my_player['x'] - 500, my_player['y'] - 325, 50, 50,'ammo')
                     del shared_data['recived'][key]
 
         fps = clock.get_fps()
