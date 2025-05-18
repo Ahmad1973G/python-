@@ -321,24 +321,31 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
             screen.blit(item["image"], (x + 5, y + 5))
 
 
-def draw_item(screen, item, picture_path):
+def spawn_item(screen, items, player_x, player_y, picture_path, x, y, width, height, item_type):
     """
-    Draws the item's image on the screen at its (x, y) position.
+    Creates an item, appends it to the items list, and renders it on the map.
 
-    item: a dict with keys 'x', 'y', 'width', 'height', 'type'
-    picture_path: the base directory where item images are stored
-    screen: the pygame display surface
+    Parameters:
+        screen: The pygame display surface.
+        items: The list tracking all items on the map.
+        player_x, player_y: The player's current coordinates (for relative rendering).
+        picture_path: Directory where item images are stored.
+        x, y: World coordinates where the item should appear.
+        width, height: Size of the item.
+        item_type: The type of the item (e.g., 'health', 'ammo', etc.).
     """
-    item_type = item['type']
+    item = {'x': x, 'y': y, 'width': width, 'height': height, 'type': item_type}
+    items.append(item)
+    # Render the item immediately
     image_path = os.path.join(picture_path, f"{item_type}.png")
-
     try:
         image = pg.image.load(image_path).convert_alpha()
-        image = pg.transform.scale(image, (item['width'], item['height']))
-        screen.blit(image, (item['x'], item['y']))
+        image = pg.transform.scale(image, (width, height))
+        draw_x = x - player_x + 500
+        draw_y = y - player_y + 325
+        screen.blit(image, (draw_x, draw_y))
     except FileNotFoundError:
         print(f"Image for item type '{item_type}' not found at: {image_path}")
-
 
 def load_item_image(filename, PICTURE_PATH, SLOT_SIZE):
     path = os.path.join(PICTURE_PATH, filename)
