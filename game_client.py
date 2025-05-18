@@ -799,8 +799,8 @@ def run_game(data, Socket):
         # world_offset = (500 - my_player['x'], 325 - my_player['y'])
         draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
                  SCREEN_WIDTH, SCREEN_HEIGHT)
-        draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
-                 SCREEN_WIDTH, SCREEN_HEIGHT)
+        #draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
+        #         SCREEN_WIDTH, SCREEN_HEIGHT)
         #screen.fill(BLACK)
         print(players_sprites)
         print(players)
