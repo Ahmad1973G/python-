@@ -118,14 +118,23 @@ class ClientServer:
             return True
         return None
 
-    def sendMOVE(self, x, y, weapon: int):
+    def sendMOVE(self, x, y, weapon: int, angle, flag):
         # Add newline delimiter to separate messages
-        with self.lock:
-            self.socket.send(f"MOVE {x};{y};{weapon}".encode())
-            message = self.socket.recv(1024)
-        message = message.decode()
-        if self.protocol_check(message):
-            print("Move sent successfully")
+        if flag:
+            with self.lock:
+                self.socket.send(f"MOVE {x};{y};{weapon}".encode())
+                message = self.socket.recv(1024)
+            message = message.decode()
+            if self.protocol_check(message):
+                print("Move sent successfully")
+        else:
+            with self.lock:
+                self.socket.send(f"ANGLE {angle}".encode())
+                message = self.socket.recv(1024)
+            message = message.decode()
+            if self.protocol_check(message):
+                pass
+            # print("Angle sent successfully")
 
     def sendSHOOT(self, start_x, start_y, end_x, end_y, weapon):
         with self.lock:
