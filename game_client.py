@@ -723,12 +723,10 @@ def run_game(data, Socket):
                     move_y = -move_y
                     knockback = 8
                     
-                if move_x != 0 or move_y != 0:
-                    thread_map = threading.Thread(target=draw_map, args=(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, SCREEN_WIDTH, SCREEN_HEIGHT))
-                    thread_map.start()
                     
             else:
                 knockback -= 1
+
 
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
@@ -818,6 +816,8 @@ def run_game(data, Socket):
         #draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
         #         SCREEN_WIDTH, SCREEN_HEIGHT)
         #screen.fill(BLACK)
+        thread_map = threading.Thread(target=draw_map, args=(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, SCREEN_WIDTH, SCREEN_HEIGHT))
+        thread_map.start()
         obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
         # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
@@ -834,6 +834,7 @@ def run_game(data, Socket):
         screen.blit(ammo_text, (10, 80))  # top-left corner
         draw_hotbar(screen, selected_slot, hotbar)
         pg.display.flip()
+        
     pg.quit()
 
 if __name__ == "__main__":
