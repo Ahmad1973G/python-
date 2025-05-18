@@ -507,6 +507,7 @@ def run_game(data, Socket):
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
     # --------------------------------------------------------------------------------
+    Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon, angle, True)
     recived = Socket.requestDATA()
     if recived != {}:
         for key, data in recived.items():
@@ -630,7 +631,8 @@ def run_game(data, Socket):
                         if chat_input.strip():
                             chat_sync_loop(Socket, chat_log)  # Call the function to sync chat
                             chat_log.append(chat_input)  # Append to chat_log list instead
-                            Socket.sendCHAT(chat_input)
+                            thread_sendchat = threading.Thread(target=Socket.sendCHAT, args=(chat_input,))
+                            thread_sendchat.start()
                         chat_input = ""
                         chat_input_active = False
                     elif event.key == pg.K_ESCAPE:
