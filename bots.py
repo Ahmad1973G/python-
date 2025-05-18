@@ -5,7 +5,7 @@ import math
 import threading
 
 
-class Bots ():
+class Bot:
     def __init__(self,my_x,my_y,type,closest_x,closest_y,kd_tree,pos_to_tile):
         #type true= long range bot false=short
         #closest_p=0 if no player is close

@@ -26,6 +26,7 @@ def process_chat_recv(self, client_id, message: str):
 
 def process_chat_send(self, client_id, message: str):
     try:
+        print("got request to send chat from client {}".format(client_id))
         sequence_id = int(message)
         with self.logs_lock:
             copy_logs = self.chat_logs.copy()
@@ -114,7 +115,7 @@ def process_move(self, client_id, message: str):
         messages = message.split(';')
         x = int(float(messages[0]))
         y = int(float(messages[1]))
-        weapon = int(messages[2])
+        weapon = int(float(messages[2]))
 
         with self.elements_lock:
             self.updated_elements[client_id]['x'] = x
@@ -126,7 +127,8 @@ def process_move(self, client_id, message: str):
             self.players_data[client_id]['weapon'] = weapon
 
         self.CheckIfMovingFULL(client_id)
-        self.CheckForLB(client_id, x, y)
+        self.CheckForLB(self, client_id, x, y)
+        self.CheckForBots(x, y)
     except Exception as e:
         print(f"Error processing move for {client_id}: {e}")
 
@@ -161,9 +163,8 @@ def process_shoot(self, client_id, message: str):
 def process_damage_taken(self, client_id, message: str):
     try:
         damage = message
-        with self.elements_lock:
-            self.updated_elements[client_id]['health'] -= damage
-        with self.players_data_lock:
+        with self.elements_lock and self.players_data_lock:
+            self.updated_elements[client_id]['health'] = self.players_data[client_id]['health'] - damage
             self.players_data[client_id]['health'] -= damage
         with self.clients_lock:
             self.connected_clients[client_id][1].send("ACK".encode())
@@ -216,6 +217,7 @@ def process_request(self, client_id):
 
         other_players_data.update(self.different_server_players)
         other_players_data_str = json.dumps(other_players_data)
+        print(other_players_data_str)
         with self.clients_lock:
             self.connected_clients[client_id][1].send(other_players_data_str.encode())
     except Exception as e:
@@ -244,6 +246,7 @@ def process_requestFull(self, client_id):
             other_players_data = {player_id: data for player_id, data in self.players_data.items() if data != {}}
 
         other_players_data_str = json.dumps(other_players_data)
+        print(other_players_data_str)
         with self.clients_lock:
             self.connected_clients[client_id][1].send(other_players_data_str.encode())
     except Exception as e:

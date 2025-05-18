@@ -26,6 +26,7 @@ class ModernGameLogin:
         # Create style for modern look
         self.style = ttk.Style()
         self.style.theme_use('clam')
+        self.data = None
         
         # Configure styles for ttk widgets
         self.style.configure('TEntry', 
@@ -327,7 +328,7 @@ class ModernGameLogin:
             self.root.option_add('*Dialog.msg.foreground', '#e0e0e0')
             
             messagebox.showinfo("Success", f"Welcome back to Sanctuary, {username}")
-            self.player_data = data
+            self.data = data
             # Here you would typically launch the game or go to the next screen
             self.root.destroy()  # For demo purposes, just close the window
         else:
@@ -349,7 +350,7 @@ class ModernGameLogin:
             messagebox.showerror("Error", data)
             return
         
-        self.player_data = data
+        self.data = data
         
         messagebox.showinfo("Success", f"Account created for {username}. Enter Sanctuary if you dare.")
         self.root.destroy()

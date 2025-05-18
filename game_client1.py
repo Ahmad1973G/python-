@@ -16,6 +16,19 @@ import os
 import startprotocol
 from scipy.spatial import KDTree
 
+def start_portocol():
+    Socket = ClientSocket.ClientServer()
+    Socket.connect()
+    root = tk.Tk()
+    app = startprotocol.ModernGameLogin(root, Socket)
+    root.title("Login")
+    root.mainloop()
+    if app.data is None:
+        print("No data received from the login window.")
+        return
+    
+    run_game(app.data, Socket)
+
 
 def load_tmx_map(filename):
     """Load TMX map file and return data."""
@@ -212,6 +225,28 @@ shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False
 lock_shared_data = threading.Lock()
 lock = threading.Lock()
 
+def draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, screen_width, screen_height):
+    start_col = my_player['x'] // tile_width
+    start_row = my_player['y'] // tile_height
+    end_col = (my_player['x'] + screen_width) // tile_width + 2
+    end_row = (my_player['y'] + screen_height) // tile_height + 2
+
+    # Draw visible tiles
+    # new_msgs = Socket.recvCHAT()
+    if not chat_input_active:
+        for layer in tmx_data.visible_layers:
+            if isinstance(layer, pytmx.TiledTileLayer):
+                layer_index = tmx_data.layers.index(layer)  # <<< fix here
+                for x in range(start_col, end_col):
+                    for y in range(start_row, end_row):
+                        if 0 <= x < map_width and 0 <= y < map_height:
+                            image = tmx_data.get_tile_image(x, y, layer_index)
+                            if image:
+                                screen.blit(
+                                    image,
+                                    (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
+                                )
+
 
 def check_collision_obj(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
     if player_rect.x - player_rect.width / 2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height / 2 < coll_obj_y - coll_obj_h:
@@ -229,9 +264,9 @@ def draw_health_bar(surface, x, y, current, max, bar_width=200, bar_height=25):
 
 
 def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
-    box_width = 300
+    box_width = 269
     box_x = 1000 - box_width  # Align to right side
-    log_y = 350  # Starting Y position for log
+    log_y = 300  # Starting Y position for log
 
     # Draw chat messages (right side)
     for msg in reversed(chat_log[-5:]):
@@ -247,21 +282,19 @@ def draw_chat_box(screen, font_chat, chat_log, chat_input, chat_input_active):
         pg.draw.rect(screen, (255, 0, 0), (box_x, 575, box_width, 25), 1)
 
 
-def chat_sync_loop(Socket, chat_log, chat_input_active):
-    while True:
-        if not chat_input_active:
-            continue
-        try:
-            new_msgs = Socket.recvCHAT()
-            if new_msgs is True:
-                continue
-            for msg in new_msgs:
-                cid = msg[0]
-                msg = msg[1]
-                chat_log.append(f"{cid}: {msg}")
-        except Exception as e:
-            print("Chat loop error:", e)
-            break
+def chat_sync_loop(Socket, chat_log):
+    #hate niggas
+    try:
+        new_msgs = Socket.recvCHAT()
+        if new_msgs is True:
+            return "nigga"
+        for msg in new_msgs:
+            cid = msg[0]
+            msg = msg[1]
+            chat_log.append(f"{cid}: {msg}")
+    except Exception as e:
+        print("Chat loop error:", e)
+        return "nigga"
 
 
 def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=650, slot_size=50, inv_cols=10):
@@ -355,14 +388,7 @@ def receive_data_loop(Socket):
             shared_data['recived'] = recived
 
 
-def run_game():
-    Socket = ClientSocket.ClientServer()
-    Socket.connect()
-    root = tk.Tk()
-    app = startprotocol.ModernGameLogin(root, Socket)
-    root.title("Login")
-    root.mainloop()
-
+def run_game(data, Socket):
     pg.init()
     with lock:
         screen = pg.display.set_mode((1000, 650))
@@ -377,7 +403,7 @@ def run_game():
     # Get directory of the currently running script
     script_dir = os.path.dirname(os.path.abspath(__file__))
     item_path = os.path.join(script_dir)  # Points to: script_dir/items
-    print("nigga", item_path)
+    #print("nigga", item_path)
     # Create the full path to the map file
     map_path = os.path.join(script_dir, "map", "map.tmx")  # Points to: script_dir/map/map.tmx
 
@@ -400,7 +426,7 @@ def run_game():
     chat_input = ""
     chat_log = []
     clock = pg.time.Clock()
-    my_player = {'x': 400, 'y': 400, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 600, 'y': 500, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -492,7 +518,7 @@ def run_game():
         players = {}
         players_sprites = {}
 
-    Socket.sendMOVE(my_player['x'], my_player['y'])
+    Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon)
 
     # print (players)
     running = True
@@ -509,27 +535,27 @@ def run_game():
     thread_bomb = threading.Thread(target=bomb, args=(players_sprites, screen, RED, granade_range, my_player, Socket))
     thread_bomb.daemon = True
     thread_bomb.start()
-
-    thread_chat = threading.Thread(target=chat_sync_loop, args=(Socket, chat_log, chat_input_active))
-    thread_chat.daemon = True
-    thread_chat.start()
     # thread_movement.start()
 
-    thread_movement = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y']))
-    thread_movement.daemon = True
-    thread_movement.start()
+    #thread_map = threading.Thread(target=draw_map, args=(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, SCREEN_WIDTH, SCREEN_HEIGHT))
+    #thread_map.daemon = True
+    #thread_map.start()
+    
+    #thread_movement = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y'], selected_weapon))
+    #thread_movement.daemon = True
+    #thread_movement.start()
 
-    theread_angle = threading.Thread(target=Socket.sendANGLE, args=(angle))
-    theread_angle.daemon = True
-    theread_angle.start()
+    #theread_angle = threading.Thread(target=Socket.sendANGLE, args=(angle))
+    #theread_angle.daemon = True
+    #theread_angle.start()
 
-    thread_sendchat = threading.Thread(target=Socket.sendCHAT, args=(chat_input))
-    thread_sendchat.daemon = True
-    thread_sendchat.start()
+    #thread_sendchat = threading.Thread(target=Socket.sendCHAT, args=(chat_input))
+    #thread_sendchat.daemon = True
+    #thread_sendchat.start()
 
-    thread_recivedata = threading.Thread(target=receive_data_loop, args=(Socket))
-    thread_recivedata.daemon = True
-    thread_recivedata.start()
+    #thread_recivedata = threading.Thread(target=receive_data_loop, args=(Socket))
+    #thread_recivedata.daemon = True
+    #thread_recivedata.start()
 
     while running:
         for event in pg.event.get():
@@ -563,6 +589,8 @@ def run_game():
                         angle = (direction / abs(direction)) * (
                                 (-(mouse[0] - 500)) / abs(mouse[0] - 500)) * 90 + angle + (
                                         1 + (-direction) / abs(direction)) * 90
+                Socket.sendANGLE(angle)
+
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_1:
                     shared_data['used_weapon'] = 0
@@ -586,7 +614,9 @@ def run_game():
                 if chat_input_active:
                     if event.key == pg.K_RETURN:
                         if chat_input.strip():
+                            chat_sync_loop(Socket, chat_log)  # Call the function to sync chat
                             chat_log.append(chat_input)  # Append to chat_log list instead
+                            Socket.sendCHAT(chat_input)
                         chat_input = ""
                         chat_input_active = False
                     elif event.key == pg.K_ESCAPE:
@@ -599,6 +629,8 @@ def run_game():
                 else:
                     if event.key == pg.K_t:
                         chat_input_active = True
+                        chat_sync_loop(Socket, chat_log)
+                        
 
         # Movement only if not typing in chat
         if not chat_input_active:
@@ -682,6 +714,12 @@ def run_game():
             # while not kys[pg.K_r]:
             #    kys = pg.key.get_pressed()
             time.sleep(5)
+            
+        Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon)
+        recived = Socket.requestDATA()
+
+        with lock_shared_data:
+            shared_data['recived'] = recived
 
         found = False
         for key, data in recived.items():
@@ -736,29 +774,12 @@ def run_game():
             else:
                 my_player['x'] -= move_x
                 my_player['y'] -= move_y
+
+            Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon)
         # world_offset = (500 - my_player['x'], 325 - my_player['y'])
-
-        start_col = my_player['x'] // tile_width
-        start_row = my_player['y'] // tile_height
-        end_col = (my_player['x'] + SCREEN_WIDTH) // tile_width + 2
-        end_row = (my_player['y'] + SCREEN_HEIGHT) // tile_height + 2
-
-        # Draw visible tiles
-        # new_msgs = Socket.recvCHAT()
-        if not chat_input_active:
-            for layer in tmx_data.visible_layers:
-                if isinstance(layer, pytmx.TiledTileLayer):
-                    layer_index = tmx_data.layers.index(layer)  # <<< fix here
-                    for x in range(start_col, end_col):
-                        for y in range(start_row, end_row):
-                            if 0 <= x < map_width and 0 <= y < map_height:
-                                image = tmx_data.get_tile_image(x, y, layer_index)
-                                if image:
-                                    screen.blit(
-                                        image,
-                                        (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
-                                    )
-
+        draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
+                 SCREEN_WIDTH, SCREEN_HEIGHT)
+        #screen.fill(BLACK)
         obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
         # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
@@ -777,5 +798,5 @@ def run_game():
         pg.display.flip()
     pg.quit()
 
-
-run_game()
+if __name__ == "__main__":
+    start_portocol()
