@@ -698,12 +698,7 @@ def run_game(data, Socket):
                     move_x = -move_x
                     move_y = -move_y
                     knockback = 8
-<<<<<<< HEAD
-
-=======
                     
-                    
->>>>>>> 1d69ba0922bf1743f1dca3aa687d1f16b1195dc8
             else:
                 knockback -= 1
 
