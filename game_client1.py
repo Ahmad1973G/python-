@@ -321,7 +321,7 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
             screen.blit(item["image"], (x + 5, y + 5))
 
 
-def spawn_item(screen, items, player_x, player_y, picture_path, x, y, width, height, item_type):
+def spawn_item(items, x, y, width, height, item_type):
     """
     Creates an item, appends it to the items list, and renders it on the map.
 
@@ -336,7 +336,8 @@ def spawn_item(screen, items, player_x, player_y, picture_path, x, y, width, hei
     """
     item = {'x': x, 'y': y, 'width': width, 'height': height, 'type': item_type}
     items.append(item)
-    # Render the item immediately
+
+def render_item(screen, player_x, player_y, picture_path, x, y, width, height, item_type):
     image_path = os.path.join(picture_path, f"{item_type}.png")
     try:
         image = pg.image.load(image_path).convert_alpha()
@@ -637,6 +638,7 @@ def run_game(data, Socket):
                     if event.key == pg.K_t:
                         chat_input_active = True
                         chat_sync_loop(Socket, chat_log)
+
                         
 
         # Movement only if not typing in chat
@@ -698,9 +700,10 @@ def run_game(data, Socket):
                     move_x = -move_x
                     move_y = -move_y
                     knockback = 8
-
+                    
             else:
                 knockback -= 1
+
 
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
@@ -787,9 +790,24 @@ def run_game(data, Socket):
         draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
                  SCREEN_WIDTH, SCREEN_HEIGHT)
         #screen.fill(BLACK)
+        thread_map = threading.Thread(target=draw_map, args=(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, SCREEN_WIDTH, SCREEN_HEIGHT))
+        thread_map.start()
+        for item in items:
+            render_item(screen, my_player['x'], my_player['y'], item_path, item['x'], item['y'], item['width'],
+                        item['height'], item['type'])
         obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
         # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
+
+        with lock_shared_data: # if Bot dies
+            for key, data in shared_data['recived'].items():
+                if 'dead_bot' in data:
+                    bot_pos = data['dead_bot']
+                    print(f"Bot died at position: {bot_pos['x']}, {bot_pos['y']}")
+                    spawn_item(items, my_player['x'], my_player['y'], item_path, 50, 50, 'health')
+                    spawn_item(items, my_player['x'], my_player['y'], item_path, 50, 50, 'ammo')
+                    del shared_data['recived'][key]
+
         fps = clock.get_fps()
         fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
         if chat_input_active == False:
@@ -803,6 +821,7 @@ def run_game(data, Socket):
         screen.blit(ammo_text, (10, 80))  # top-left corner
         draw_hotbar(screen, selected_slot, hotbar)
         pg.display.flip()
+        
     pg.quit()
 
 if __name__ == "__main__":
