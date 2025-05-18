@@ -346,7 +346,7 @@ class SubServer:
     def handle_lb(self):
         self.getINDEX(self)
         self.getBORDERS(self)
-        self.SetBots(25)
+        #self.SetBots(25)
         while True:
             try:
                 # self.SendInfoLB()
