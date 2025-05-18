@@ -241,12 +241,26 @@ class SubServer:
                         if bot_id in self.updated_elements:
                             if 'shoot' in self.updated_elements[bot_id]:
                                 del self.updated_elements[bot_id]['shoot']
+    
+    def dead_bots(self):
+        """Remove all bots with health <= 0 from the server's data structures."""
+        with self.bots_lock, self.players_data_lock, self.elements_lock:
+            dead_bots = [bot_id for bot_id in self.bots
+                         if self.players_data.get(bot_id, {}).get('health', 1) <= 0]
+            for bot_id in dead_bots:
+                print(f"Removing dead bot: {bot_id}")
+                del self.bots[bot_id]
+                if bot_id in self.players_data:
+                    del self.players_data[bot_id]
+                if bot_id in self.updated_elements:
+                    del self.updated_elements[bot_id]
 
     def BotManage(self):
         while True:
             with self.bots_lock:
                 if len(self.bots) < 100:
                     continue
+            self.dead_bots()
             self.MovingBots()
             self.ShootingBots()
 
