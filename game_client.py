@@ -41,26 +41,6 @@ def load_tmx_map(filename):
         print(f"❌ Error loading TMX file: {e} - {sys.exc_info()}")
         return None
 
-def render_item_on_map(screen, item, player_x, player_y, picture_path):
-    """
-    Renders a single item on the map relative to the player's position.
-
-    Args:
-        screen: The pygame display surface.
-        item: A dict with keys 'x', 'y', 'width', 'height', 'type'.
-        player_x, player_y: The player's current coordinates.
-        picture_path: The directory where item images are stored.
-    """
-    image_path = os.path.join(picture_path, f"{item['type']}.png")
-    try:
-        image = pg.image.load(image_path).convert_alpha()
-        image = pg.transform.scale(image, (item['width'], item['height']))
-        # Calculate item's position relative to the player (centered on screen)
-        draw_x = item['x'] - player_x + 500
-        draw_y = item['y'] - player_y + 325
-        screen.blit(image, (draw_x, draw_y))
-    except FileNotFoundError:
-        print(f"Image for item type '{item['type']}' not found at: {image_path}")
 
 def bomb(players_sprites, screen, red, Brange, my_player, Socket):
     while True:
@@ -72,6 +52,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 bomb_range = Brange
                 explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
+                screen.fill((0, 0, 0))  # Clear screen
                 pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                 pg.display.flip()
 
@@ -83,10 +64,6 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     )
                     if distance <= bomb_range:
                         print(f"Player {player_id} hit by explosion!")
-                        # Deal 25 damage to hit players
-                        if player_id in players_sprites:
-                            players_sprites[player_id]['hp'] -= 25
-                            print(f"Player {player_id} HP: {players_sprites[player_id]['hp']}")
 
                 my_player_center = (500, 325)
                 self_distance = math.sqrt(
@@ -95,8 +72,6 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 )
                 if self_distance <= bomb_range:
                     print("CLIENT; You were hit by the explosion!")
-                    my_player['hp'] -= 25
-                    print(f"Your HP: {my_player['hp']}")
 
                 Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
                 shared_data['bomb'] = False
@@ -122,12 +97,11 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     )
                     if self_distance <= bomb_range:
                         print("CLIENT; You were hit by the explosion!")
-                        my_player['hp'] -= 25
-                        print(f"Your HP: {my_player['hp']}")
 
                     del shared_data['recived'][key]
 
         time.sleep(0.02)  # Add a small delay to reduce CPU usage
+
 
 # def sendmovement(x,y):
 # while True:
@@ -411,6 +385,7 @@ def receive_data_loop(Socket):
         recived = Socket.requestDATA()
         with lock_shared_data:
             shared_data['recived'] = recived
+        time.sleep(0.1)  # Add a small delay to reduce CPU usage
 
 def run_game(data, Socket):
     pg.init()
@@ -450,7 +425,7 @@ def run_game(data, Socket):
     chat_input = ""
     chat_log = []
     clock = pg.time.Clock()
-    my_player = {'x': 500, 'y': 500, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 400, 'y': 500, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -485,6 +460,7 @@ def run_game(data, Socket):
     direction = 0  # like m in y=mx+b
     RED = (255, 0, 0)
     sum_offset = [0, 0]
+    flag = False
     # my_sprite = Pmodel1.Player.convert_to_sprite(my_player['x'], my_player['y'], my_player['height'], my_player['width'],my_player['id'])
     # players_sprites = [
     #   Pmodel1.Player.convert_to_sprite(player['x'], player['y'], player['height'], player['width'], player['id'])
@@ -521,7 +497,7 @@ def run_game(data, Socket):
     # players_sprites = [Pmodel1.PlayerSprite(player['x'], player['y'], player['width'], player['height']) for player in players]
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
     # --------------------------------------------------------------------------------
-    recived = Socket.requestDATAFULL()
+    recived = Socket.requestDATA()
     if recived != {}:
         for key, data in recived.items():
             old_player = {
@@ -542,7 +518,7 @@ def run_game(data, Socket):
         players = {}
         players_sprites = {}
 
-    Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon)
+    #Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon, angle, False)
 
     # print (players)
     running = True
@@ -565,21 +541,23 @@ def run_game(data, Socket):
     #thread_map.daemon = True
     #thread_map.start()
     
-    thread_movement = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y'], selected_weapon))
+    #thread_movement = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y'], selected_weapon))
 
     thread_map = threading.Thread(target=draw_map, args=(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, SCREEN_WIDTH, SCREEN_HEIGHT))
     #thread_map.daemon = True
     #thread_map.start()
 
     theread_angle = threading.Thread(target=Socket.sendANGLE, args=(angle,))
+    
+    thread_movement_and_angle = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y'], selected_weapon, angle, flag))
 
     thread_sendchat = threading.Thread(target=Socket.sendCHAT, args=(chat_input))
     #thread_sendchat.daemon = True
     #thread_sendchat.start()
 
     thread_recivedata = threading.Thread(target=receive_data_loop, args=(Socket))
-    thread_recivedata.daemon = True
-    thread_recivedata.start()
+    #thread_recivedata.daemon = True
+    #thread_recivedata.start()
 
     while running:
         for event in pg.event.get():
@@ -614,8 +592,8 @@ def run_game(data, Socket):
                                 (-(mouse[0] - 500)) / abs(mouse[0] - 500)) * 90 + angle + (
                                         1 + (-direction) / abs(direction)) * 90
                                 
-                theread_angle = threading.Thread(target=Socket.sendANGLE, args=(angle,))
-                theread_angle.start()
+                thread_movement_and_angle = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y'], selected_weapon, angle, False))
+                thread_movement_and_angle.start()
 
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_1:
@@ -668,8 +646,8 @@ def run_game(data, Socket):
             my_sprite = pg.Rect(my_sprite)
             if knockback == 0:
                 if auto_move:
-                    thread_map = threading.Thread(target=draw_map, args=(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, SCREEN_WIDTH, SCREEN_HEIGHT))
-                    thread_map.start()
+                    #thread_map = threading.Thread(target=draw_map, args=(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, SCREEN_WIDTH, SCREEN_HEIGHT))
+                    #thread_map.start()
                     
                     if my_sprite.y > -270 and diraction == 'up':
                         my_player['y'] -= 15
@@ -723,11 +701,11 @@ def run_game(data, Socket):
                     move_y = -move_y
                     knockback = 8
                     
-                    
             else:
                 knockback -= 1
-
-
+        #thread_map = threading.Thread(target=draw_map, args=(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, SCREEN_WIDTH, SCREEN_HEIGHT))
+        #thread_map.start()
+        
         if my_player['hp'] <= 0:
             my_player['hp'] = 100
             my_player['x'] = 500
@@ -746,16 +724,14 @@ def run_game(data, Socket):
             # kys = pg.key.get_pressed()
             # while not kys[pg.K_r]:
             #    kys = pg.key.get_pressed()
-            time.sleep(5)
-         
-        thread_movement = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y'], selected_weapon))   
-        thread_movement.start()
+            time.sleep(0.01)
+
+        recived = Socket.requestDATA()
+        print("recived", recived)
+
+        with lock_shared_data:
+            shared_data['recived'] = recived
         
-        #recived = Socket.requestDATA()
-
-        #with lock_shared_data:
-        #    shared_data['recived'] = recived
-
         found = False
         for key, data in recived.items():
             if key in players:
@@ -802,7 +778,6 @@ def run_game(data, Socket):
                 knockback = 8
 
         if move_x != 0 or move_y != 0:
-
             if knockback == 0:
                 move_x = 0
                 move_y = 0
@@ -810,16 +785,17 @@ def run_game(data, Socket):
                 my_player['x'] -= move_x
                 my_player['y'] -= move_y
 
-            thread_movement = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y'], selected_weapon))
-            thread_movement.start()
+            thread_movement_and_angle = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y'], selected_weapon, angle, True))
+            thread_movement_and_angle.start()
+            
         # world_offset = (500 - my_player['x'], 325 - my_player['y'])
-        #draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
-        #         SCREEN_WIDTH, SCREEN_HEIGHT)
+        draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
+                 SCREEN_WIDTH, SCREEN_HEIGHT)
         #screen.fill(BLACK)
-        thread_map = threading.Thread(target=draw_map, args=(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, SCREEN_WIDTH, SCREEN_HEIGHT))
-        thread_map.start()
+        print(players_sprites)
+        print(players)
         obj.print_players(players_sprites, players, angle, selected_weapon)
-        clock.tick(60)
+        clock.tick(20)
         # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
         fps = clock.get_fps()
         fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
@@ -834,7 +810,6 @@ def run_game(data, Socket):
         screen.blit(ammo_text, (10, 80))  # top-left corner
         draw_hotbar(screen, selected_slot, hotbar)
         pg.display.flip()
-        
     pg.quit()
 
 if __name__ == "__main__":
