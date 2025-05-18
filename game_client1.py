@@ -227,28 +227,40 @@ shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False
 lock_shared_data = threading.Lock()
 lock = threading.Lock()
 
-def draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, screen_width, screen_height):
+def render_map_surface(tmx_data, my_player, tile_width, tile_height, map_width, map_height, screen_width, screen_height):
+    map_surface = pg.Surface((screen_width, screen_height), pg.SRCALPHA)
+
     start_col = my_player['x'] // tile_width
     start_row = my_player['y'] // tile_height
     end_col = (my_player['x'] + screen_width) // tile_width + 2
     end_row = (my_player['y'] + screen_height) // tile_height + 2
 
-    # Draw visible tiles
-    # new_msgs = Socket.recvCHAT()
-    if not chat_input_active:
-        for layer in tmx_data.visible_layers:
-            if isinstance(layer, pytmx.TiledTileLayer):
-                layer_index = tmx_data.layers.index(layer)  # <<< fix here
-                for x in range(start_col, end_col):
-                    for y in range(start_row, end_row):
-                        if 0 <= x < map_width and 0 <= y < map_height:
-                            image = tmx_data.get_tile_image(x, y, layer_index)
-                            if image:
-                                screen.blit(
-                                    image,
-                                    (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
-                                )
+    for layer in tmx_data.visible_layers:
+        if isinstance(layer, pytmx.TiledTileLayer):
+            layer_index = tmx_data.layers.index(layer)
+            for x in range(start_col, end_col):
+                for y in range(start_row, end_row):
+                    if 0 <= x < map_width and 0 <= y < map_height:
+                        image = tmx_data.get_tile_image(x, y, layer_index)
+                        if image:
+                            map_surface.blit(
+                                image,
+                                (x * tile_width - my_player['x'], y * tile_height - my_player['y'])
+                            )
 
+    return map_surface
+
+def threaded_map_draw(tmx_data, my_player, tile_width, tile_height, map_width, map_height, screen_width, screen_height):
+    global map_surface
+    while True:
+        new_surface = render_map_surface(
+            tmx_data, my_player,
+            tile_width, tile_height,
+            map_width, map_height,
+            screen_width, screen_height
+        )
+        with lock:
+            map_surface = new_surface
 
 def check_collision_obj(player_rect, coll_obj_x, coll_obj_w, coll_obj_y, coll_obj_h):
     if player_rect.x - player_rect.width / 2 > coll_obj_x + coll_obj_w or player_rect.y + player_rect.height / 2 < coll_obj_y - coll_obj_h:
@@ -554,9 +566,9 @@ def run_game(data, Socket):
     
     #thread_movement = threading.Thread(target=Socket.sendMOVE, args=(my_player['x'], my_player['y'], selected_weapon))
 
-    thread_map = threading.Thread(target=draw_map, args=(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active, SCREEN_WIDTH, SCREEN_HEIGHT))
-    #thread_map.daemon = True
-    #thread_map.start()
+    thread_map = threading.Thread(target=threaded_map_draw, args=(tmx_data, my_player, tile_width, tile_height, map_width, map_height, SCREEN_WIDTH, SCREEN_HEIGHT))
+    thread_map.daemon = True
+    thread_map.start()
 
     theread_angle = threading.Thread(target=Socket.sendANGLE, args=(angle,))
     
@@ -799,13 +811,11 @@ def run_game(data, Socket):
             thread_movement_and_angle.start()
             
         # world_offset = (500 - my_player['x'], 325 - my_player['y'])
-        draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
-                 SCREEN_WIDTH, SCREEN_HEIGHT)
         #draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
         #         SCREEN_WIDTH, SCREEN_HEIGHT)
-        #screen.fill(BLACK)
-        print(players_sprites)
-        print(players)
+        with lock:
+            if map_surface is not None:
+                screen.blit(map_surface, (0, 0))
         obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(20)
         # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
