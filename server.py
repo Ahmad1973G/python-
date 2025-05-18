@@ -242,25 +242,34 @@ class SubServer:
                             if 'shoot' in self.updated_elements[bot_id]:
                                 del self.updated_elements[bot_id]['shoot']
     
-    def dead_bots(self):
+    def DeadBots(self):
         """Remove all bots with health <= 0 from the server's data structures."""
         with self.bots_lock, self.players_data_lock, self.elements_lock:
             dead_bots = [bot_id for bot_id in self.bots
                          if self.players_data.get(bot_id, {}).get('health', 1) <= 0]
             for bot_id in dead_bots:
-                print(f"Removing dead bot: {bot_id}")
+                # Get bot's last position before removal
+                bot_x = self.players_data[bot_id]['x'] if bot_id in self.players_data else None
+                bot_y = self.players_data[bot_id]['y'] if bot_id in self.players_data else None
+
+                # Add death notification to updated_elements for client sync
+                if bot_id in self.updated_elements:
+                    self.updated_elements[bot_id]['dead_bot'] = {'x': bot_x, 'y': bot_y}
+                else:
+                    self.updated_elements[bot_id] = {'dead_bot': {'x': bot_x, 'y': bot_y}}
+
+                print(f"Removing dead bot: {bot_id} at ({bot_x}, {bot_y})")
                 del self.bots[bot_id]
                 if bot_id in self.players_data:
                     del self.players_data[bot_id]
-                if bot_id in self.updated_elements:
-                    del self.updated_elements[bot_id]
+                # Do NOT delete updated_elements[bot_id] here, so the client can receive the death info
 
     def BotManage(self):
         while True:
             with self.bots_lock:
                 if len(self.bots) < 100:
                     continue
-            self.dead_bots()
+            self.DeadBots()
             self.MovingBots()
             self.ShootingBots()
 

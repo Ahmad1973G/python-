@@ -321,7 +321,7 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
             screen.blit(item["image"], (x + 5, y + 5))
 
 
-def spawn_and_render_item(screen, items, player_x, player_y, picture_path, x, y, width, height, item_type):
+def spawn_item(screen, items, player_x, player_y, picture_path, x, y, width, height, item_type):
     """
     Creates an item, appends it to the items list, and renders it on the map.
 
@@ -637,6 +637,7 @@ def run_game(data, Socket):
                     if event.key == pg.K_t:
                         chat_input_active = True
                         chat_sync_loop(Socket, chat_log)
+
                         
 
         # Movement only if not typing in chat
@@ -793,6 +794,18 @@ def run_game(data, Socket):
         obj.print_players(players_sprites, players, angle, selected_weapon)
         clock.tick(60)
         # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
+
+        with lock_shared_data: # if Bot dies
+            for key, data in shared_data['recived'].items():
+                if 'dead_bot' in data:
+                    bot_pos = data['dead_bot']
+                    print(f"Bot died at position: {bot_pos['x']}, {bot_pos['y']}")
+                    spawn_item(screen, items, my_player['x'], my_player['y'], item_path, bot_pos['x'],
+                                          bot_pos['y'], 50, 50, 'health')
+                    spawn_item(screen, items, my_player['x'], my_player['y'], item_path, bot_pos['x'],
+                                          bot_pos['y'], 50, 50, 'ammo')
+                    del shared_data['recived'][key]
+
         fps = clock.get_fps()
         fps_text = font_fps.render(f"FPS: {fps:.2f}", True, (255, 0, 0))
         if chat_input_active == False:
