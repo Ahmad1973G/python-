@@ -321,7 +321,7 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
             screen.blit(item["image"], (x + 5, y + 5))
 
 
-def spawn_and_render_item(screen, items, player_x, player_y, picture_path, x, y, width, height, item_type):
+def spawn_item(screen, items, player_x, player_y, picture_path, x, y, width, height, item_type):
     """
     Creates an item, appends it to the items list, and renders it on the map.
 
