@@ -11,6 +11,8 @@ import sub_lb_prots
 import bots
 import os
 import pytmx
+
+import players_grid
 # Configuration
 LB_PORT = 5002
 UDP_PORT = LB_PORT + 1
@@ -102,6 +104,7 @@ class SubServer:
         self.logs_lock = threading.Lock()
         self.sequence_lock = threading.Lock()
         self.bots_lock = threading.Lock()
+        self.grid_lock = threading.Lock()
 
         self.process_move = sub_client_prots.process_move
         self.process_shoot = sub_client_prots.process_shoot
@@ -163,6 +166,9 @@ class SubServer:
         self.kd_tree, self.pos_to_tile = build_collision_kdtree_optimized(collidable_tiles)
         print("Built KD-tree successfully")
 
+        # Initialize the grid
+        self.grid = players_grid.PlayersGrid(cell_size=1000)
+
     def get_random_bot_position(self, borders):
         bot_x, bot_y = (random.randint(borders[0], borders[0] + self.server_borders[0]),
                         random.randint(borders[1], borders[1] + self.server_borders[1]))
@@ -204,6 +210,8 @@ class SubServer:
                 self.updated_elements[i] = {}
             with self.bots_lock:
                 self.bots[i] = bot
+            with self.grid_lock:
+                self.grid.add_player(i, x, y)
 
     def CheckForBots(self, x, y):
         with self.bots_lock:
@@ -280,6 +288,8 @@ class SubServer:
                     continue
                 with self.clients_lock:
                     self.connected_clients[client_id] = (addr, conn)
+                with self.players_data_lock:
+                    self.players_data[client_id] = {}
                 client_thread = threading.Thread(target=self.handle_client, args=(client_id,))
                 client_thread.start()
                 print(f"Started thread for client {client_id} from another server")
@@ -477,8 +487,12 @@ class SubServer:
                 if client_id in self.players_counter:
                     del self.players_counter[client_id]
 
+            with self.grid_lock:
+                if client_id in self.grid.player_positions:
+                    self.grid.remove_player(client_id)
+
             with self.elements_lock:
-                self.updated_elements[client_id] = {'disconect': True}
+                self.updated_elements[client_id] = {'disconnect': True}
             start_time = time.time()
             while True:
                 if time.time() - start_time > 10:
