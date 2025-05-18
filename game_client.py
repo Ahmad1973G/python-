@@ -28,6 +28,26 @@ def load_tmx_map(filename):
         print(f"❌ Error loading TMX file: {e} - {sys.exc_info()}")
         return None
 
+def render_item_on_map(screen, item, player_x, player_y, picture_path):
+    """
+    Renders a single item on the map relative to the player's position.
+
+    Args:
+        screen: The pygame display surface.
+        item: A dict with keys 'x', 'y', 'width', 'height', 'type'.
+        player_x, player_y: The player's current coordinates.
+        picture_path: The directory where item images are stored.
+    """
+    image_path = os.path.join(picture_path, f"{item['type']}.png")
+    try:
+        image = pg.image.load(image_path).convert_alpha()
+        image = pg.transform.scale(image, (item['width'], item['height']))
+        # Calculate item's position relative to the player (centered on screen)
+        draw_x = item['x'] - player_x + 500
+        draw_y = item['y'] - player_y + 325
+        screen.blit(image, (draw_x, draw_y))
+    except FileNotFoundError:
+        print(f"Image for item type '{item['type']}' not found at: {image_path}")
 
 def bomb(players_sprites, screen, red, Brange, my_player, Socket):
     while True:
@@ -39,7 +59,6 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 bomb_range = Brange
                 explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
-                screen.fill((0, 0, 0))  # Clear screen
                 pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                 pg.display.flip()
 
@@ -51,6 +70,10 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     )
                     if distance <= bomb_range:
                         print(f"Player {player_id} hit by explosion!")
+                        # Deal 25 damage to hit players
+                        if player_id in players_sprites:
+                            players_sprites[player_id]['hp'] -= 25
+                            print(f"Player {player_id} HP: {players_sprites[player_id]['hp']}")
 
                 my_player_center = (500, 325)
                 self_distance = math.sqrt(
@@ -59,6 +82,8 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 )
                 if self_distance <= bomb_range:
                     print("CLIENT; You were hit by the explosion!")
+                    my_player['hp'] -= 25
+                    print(f"Your HP: {my_player['hp']}")
 
                 Socket.sendBOOM(bomb_x, bomb_y, bomb_range)
                 shared_data['bomb'] = False
@@ -84,11 +109,12 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     )
                     if self_distance <= bomb_range:
                         print("CLIENT; You were hit by the explosion!")
+                        my_player['hp'] -= 25
+                        print(f"Your HP: {my_player['hp']}")
 
                     del shared_data['recived'][key]
 
         time.sleep(0.02)  # Add a small delay to reduce CPU usage
-
 
 # def sendmovement(x,y):
 # while True:
