@@ -11,7 +11,6 @@ import sub_lb_prots
 import bots
 import os
 import pytmx
-
 import players_grid
 # Configuration
 LB_PORT = 5002
@@ -122,6 +121,7 @@ class SubServer:
         self.process_chat_recv = sub_client_prots.process_chat_recv
         self.process_chat_send = sub_client_prots.process_chat_send
         self.process_chat = sub_client_prots.process_chat
+        self.process_bot_damage = sub_client_prots.process_bot_damage
 
         self.getINDEX = sub_lb_prots.getINDEX
         self.getRIGHT = sub_lb_prots.getRIGHT
@@ -139,7 +139,7 @@ class SubServer:
         self.protocols = {
             "MOVE": self.process_move,
             "SHOOT": self.process_shoot,
-            "DAMAGE": self.process_damage_taken,
+            "HEALTH": self.process_damage_taken,
             "POWER": self.process_power,
             "ANGLE": self.process_angle,
             "LOGIN": self.process_login,
@@ -149,6 +149,7 @@ class SubServer:
             "INVENTORY": self.process_Inventory,
             "BOMB": self.process_Bomb,
             "CHAT": self.process_chat,
+            "DAMAGE": self.process_bot_damage,
         }
 
         self.receive_protocol = {
@@ -168,6 +169,35 @@ class SubServer:
 
         # Initialize the grid
         self.grid = players_grid.PlayersGrid(cell_size=1000)
+
+    def restart_bot(self, bot_id):
+        time.sleep(1)
+        borders = {
+            1: (0, 0),
+            2: (self.server_borders[0], 0),
+            3: self.server_borders,
+            4: (0, self.server_borders[1])
+        }.get(self.server_index, (0, 0))
+        new_x, new_y = self.get_random_bot_position(borders)
+        with self.grid_lock:
+            nearby = self.grid.get_nearby_players(new_x, new_y, 100)
+            while len(nearby) > 0:
+                new_x, new_y = self.get_random_bot_position(borders)
+                nearby = self.grid.get_nearby_players(new_x, new_y, 100)
+        with self.bots_lock:
+            self.bots[bot_id].my_x = new_x
+            self.bots[bot_id].my_y = new_y
+            self.bots[bot_id].closest_x = None
+            self.bots[bot_id].closest_y = None
+        with self.elements_lock:
+            self.updated_elements[bot_id]['x'] = new_x
+            self.updated_elements[bot_id]['y'] = new_y
+        with self.players_data_lock:
+            self.players_data[bot_id]['x'] = new_x
+            self.players_data[bot_id]['y'] = new_y
+        with self.grid_lock:
+            self.grid.add_player(bot_id, new_x, new_y)
+
 
     def get_random_bot_position(self, borders):
         bot_x, bot_y = (random.randint(borders[0], borders[0] + self.server_borders[0]),

@@ -1,5 +1,30 @@
 import json
+import threading
 
+def process_bot_damage(self, client_id, message: str):
+    try:
+        messages = message.split(';')
+        bot_id = int(messages[0])
+        damage = int(messages[1])
+        with self.bots_lock:
+            self.bots[bot_id].health -= int(damage)
+        if self.bots[bot_id].health <= 0:
+            with self.updated_elements_lock:
+                self.updated_elements[bot_id]['health'] = 0
+            with self.players_data_lock:
+                self.players_data[bot_id]['health'] = 0
+            restart_thread = threading.Thread(target=self.restart_bot, args=(bot_id,))
+            restart_thread.start()
+        else:
+            with self.updated_elements_lock:
+                self.updated_elements[bot_id]['health'] = self.bots[bot_id].health
+            with self.players_data_lock:
+                self.players_data[bot_id]['health'] = self.bots[bot_id].health
+
+        with self.clients_lock:
+            self.connected_clients[client_id][1].send("ACK".encode())
+    except Exception as e:
+        print(f"Error processing life count for {client_id}: {e}")
 
 def process_chat(self, client_id, data):
     """Handle chat messages by routing to appropriate handler"""

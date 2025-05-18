@@ -118,6 +118,14 @@ class ClientServer:
             return True
         return None
 
+    def sendBOTDAMAGE(self, damage: int, bot_id: int):
+        with self.lock:
+            self.socket.send(f"DAMAGE {bot_id};{damage}".encode())
+            message = self.socket.recv(1024)
+        message = message.decode()
+        if self.protocol_check(message):
+            print("Damage sent successfully")
+
     def sendMOVE(self, x, y, weapon: int):
         # Add newline delimiter to separate messages
         with self.lock:
@@ -146,7 +154,7 @@ class ClientServer:
 
     def sendHEALTH(self, health: int):
         with self.lock:
-            self.socket.send(f"DAMAGE {health}".encode())
+            self.socket.send(f"HEALTH {health}".encode())
             message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):
