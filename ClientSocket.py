@@ -144,9 +144,9 @@ class ClientServer:
             pass
             # print("Angle sent successfully")
 
-    def sendDAMAGE(self, damage):
+    def sendHEALTH(self, health: int):
         with self.lock:
-            self.socket.send(f"DAMAGE {damage}".encode())
+            self.socket.send(f"DAMAGE {health}".encode())
             message = self.socket.recv(1024)
         message = message.decode()
         if self.protocol_check(message):

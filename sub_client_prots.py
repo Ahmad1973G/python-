@@ -126,6 +126,8 @@ def process_move(self, client_id, message: str):
             self.players_data[client_id]['y'] = y
             self.players_data[client_id]['weapon'] = weapon
 
+        with self.grid_lock:
+            self.grid.add_player(client_id, x, y)
         self.CheckIfMovingFULL(client_id)
         self.CheckForLB(self, client_id, x, y)
         self.CheckForBots(x, y)
@@ -162,10 +164,10 @@ def process_shoot(self, client_id, message: str):
 
 def process_damage_taken(self, client_id, message: str):
     try:
-        damage = message
+        health = message
         with self.elements_lock and self.players_data_lock:
-            self.updated_elements[client_id]['health'] = self.players_data[client_id]['health'] - damage
-            self.players_data[client_id]['health'] -= damage
+            self.updated_elements[client_id]['health'] = health
+            self.players_data[client_id]['health'] = health
         with self.clients_lock:
             self.connected_clients[client_id][1].send("ACK".encode())
     except Exception as e:
@@ -212,8 +214,10 @@ def process_request(self, client_id):
                 self.connected_clients[client_id][1].close()
             return 1
 
+        with self.grid_lock:
+            other_players_nearby = self.grid.get_nearby_players(self.players_data[client_id]['x'], self.players_data[client_id]['y'], 1000)
         with self.elements_lock:
-            other_players_data = {player_id: data for player_id, data in self.updated_elements.items() if data != {}}
+            other_players_data = {player_id: self.updated_elements[player_id] for player_id in other_players_nearby if self.updated_elements[player_id] != {}}
 
         other_players_data.update(self.different_server_players)
         other_players_data_str = json.dumps(other_players_data)

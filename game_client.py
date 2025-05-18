@@ -53,6 +53,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
                 screen.fill((0, 0, 0))  # Clear screen
+                screen.fill((0, 0, 0))  # Clear screen
                 pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                 pg.display.flip()
 
@@ -103,6 +104,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
         time.sleep(0.02)  # Add a small delay to reduce CPU usage
 
 
+
 # def sendmovement(x,y):
 # while True:
 # if moving:
@@ -111,15 +113,15 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
 
 def my_shoot(weapons, players_sprites, bullet_sprite, screen, my_player, Socket):
     pg.mixer.init()
-    #sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
-    #sound_effect.set_volume(0.5)
+    sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
+    sound_effect.set_volume(0.5)
     while True:
         if shared_data['fire']:
 
             if weapons[shared_data['used_weapon']]['ammo'] == 0:
                 print('out of ammo')
             else:
-                #sound_effect.play()
+                sound_effect.play()
                 hit = False
                 range1 = 1
                 weapons[shared_data['used_weapon']]['ammo'] -= 1
@@ -321,24 +323,31 @@ def draw_hotbar(screen, selected_slot, hotbar, screen_width=1000, screen_height=
             screen.blit(item["image"], (x + 5, y + 5))
 
 
-def draw_item(screen, item, picture_path):
+def spawn_and_render_item(screen, items, player_x, player_y, picture_path, x, y, width, height, item_type):
     """
-    Draws the item's image on the screen at its (x, y) position.
+    Creates an item, appends it to the items list, and renders it on the map.
 
-    item: a dict with keys 'x', 'y', 'width', 'height', 'type'
-    picture_path: the base directory where item images are stored
-    screen: the pygame display surface
+    Parameters:
+        screen: The pygame display surface.
+        items: The list tracking all items on the map.
+        player_x, player_y: The player's current coordinates (for relative rendering).
+        picture_path: Directory where item images are stored.
+        x, y: World coordinates where the item should appear.
+        width, height: Size of the item.
+        item_type: The type of the item (e.g., 'health', 'ammo', etc.).
     """
-    item_type = item['type']
+    item = {'x': x, 'y': y, 'width': width, 'height': height, 'type': item_type}
+    items.append(item)
+    # Render the item immediately
     image_path = os.path.join(picture_path, f"{item_type}.png")
-
     try:
         image = pg.image.load(image_path).convert_alpha()
-        image = pg.transform.scale(image, (item['width'], item['height']))
-        screen.blit(image, (item['x'], item['y']))
+        image = pg.transform.scale(image, (width, height))
+        draw_x = x - player_x + 500
+        draw_y = y - player_y + 325
+        screen.blit(image, (draw_x, draw_y))
     except FileNotFoundError:
         print(f"Image for item type '{item_type}' not found at: {image_path}")
-
 
 def load_item_image(filename, PICTURE_PATH, SLOT_SIZE):
     path = os.path.join(PICTURE_PATH, filename)
@@ -383,6 +392,7 @@ def receive_data_loop(Socket):
     """Thread to receive data from the server."""
     while True:
         recived = Socket.requestDATA()
+
         with lock_shared_data:
             shared_data['recived'] = recived
         time.sleep(0.1)  # Add a small delay to reduce CPU usage
@@ -620,8 +630,7 @@ def run_game(data, Socket):
                         if chat_input.strip():
                             chat_sync_loop(Socket, chat_log)  # Call the function to sync chat
                             chat_log.append(chat_input)  # Append to chat_log list instead
-                            thread_sendchat = threading.Thread(target=Socket.sendCHAT, args=(chat_input,))
-                            thread_sendchat.start()
+                            Socket.sendCHAT(chat_input)
                         chat_input = ""
                         chat_input_active = False
                     elif event.key == pg.K_ESCAPE:
@@ -665,8 +674,7 @@ def run_game(data, Socket):
                         my_player['x'] += 15
                         move_x = -15
                         diraction = 'right'
-                        
-                        
+
                 if keys[pg.K_w]:
                     if my_sprite.y > -270:
                         my_player['y'] -= 15
@@ -789,6 +797,8 @@ def run_game(data, Socket):
             thread_movement_and_angle.start()
             
         # world_offset = (500 - my_player['x'], 325 - my_player['y'])
+        draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
+                 SCREEN_WIDTH, SCREEN_HEIGHT)
         draw_map(screen, tmx_data, my_player, tile_width, tile_height, map_width, map_height, chat_input_active,
                  SCREEN_WIDTH, SCREEN_HEIGHT)
         #screen.fill(BLACK)
