@@ -463,7 +463,7 @@ def run_game(data, Socket):
     chat_input = ""
     chat_log = []
     clock = pg.time.Clock()
-    my_player = {'x': 500, 'y': 500, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': data['x'], 'y': data['y'], 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -479,7 +479,7 @@ def run_game(data, Socket):
     move_x = 0
     move_y = 0
     pg.mixer.init()
-    sound_effect = pg.mixer.Sound(os.path.join(item_path, "shot.wav"))
+    sound_effect = pg.mixer.Sound(os.path.join(picture_path, 'shot.wav'))
     sound_effect.set_volume(0.5)
     angle = 0
     knockback = 0
@@ -507,6 +507,7 @@ def run_game(data, Socket):
     #   Pmodel1.Player.convert_to_sprite(player['x'], player['y'], player['height'], player['width'], player['id'])
     #  for player in players
     # ]
+    bots={}
     bullet_sprite = {
         "image": pg.Surface((10, 10)),
         "rect": pg.Rect(500, 325, 10, 10),
@@ -563,9 +564,15 @@ def run_game(data, Socket):
                 }
                 players_sprites[key] = old_player
             else:
+                bot ={
+                    'hp':150,
+                    'angle':0
+                }
+                bots[key][bot]
                 bot={'image': pg.Surface((players[key]['width'], players[key]['height'])),
                     'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])}
                 bots_sprite[key] = bot
+                bots_sprite[key]['image']=pg.image.load('enemy.png').convert()
 
 
     # Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon, angle, False)
@@ -619,7 +626,8 @@ def run_game(data, Socket):
                     print("Selected slot:", selected_slot)
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 thread_shooting = threading.Thread(target=my_shoot,
-                                                   args=(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, screen, my_player, Socket))
+                                                   args=(weapons, players_sprites,bots_sprite,
+                                                          bullet_sprite,sound_effect, screen, my_player, Socket))
                 thread_shooting.start()
             elif event.type == pg.MOUSEMOTION:
                 mouse = pg.mouse.get_pos()
@@ -819,13 +827,13 @@ def run_game(data, Socket):
                                                         args=(weapons, bullet_sprite, data, screen, my_player, Socket))
                     thread_shooting2.start()
                 if 'x' in data:
-                    bots_sprite[key]['x'] = int(float(data['x']) - float(dis_to_mid[0]))
+                    bots_sprite[key]['rect'].x = int(float(data['x']) - float(dis_to_mid[0]))
                 if 'y' in data:
-                    bots_sprite[key]['y'] = int(float(data['y']) - float(dis_to_mid[1]))
+                    bots_sprite[key]['rect'].y = int(float(data['y']) - float(dis_to_mid[1]))
                 if 'angle' in data:
-                    bots_sprite[key]['angle'] = data['angle']
+                    bots[key]['angle'] = data['angle']
                 if 'hp' in data:
-                    bots_sprite[key]['hp'] = data['hp']
+                    bots[key]['hp'] = data['hp']
                     if data['hp'] <= 0:
                         del (bots_sprite[key])
 
@@ -864,7 +872,7 @@ def run_game(data, Socket):
         with lock:
             if map_surface is not None:
                 screen.blit(map_surface, (0, 0))
-        obj.print_players(players_sprites,bots_sprite, players, angle, selected_weapon)
+        obj.print_players(players_sprites,bots_sprite,bots, players, angle, selected_weapon)
         clock.tick(20)
         # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
 

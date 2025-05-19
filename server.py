@@ -554,6 +554,24 @@ class SubServer:
         except Exception as e:
             print(f"Error processing player data for {client_id}: {e}")
 
+    def create_new_pos(self):
+        borders = {
+            1: (0, 0),
+            2: (self.server_borders[0], 0),
+            3: self.server_borders,
+            4: (0, self.server_borders[1])
+        }.get(self.server_index, (0, 0))
+                
+        x, y = self.get_random_bot_position(borders)
+        while True:
+            with self.grid_lock:
+                nearby = self.grid.get_nearby_players(x, y, 100)
+                if len(nearby) == 0:
+                    break
+                else:
+                    x, y = self.get_random_bot_position(borders)
+        return x, y
+
     def run(self):
         lb_thread = threading.Thread(target=self.lb_connect_protocol)
         lb_thread.start()
@@ -567,6 +585,9 @@ class SubServer:
             #bots_thread.start()
         else:
             print("Load balancer not properly connected, not listening to clients.")
+
+
+    
 
 
 if __name__ == "__main__":

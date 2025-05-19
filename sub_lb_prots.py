@@ -19,6 +19,7 @@ def getBORDERS(self):
         data = data.split()[-1]
         self.server_borders[0] = int(float(data.split(";")[0]))
         self.server_borders[1] = int(float(data.split(";")[1]))
+        print("Server BORDERS:", self.server_borders)
     else:
         print("Failed to get server ID from load balancer, error:", data)
 
@@ -114,7 +115,14 @@ def SortLogin(self, data):
             with self.secret_lock:
                 self.secret_players_data[client_id] = data[1]
             with self.clients_lock:
-                self.connected_clients[client_id][1].send(f"SUCCESS CODE LOGIN {data[1]}".encode())
+                data_send = data[1]
+                x, y = self.create_new_pos()
+                data_send['x'] = x
+                data_send['y'] = y 
+                self.connected_clients[client_id][1].send(f"SUCCESS CODE LOGIN {data_send}".encode())
+            with self.players_data_lock:
+                self.players_data[client_id]['x'] = x
+                self.players_data[client_id]['y'] = y
             continue
         if prot.startswith("FAILED CODE LOGIN"):
             with self.clients_lock:
@@ -149,7 +157,14 @@ def SortRegister(self, data):
                 self.secret_players_data[client_id] = data[1]
 
             with self.clients_lock:
-                self.connected_clients[client_id][1].send(f"SUCCESS CODE REGISTER {data[1]}".encode())
+                data_send = data[1]
+                x, y = self.create_new_pos()
+                data_send['x'] = x
+                data_send['y'] = y 
+                self.connected_clients[client_id][1].send(f"SUCCESS CODE REGISTER {data_send}".encode())
+            with self.players_data_lock:
+                self.players_data[client_id]['x'] = x
+                self.players_data[client_id]['y'] = y
             continue
         if prot.startswith("FAILED CODE REGISTER"):
             result = prot
