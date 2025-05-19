@@ -619,8 +619,7 @@ def run_game(data, Socket):
                     print("Selected slot:", selected_slot)
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 thread_shooting = threading.Thread(target=my_shoot,
-                                                   args=(weapons, players_sprites, bullet_sprite, sound_effect, screen,
-                                                         my_player, Socket))
+                                                   args=(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, screen, my_player, Socket))
                 thread_shooting.start()
             elif event.type == pg.MOUSEMOTION:
                 mouse = pg.mouse.get_pos()
