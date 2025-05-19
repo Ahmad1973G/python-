@@ -479,7 +479,9 @@ def run_game(data, Socket):
     move_x = 0
     move_y = 0
     pg.mixer.init()
-    sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    sound_path = os.path.join(script_dir, "shot.wav")  # Points to: script_dir/sound/shot.wav
+    sound_effect = pg.mixer.Sound(sound_path)
     sound_effect.set_volume(0.5)
     angle = 0
     knockback = 0
@@ -513,8 +515,6 @@ def run_game(data, Socket):
         "rect": pg.Rect(500, 325, 10, 10),
     }
     bots_sprite = {
-        "image": pg.Surface((60, 60)),
-        "rect": pg.Rect(500, 325, 10, 10),
     }
     my_sprite = {
         "image": pg.Surface((my_player["width"], my_player["height"])),

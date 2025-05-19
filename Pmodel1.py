@@ -182,7 +182,7 @@ class Player(pg.sprite.Sprite):
         PINK = (255, 174, 201)
         if selected_weapon >= 48:
             selected_weapon -= 48
-        characterfilename = f"char{selected_weapon + 1}.png"
+        characterfilename = f"char_{selected_weapon + 1}.png"
 
         for key, data in players_sprites.items():
             # Load and process player sprite
