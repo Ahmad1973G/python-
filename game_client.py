@@ -479,7 +479,7 @@ def run_game(data, Socket):
     move_x = 0
     move_y = 0
     pg.mixer.init()
-    sound_effect = pg.mixer.Sound("C:/Users/User/Desktop/Documents/shot.wav")
+    sound_effect = pg.mixer.Sound(os.path.join(item_path, "shot.wav"))
     sound_effect.set_volume(0.5)
     angle = 0
     knockback = 0
