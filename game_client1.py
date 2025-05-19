@@ -507,6 +507,7 @@ def run_game(data, Socket):
     #   Pmodel1.Player.convert_to_sprite(player['x'], player['y'], player['height'], player['width'], player['id'])
     #  for player in players
     # ]
+    bots={}
     bullet_sprite = {
         "image": pg.Surface((10, 10)),
         "rect": pg.Rect(500, 325, 10, 10),
@@ -563,9 +564,15 @@ def run_game(data, Socket):
                 }
                 players_sprites[key] = old_player
             else:
+                bot ={
+                    'hp':150,
+                    'angle':0
+                }
+                bots[key][bot]
                 bot={'image': pg.Surface((players[key]['width'], players[key]['height'])),
                     'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])}
                 bots_sprite[key] = bot
+                bots_sprite[key]['image']=pg.image.load('enemy.png').convert()
 
 
     # Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon, angle, False)
@@ -820,13 +827,13 @@ def run_game(data, Socket):
                                                         args=(weapons, bullet_sprite, data, screen, my_player, Socket))
                     thread_shooting2.start()
                 if 'x' in data:
-                    bots_sprite[key]['x'] = int(float(data['x']) - float(dis_to_mid[0]))
+                    bots_sprite[key]['rect'].x = int(float(data['x']) - float(dis_to_mid[0]))
                 if 'y' in data:
-                    bots_sprite[key]['y'] = int(float(data['y']) - float(dis_to_mid[1]))
+                    bots_sprite[key]['rect'].y = int(float(data['y']) - float(dis_to_mid[1]))
                 if 'angle' in data:
-                    bots_sprite[key]['angle'] = data['angle']
+                    bots[key]['angle'] = data['angle']
                 if 'hp' in data:
-                    bots_sprite[key]['hp'] = data['hp']
+                    bots[key]['hp'] = data['hp']
                     if data['hp'] <= 0:
                         del (bots_sprite[key])
 
@@ -865,7 +872,7 @@ def run_game(data, Socket):
         with lock:
             if map_surface is not None:
                 screen.blit(map_surface, (0, 0))
-        obj.print_players(players_sprites,bots_sprite, players, angle, selected_weapon)
+        obj.print_players(players_sprites,bots_sprite,bots, players, angle, selected_weapon)
         clock.tick(20)
         # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
 
