@@ -1,3 +1,255 @@
+Daniel Mantin
+nikocadoavocado4501
+Invisible
+החנונים של סייבר
+
+shefer — 3/23/2025 8:12 PM
+def requestDATA(self):
+        try:
+            self.socket.send("REQUEST".encode())
+            data = self.socket.recv(1024)
+            if not data:
+                return None
+
+            data = data.decode()
+            if data == "WARNING":
+                return "WARNING"
+            elif data == "KICK":
+                self.socket.close()
+                return "KICK"
+            else:
+                # Assuming the data is just JSON without prefix
+                return json.loads(data)
+
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+            return None
+        except socket.error as e:
+            print(f"Socket error: {e}")
+            return None
+shefer — 3/23/2025 8:19 PM
+if self.updated_elements == {}:
+                self.connected_clients[client_id][1].send(json.dumps({}).encode())
+                return 0
+shefer — 3/23/2025 8:40 PM
+for key, data in dict.items():
+for key in dict.keys():
+DTG — 3/23/2025 8:57 PM
+import pygame as pg
+import json
+import Pmodel1
+import ClientSocket
+import threading
+import time
+Expand
+message.txt
+13 KB
+import pygame as pg
+import json
+
+
+class Player(pg.sprite.Sprite):
+    def __init__(self, my_player, speed, weapon, power, max_health, acceleration, players, moving,
+Expand
+message.txt
+4 KB
+DTG — 3/23/2025 9:17 PM
+import socket
+import json
+import threading
+import random
+
+# Configuration
+Expand
+message.txt
+11 KB
+import socket
+import json
+import threading
+import time
+import random
+from typing import Union
+Expand
+message.txt
+7 KB
+import socket
+import json
+import threading
+import time
+
+SERVER_PORT = 5003  # Let the OS assign a port
+Expand
+message.txt
+5 KB
+DTG — 3/24/2025 3:01 AM
+import pygame as pg
+import json
+
+from pygame.examples.music_drop_fade import starting_pos
+import random
+import Pmodel1
+Expand
+message.txt
+14 KB
+DTG — 3/24/2025 4:46 AM
+import pygame as pg
+import json
+
+from pygame.examples.music_drop_fade import starting_pos
+import random
+import Pmodel1
+Expand
+message.txt
+16 KB
+You missed a call from 
+shefer
+ that lasted an hour. — 4/1/2025 9:26 PM
+DTG
+ added 
+Yogurt
+ to the group. — 4/1/2025 9:27 PM
+shefer
+ removed 
+Yogurt
+ from the group. — 4/1/2025 9:27 PM
+You missed a call from 
+DTG
+ that lasted 2 hours. — 4/1/2025 10:45 PM
+You missed a call from 
+shefer
+ that lasted 8 minutes. — 4/13/2025 7:18 PM
+You missed a call from 
+DTG
+ that lasted 2 hours. — 4/15/2025 2:01 PM
+shefer
+ started a call that lasted 24 minutes. — 4/17/2025 5:30 PM
+You missed a call from 
+shefer
+ that lasted an hour. — 4/18/2025 4:11 PM
+shefer — 4/18/2025 4:21 PM
+self.protocols = {
+            "MOVE": self.process_move,
+            "SHOOT": self.process_shoot,
+            "DAMAGE": self.process_damage_taken,
+            "POWER": self.process_power,
+            "ANGLE": self.process_angle,
+            "LOGIN": self.process_login
+        }
+
+        self.receive_protocol = {
+            "REQUEST": self.process_request,
+            "REQUESTFULL": self.process_requestFull
+        }
+messages = message.split(' ')
+            protocol = messages[0]
+            data = messages[-1]
+            if protocol in self.protocols.keys():
+                self.protocols[protocol](client_id, data)
+
+            elif protocol in self.receive_protocol.keys():
+                return self.receive_protocol[protocol](client_id)
+
+            else:
+                print("Unknown protocol, ignoring")
+
+            with self.counter_lock:
+                if client_id in self.players_counter.keys():
+                    self.players_counter[client_id] = 0
+                else:
+                    self.players_counter[client_id] = 0
+
+            return 0
+DTG — 4/18/2025 4:57 PM
+import pygame as pg
+import json
+
+from pygame.examples.music_drop_fade import starting_pos
+import random
+import Pmodel1
+Expand
+message.txt
+18 KB
+You missed a call from 
+DTG
+ that lasted 19 minutes. — 4/18/2025 5:56 PM
+You missed a call from 
+shefer
+ that lasted 2 hours. — 4/21/2025 3:48 PM
+You missed a call from 
+DTG
+ that lasted 16 minutes. — 4/22/2025 5:48 PM
+DTG
+ started a call that lasted 39 minutes. — 4/22/2025 6:05 PM
+You missed a call from 
+DTG
+ that lasted an hour. — 4/22/2025 8:58 PM
+You missed a call from 
+DTG
+ that lasted 7 minutes. — 4/22/2025 10:27 PM
+DTG — 4/22/2025 10:31 PM
+תחזור שניה
+Yogurt — 4/22/2025 10:32 PM
+אוקיי
+You missed a call from 
+shefer
+ that lasted a few seconds. — 4/25/2025 4:14 PM
+You missed a call from 
+DTG
+ that lasted an hour. — 4/25/2025 4:15 PM
+Yogurt
+ started a call that lasted 8 minutes. — 4/26/2025 1:21 PM
+Daniel Mantin
+ started a call that lasted 6 minutes. — 4/26/2025 5:15 PM
+DTG
+ started a call that lasted 11 minutes. — 4/27/2025 6:06 PM
+Daniel Mantin
+ started a call that lasted 22 minutes. — 4/30/2025 3:00 PM
+Daniel Mantin — 4/30/2025 3:17 PM
+אתה פה?
+DTG — 4/30/2025 3:21 PM
+אני פשוט אומר שתסתכל איך בניתי את הקוליזן ותעתיק
+או יותר מדויק את הנוקבאק
+Daniel Mantin — 4/30/2025 3:22 PM
+טוב
+You missed a call from 
+shefer
+ that lasted a few seconds. — 5/14/2025 5:24 PM
+shefer
+ started a call that lasted 23 minutes. — 5/14/2025 7:07 PM
+DTG
+ started a call that lasted 2 hours. — Yesterday at 2:02 PM
+You missed a call from 
+Yogurt
+ that lasted a few seconds. — Yesterday at 6:20 PM
+shefer
+ started a call that lasted 3 hours. — Yesterday at 6:37 PM
+DTG
+ started a call that lasted 22 minutes. — Yesterday at 10:02 PM
+Daniel Mantin — Yesterday at 10:17 PM
+script_dir = os.path.dirname(os.path.abspath(file))
+    item_path = os.path.join(script_dir)  # Points to: script_dir/items
+item_path = os.path.join(script_dir, item['type'])  # Points to: script_dir/items
+DTG — Yesterday at 10:53 PM
+import pygame as pg
+import json
+import tkinter as tk
+from tkinter import messagebox, font
+from tkinter import ttk
+from pygame.examples.music_drop_fade import starting_pos
+Expand
+message.txt
+38 KB
+DTG — 1:21 AM
+import pygame as pg
+import json
+import tkinter as tk
+from tkinter import messagebox, font
+from tkinter import ttk
+from pygame.examples.music_drop_fade import starting_pos
+Expand
+message.txt
+40 KB
+﻿
 import pygame as pg
 import json
 import tkinter as tk
@@ -111,7 +363,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
 # Socket.sendMOVE(x,y)
 
 
-def my_shoot(weapons, players_sprites, bullet_sprite,sound_effect, screen, my_player, Socket):
+def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, screen, my_player, Socket):
 
     if weapons[shared_data['used_weapon']]['ammo'] == 0:
         print('out of ammo')
@@ -161,9 +413,10 @@ def my_shoot(weapons, players_sprites, bullet_sprite,sound_effect, screen, my_pl
             # --------------------------------------------------------------
             for key, data in players_sprites.items():
                 if data['rect'].colliderect(bullet_sprite['rect']):
-                    print(
-                        "hit" + " " + key + ' ' + 'with weapon' + ' ' + str(
-                            shared_data['used_weapon'] + 1))
+                    hit = True
+            for key, data in bots_sprite.items():
+                if data['rect'].colliderect(bullet_sprite['rect']):
+                    #send server that the bot was hit
                     hit = True
 
 
@@ -518,7 +771,7 @@ def run_game(data, Socket):
         "image": pg.Surface((my_player["width"], my_player["height"])),
         "rect": pg.Rect(500, 325, my_player["width"], my_player["height"])
     }
-
+    players = {}
     players_sprites = {}
     with lock:
         obj = Pmodel1.Player(
@@ -543,25 +796,29 @@ def run_game(data, Socket):
     # --------------------------------------------------------------------------------
     Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon, angle, True)
     recived = Socket.requestDATA()
+
     if recived != {}:
         for key, data in recived.items():
-            old_player = {
-                'x': int(float(data['x']) - float(dis_to_mid[1])),
-                'y': int(float(data['y']) - float(dis_to_mid[1])),
-                'width': 60,
-                'height': 60,
-                'hp': 100,
-                'angle': 0
-            }
-            players[key] = old_player
-            old_player = {
-                'image': pg.Surface((players[key]['width'], players[key]['height'])),
-                'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])
-            }
-            players_sprites[key] = old_player
-    else:
-        players = {}
-        players_sprites = {}
+            if key>=100:
+                old_player = {
+                    'x': int(float(data['x']) - float(dis_to_mid[1])),
+                    'y': int(float(data['y']) - float(dis_to_mid[1])),
+                    'width': 60,
+                    'height': 60,
+                    'hp': 100,
+                    'angle': 0
+                }
+                players[key] = old_player
+                old_player = {
+                    'image': pg.Surface((players[key]['width'], players[key]['height'])),
+                    'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])
+                }
+                players_sprites[key] = old_player
+            else:
+                bot={'image': pg.Surface((players[key]['width'], players[key]['height'])),
+                    'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])}
+                bots_sprite[key] = bot
+
 
     # Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon, angle, False)
 
@@ -793,21 +1050,39 @@ def run_game(data, Socket):
                     # check_if_they_dead(players[key]['hp'])
                 if 'angle' in data:
                     players[key]['angle'] = data['angle']
-            elif 'x' in data and 'y' in data:
-                new_player = {
-                    'x': int(float(data['x']) - float(dis_to_mid[0])),
-                    'y': int(float(data['y']) - float(dis_to_mid[1])),
-                    'width': 60,
-                    'height': 60,
-                    'hp': 100,
-                    'angle': 0
-                }
-                players[key] = new_player
-                new_player = {
-                    'image': pg.Surface((players[key]['width'], players[key]['height'])),
-                    'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])
-                }
-                players_sprites[key] = new_player
+            elif key >= 100:
+                if 'x' in data and 'y' in data:
+                    new_player = {
+                        'x': int(float(data['x']) - float(dis_to_mid[0])),
+                        'y': int(float(data['y']) - float(dis_to_mid[1])),
+                        'width': 60,
+                        'height': 60,
+                        'hp': 100,
+                        'angle': 0
+                    }
+                    players[key] = new_player
+                    new_player = {
+                        'image': pg.Surface((players[key]['width'], players[key]['height'])),
+                        'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])
+                    }
+                    players_sprites[key] = new_player
+            else:
+                if 'shoot' in data:
+                    thread_shooting2 = threading.Thread(target=other_shoot,
+                                                        args=(weapons, bullet_sprite, data, screen, my_player, Socket))
+                    thread_shooting2.start()
+                if 'x' in data:
+                    bots_sprite[key]['x'] = int(float(data['x']) - float(dis_to_mid[0]))
+                if 'y' in data:
+                    bots_sprite[key]['y'] = int(float(data['y']) - float(dis_to_mid[1]))
+                if 'angle' in data:
+                    bots_sprite[key]['angle'] = data['angle']
+                if 'hp' in data:
+                    bots_sprite[key]['hp'] = data['hp']
+                    if data['hp'] <= 0:
+                        del (bots_sprite[key])
+
+
 
         if players != {}:
             sum_offset[0] += move_x
@@ -842,7 +1117,7 @@ def run_game(data, Socket):
         with lock:
             if map_surface is not None:
                 screen.blit(map_surface, (0, 0))
-        obj.print_players(players_sprites, players, angle, selected_weapon)
+        obj.print_players(players_sprites,bots_sprite, players, angle, selected_weapon)
         clock.tick(20)
         # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
 
