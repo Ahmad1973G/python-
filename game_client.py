@@ -463,7 +463,7 @@ def run_game(data, Socket):
     chat_input = ""
     chat_log = []
     clock = pg.time.Clock()
-    my_player = {'x': data['x'], 'y': data['y'], 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 1500, 'y': 8000, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -504,6 +504,7 @@ def run_game(data, Socket):
     RED = (255, 0, 0)
     sum_offset = [0, 0]
     flag = False
+    PINK = (255, 174, 201)
     # my_sprite = Pmodel1.Player.convert_to_sprite(my_player['x'], my_player['y'], my_player['height'], my_player['width'],my_player['id'])
     # players_sprites = [
     #   Pmodel1.Player.convert_to_sprite(player['x'], player['y'], player['height'], player['width'], player['id'])
@@ -514,6 +515,8 @@ def run_game(data, Socket):
         "image": pg.Surface((10, 10)),
         "rect": pg.Rect(500, 325, 10, 10),
     }
+    bullet_sprite['image']=pg.image.load('bullet.png').convert()
+    bullet_sprite['image'].set_colorkey(PINK)
     bots_sprite = {
     }
     my_sprite = {
@@ -544,10 +547,12 @@ def run_game(data, Socket):
     # my_player_sprite = Pmodel1.PlayerSprite(my_player['x'], my_player['y'], my_player['width'], my_player['height'])
     # --------------------------------------------------------------------------------
     Socket.sendMOVE(my_player['x'], my_player['y'], selected_weapon, angle, True)
-    recived = Socket.requestDATA()
+    recived = Socket.requestDATAFULL()
+    print(recived)
 
     if recived != {}:
         for key, data in recived.items():
+            key = int(key)
             if key>=100:
                 old_player = {
                     'x': int(float(data['x']) - float(dis_to_mid[1])),
@@ -558,19 +563,20 @@ def run_game(data, Socket):
                     'angle': 0
                 }
                 players[key] = old_player
-                old_player = {
-                    'image': pg.Surface((players[key]['width'], players[key]['height'])),
-                    'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])
-                }
+                old_player = {'image': pg.Surface((60, 60)),
+                    'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])}
                 players_sprites[key] = old_player
             else:
                 bot ={
                     'hp':150,
                     'angle':0
                 }
-                bots[key][bot]
-                bot={'image': pg.Surface((players[key]['width'], players[key]['height'])),
-                    'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'], players[key]['height'])}
+                bots[key] = bot
+                
+                bot={
+                    'image': pg.Surface((60, 60)),
+                    'rect': pg.Rect(int(float(data['y']) - float(dis_to_mid[1])),int(float(data['y']) - float(dis_to_mid[1])), 60,60)
+                }
                 bots_sprite[key] = bot
                 bots_sprite[key]['image']=pg.image.load('enemy.png').convert()
 
@@ -743,6 +749,7 @@ def run_game(data, Socket):
                         move_x = -15
                         diraction = 'right'
 
+                print(my_player['x'], my_player['y'])
                 if keys[pg.K_p] and selected_slot >= 3 and hotbar[selected_slot] is not None:
                     apply_item_effect(hotbar[selected_slot], my_player, weapons, shared_data, obj)
                     if hotbar[selected_slot]['amount'] > 1:
@@ -805,7 +812,7 @@ def run_game(data, Socket):
                     # check_if_they_dead(players[key]['hp'])
                 if 'angle' in data:
                     players[key]['angle'] = data['angle']
-            elif key >= 100:
+            elif int(key) >= 100:
                 if 'x' in data and 'y' in data:
                     new_player = {
                         'x': int(float(data['x']) - float(dis_to_mid[0])),
@@ -822,6 +829,7 @@ def run_game(data, Socket):
                     }
                     players_sprites[key] = new_player
             else:
+                key = int(key)
                 if 'shoot' in data:
                     thread_shooting2 = threading.Thread(target=other_shoot,
                                                         args=(weapons, bullet_sprite, data, screen, my_player, Socket))

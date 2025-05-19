@@ -22,6 +22,7 @@ SYN = "SYNC CODE 1"
 SYN_ACK = "SYNC+ACK CODE 1"
 ACK = "ACK CODE 2"
 
+RADIUS = 600
 
 def get_ip_address():
     hostname = socket.gethostname()
@@ -218,7 +219,7 @@ class SubServer:
             x = borders[0] + random.randint(0, self.server_borders[0])
             y = borders[1] + random.randint(0, self.server_borders[1])
             all_positions.add((x, y))
-
+        print("Generated positions for bots:", all_positions)
         # Create bots in batch
         positions = list(all_positions)[:amount]  # Take first x positions
         bot_types = [random.random() < 0.5 for _ in range(amount)]  # Pre-generate all bot types
@@ -246,45 +247,52 @@ class SubServer:
     def CheckForBots(self, x, y):
         with self.bots_lock:
             for bot_id, bot in self.bots.items():
-                if abs(bot.my_x - x) < 1000 or abs(bot.my_y - y) < 650:
+                if abs(bot.my_x - x) < RADIUS and abs(bot.my_y - y) < RADIUS:
                     bot.SeNdTArGeT(x, y)
+                    print(f"Bot {bot_id} is moving towards ({x}, {y})")
 
     def MovingBots(self):
         with self.bots_lock:
-            for bot_id, bot in self.bots.items():
-                if bot.moving:
-                    with self.players_data_lock:
-                        self.players_data[bot_id]['x'] = bot.my_x
-                        self.players_data[bot_id]['y'] = bot.my_y
+            bots_copy = self.bots.copy()
 
-                    with self.elements_lock:
-                        self.updated_elements[bot_id]['x'] = bot.my_x
-                        self.updated_elements[bot_id]['y'] = bot.my_y
+        for bot_id, bot in bots_copy.items():
+            if bot.moving:
+                print(f"Bot {bot_id} is moving")
+                with self.players_data_lock:
+                    self.players_data[bot_id]['x'] = bot.my_x
+                    self.players_data[bot_id]['y'] = bot.my_y
 
-                else:
-                    with self.elements_lock:
-                        if bot_id in self.updated_elements:
-                            if 'x' in self.updated_elements[bot_id]:
-                                del self.updated_elements[bot_id]['x']
-                                del self.updated_elements[bot_id]['y']
+                with self.elements_lock:
+                    self.updated_elements[bot_id]['x'] = bot.my_x
+                    self.updated_elements[bot_id]['y'] = bot.my_y
+                    print(f"Bot {bot_id} position updated to ({bot.my_x}, {bot.my_y})")
+
+                with self.grid_lock:
+                    self.grid.add_player(bot_id, bot.my_x, bot.my_y)
+            else:
+                with self.elements_lock:
+                    if bot_id in self.updated_elements:
+                        if 'x' in self.updated_elements[bot_id]:
+                            del self.updated_elements[bot_id]['x']
+                            del self.updated_elements[bot_id]['y']
 
     def ShootingBots(self):
         with self.bots_lock:
-            for bot_id, bot in self.bots.items():
-                if bot.shooting:
-                    with self.elements_lock:
-                        self.updated_elements[bot_id]['shoot'] = [bot.my_x, bot.my_y, bot.closest_x, bot.closest_y]
-                else:
-                    with self.elements_lock:
-                        if bot_id in self.updated_elements:
-                            if 'shoot' in self.updated_elements[bot_id]:
-                                del self.updated_elements[bot_id]['shoot']
+            bots_copy = self.bots.copy()
+        
+        for bot_id, bot in bots_copy.items():
+            if bot.shooting:
+                with self.elements_lock:
+                    self.updated_elements[bot_id]['shoot'] = [bot.my_x, bot.my_y, bot.closest_x, bot.closest_y]
+            else:
+                with self.elements_lock:
+                    if bot_id in self.updated_elements:
+                        if 'shoot' in self.updated_elements[bot_id]:
+                            del self.updated_elements[bot_id]['shoot']
     
     def BotManage(self):
+        print("Bot management started")
         while True:
-            with self.bots_lock:
-                if len(self.bots) < 100:
-                    continue
             self.MovingBots()
             self.ShootingBots()
 
@@ -376,7 +384,7 @@ class SubServer:
     def handle_lb(self):
         self.getINDEX(self)
         self.getBORDERS(self)
-        #self.SetBots(25)
+        self.SetBots(25)
         while True:
             try:
                 # self.SendInfoLB()
@@ -581,8 +589,8 @@ class SubServer:
             clients_thread = threading.Thread(target=self.client_connect_protocol)
             clients_thread.start()
 
-            #bots_thread = threading.Thread(target=self.BotManage)
-            #bots_thread.start()
+            bots_thread = threading.Thread(target=self.BotManage)
+            bots_thread.start()
         else:
             print("Load balancer not properly connected, not listening to clients.")
 

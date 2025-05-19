@@ -13,7 +13,7 @@ class Bot:
         self.my_y=my_y
         self.hp=150
         self.shooting=False
-        self.moving=True
+        self.moving= False
         self.bot_rect={
             "image": pygame.Surface((60, 60)),
             "rect": pygame.Rect(0,0, 60, 60)
@@ -100,7 +100,7 @@ class Bot:
                         move_y=0
                     self.my_x+=move_x
                     self.my_y+=move_y
-                    time.sleep(0.001)
+                    time.sleep(0.1)
                     if self.check_collision_nearby(self.my_x,self.my_y):
                         option_x = [self.my_x,self.my_x]
                         option_y = [self.my_y,self.my_y]
@@ -131,7 +131,7 @@ class Bot:
                             self.my_x+=move_x
                             self.my_y+=move_y
 
-                            time.sleep(0.001)
+                            time.sleep(0.1)
                 if target_x and target_y:
                     self.shooting=True
                     self.moving=False

@@ -246,13 +246,23 @@ def process_request(self, client_id):
             return 1
 
         with self.grid_lock:
-            other_players_nearby = self.grid.get_nearby_players(self.players_data[client_id]['x'], self.players_data[client_id]['y'], 1000)
+            other_players_nearby = self.grid.get_nearby_players(self.players_data[client_id]['x'], self.players_data[client_id]['y'], 600)
+            other_players_nearby.remove(client_id)
+            print(f"other players nearby: {other_players_nearby}")
         with self.elements_lock:
-            other_players_data = {player_id: self.updated_elements[player_id] for player_id in other_players_nearby if self.updated_elements[player_id] != {}}
+            other_players_data = {}
+            for player_id in other_players_nearby:
+                if player_id in self.updated_elements:
+                    if self.updated_elements[player_id] == {}:
+                        continue
+                    other_players_data[player_id] = self.updated_elements[player_id]
+                else:
+                    pass
+
 
         other_players_data.update(self.different_server_players)
         other_players_data_str = json.dumps(other_players_data)
-        print(other_players_data_str)
+        #print(other_players_data_str)
         with self.clients_lock:
             self.connected_clients[client_id][1].send(other_players_data_str.encode())
     except Exception as e:
@@ -278,7 +288,7 @@ def process_requestFull(self, client_id):
             return 1
 
         with self.players_data_lock:
-            other_players_data = {player_id: data for player_id, data in self.players_data.items() if data != {}}
+            other_players_data = {player_id: data for player_id, data in self.players_data.items() if data != {} and player_id != client_id}
 
         other_players_data_str = json.dumps(other_players_data)
         print(other_players_data_str)
