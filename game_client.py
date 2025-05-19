@@ -882,7 +882,7 @@ def run_game(data, Socket):
                 screen.blit(map_surface, (0, 0))
         obj.print_players(players_sprites,bots_sprite,bots, players, angle, selected_weapon)
         clock.tick(20)
-        # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
+        check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
 
         with lock_shared_data:  # if Bot dies
             for key, data in shared_data['recived'].items():
