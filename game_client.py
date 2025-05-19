@@ -865,7 +865,7 @@ def run_game(data, Socket):
         with lock:
             if map_surface is not None:
                 screen.blit(map_surface, (0, 0))
-        obj.print_players(players_sprites,bots_sprite, players, angle, selected_weapon)
+        obj.print_players(players_sprites, bots_sprite, players, angle, selected_weapon)
         clock.tick(20)
         # check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, selected_slot, SLOT_SIZE)
 

@@ -178,7 +178,7 @@ class Player(pg.sprite.Sprite):
         }
         return json.dumps(client_loc)
 
-    def print_players(self, players_sprites,players,angle, selected_weapon):
+    def print_players(self, players_sprites, bot_sprites, players, angle, selected_weapon):
         PINK = (255, 174, 201)
         
         # Map selected_weapon to the corresponding character image
