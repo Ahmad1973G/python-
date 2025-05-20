@@ -295,6 +295,7 @@ class SubServer:
         while True:
             self.MovingBots()
             self.ShootingBots()
+            time.sleep(1)  # Adjust the sleep time as needed
 
     def AskForID(self, conn):
         try:

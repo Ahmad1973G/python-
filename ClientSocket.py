@@ -2,8 +2,9 @@ import socket
 import json
 import threading
 import time
+import asyncio
 
-SERVER_PORT = 5003  # Let the OS assign a port
+SERVER_PORT = 5003
 
 
 class ClientServer:
@@ -203,9 +204,9 @@ class ClientServer:
             print("Inventory sent successfully")
 
 
-    def sendBOOM(self, x, y, Brange):
+    def sendBOOM(self, x, y, brange):
         with self.lock:
-            self.socket.send(f"BOMB {x};{y};{Brange}\n".encode())
+            self.socket.send(f"BOMB {x};{y};{brange}\n".encode())
             message = self.socket.recv(1024)
         message = message.decode()
         if message == "ACK":
