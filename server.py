@@ -439,12 +439,11 @@ class SubServer:
         try:
             conn, addr = self.server_socket.accept()
             print("Accepted connection from client")
-            client_id = random.randint(1, 1000)
+            client_id = random.randint(100, 1000)
             with self.clients_lock:
                 while client_id in self.connected_clients.keys():
                     client_id = random.randint(100, 1000)
                 self.connected_clients[client_id] = (addr, conn)
-
             with self.players_data_lock:
                 self.players_data[client_id] = {}
 
@@ -479,7 +478,6 @@ class SubServer:
             client_thread = threading.Thread(target=self.handle_client, args=(client_id,))
             client_thread.start()
             print(f"Started thread for client {client_id}")
-            print("Connected clients:", self.connected_clients.keys())
         print("Not listening to clients anymore.")
 
     def handle_client(self, client_id):

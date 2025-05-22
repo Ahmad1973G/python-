@@ -61,8 +61,10 @@ class ClientServer:
                 self.server = (str_data.split(" ")[-1].split(";")[0],
                                int(str_data.split(" ")[-1].split(";")[1]))
                 try:
+                    print("Connecting to server at IP:", self.server[0], "Port:", self.server[1])
                     self.socket.connect(self.server)
                     print(f"Connected to {self.server[0]} on port {self.server[1]}")
+                    self.id = self.recv_ID()
                     self.PORT = self.socket.getsockname()[1]
                     return True
                 except Exception as e:
@@ -340,3 +342,14 @@ class ClientServer:
             print("Register failed, error:", error)
             return False, error
         return False, "Unknown error"
+
+if __name__ == "__main__":
+    client = ClientServer()
+    client.connect()
+    print("Client ID:", client.id)
+    # Example usage
+    success, data = client.login("fg", "1234")
+    if success:
+        print("Login successful, player data:", data)
+    else:
+        print("Login failed:", data)
