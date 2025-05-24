@@ -2,6 +2,44 @@ import json
 import threading
 import socket
 
+SYN = "SYNC CODE 1"
+SYN_ACK = "SYNC+ACK CODE 1"
+ACK = "ACK CODE 2"
+
+LB_PORT = 5002
+UDP_PORT = LB_PORT + 1
+SERVER_PORT = 5000
+
+
+def recvACKLB(self):
+    data = self.lb_socket.recv(1024).decode()
+    if data.startswith(ACK):
+        print("Received ACK")
+        self.server_id = int(data.split(";")[-1])
+        print("Server ID:", self.server_id)
+        return True
+    return False
+
+def readSYNcLB(self, data):
+    str_data = data.decode()
+    if str_data.startswith(SYN):
+        lb_ip, lb_port = str_data.split(" ")[-1].split(",")[0].split(";")[1], int(
+            str_data.split(" ")[-1].split(",")[1].split(";")[1])
+        if lb_port == LB_PORT:
+            try:
+                self.load_balancer_address = (lb_ip, lb_port)
+                self.lb_socket.connect(self.load_balancer_address)
+                print("SYNC Success")
+                return True
+            except Exception as e:
+                print(f"Error connecting to load balancer: {e}")
+    return False
+
+
+def sendSYNCACKLB(self):
+    self.lb_socket.send(SYN_ACK.encode())
+
+
 def getINDEX(self):
     self.lb_socket.send("INDEX".encode())
     data = self.lb_socket.recv(1024).decode()
@@ -116,7 +154,7 @@ def SortLogin(self, data):
                 self.secret_players_data[client_id] = data[1]
             with self.clients_lock:
                 data_send = data[1]
-                x, y = self.create_new_pos()
+                x, y = asyncio.run()
                 data_send['x'] = x
                 data_send['y'] = y 
                 self.connected_clients[client_id][1].send(f"SUCCESS CODE LOGIN {data_send}".encode())

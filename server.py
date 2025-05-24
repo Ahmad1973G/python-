@@ -401,23 +401,6 @@ class SubServer:
                 self.is_connected_to_lb = False
                 break
 
-    def readSYNcLB(self, data):
-        str_data = data.decode()
-        if str_data.startswith(SYN):
-            lb_ip, lb_port = str_data.split(" ")[-1].split(",")[0].split(";")[1], int(
-                str_data.split(" ")[-1].split(",")[1].split(";")[1])
-            if lb_port == LB_PORT:
-                try:
-                    self.load_balancer_address = (lb_ip, lb_port)
-                    self.lb_socket.connect(self.load_balancer_address)
-                    print("SYNC Success")
-                    return True
-                except Exception as e:
-                    print(f"Error connecting to load balancer: {e}")
-        return False
-
-    def sendSYNCACKLB(self):
-        self.lb_socket.send(SYN_ACK.encode())
 
     def recvACKLB(self):
         data = self.lb_socket.recv(1024).decode()

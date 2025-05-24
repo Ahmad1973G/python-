@@ -4,7 +4,7 @@ import threading
 import time
 import asyncio
 
-SERVER_PORT = 5003
+SERVER_PORT = 5004
 
 
 class ClientServer:
@@ -64,7 +64,6 @@ class ClientServer:
                     print("Connecting to server at IP:", self.server[0], "Port:", self.server[1])
                     self.socket.connect(self.server)
                     print(f"Connected to {self.server[0]} on port {self.server[1]}")
-                    self.id = self.recv_ID()
                     self.PORT = self.socket.getsockname()[1]
                     return True
                 except Exception as e:
@@ -72,8 +71,8 @@ class ClientServer:
             return False
 
     def recv_ID(self):
-        data = self.socket.recv(1024)
-        str_data = data.decode()
+        packet_data = self.socket.recv(1024)
+        str_data = packet_data.decode()
         if str_data.startswith("ID CODE 69"):
             return int(str_data.split(" ")[-1])
         return -1
@@ -83,7 +82,6 @@ class ClientServer:
         print("Sent the SYNC packet")
         if self.recSYNCACK_sendACK():
             print("Received the SYNC+ACK packet successfully")
-            print("Sent the ACK packet")
             self.id = self.recv_ID()
             print("Received the ID packet, ID:", self.id)
             return self.id
@@ -110,7 +108,7 @@ class ClientServer:
 
     def protocol_check(self, data: str):
         if data == "ACK":
-            # print("ACK received")
+            print("ACK received")
             return True
 
         if data.startswith("MOVING"):
@@ -353,3 +351,5 @@ if __name__ == "__main__":
         print("Login successful, player data:", data)
     else:
         print("Login failed:", data)
+
+    print(client.sendMOVE(100, 200, 1, 45, True))

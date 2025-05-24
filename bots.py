@@ -61,7 +61,7 @@ class Bot:
         # print("No collision")
         return False
     def SeNdTArGeT(self,x,y):
-        if x!=None and y!=None:
+        if x is not None and y is not None:
             self.closest_y=y
             self.closest_x=x
             self.new_target=True
