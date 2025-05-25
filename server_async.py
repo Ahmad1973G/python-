@@ -204,7 +204,7 @@ class SubServer:
                     attempts += 1
                 if attempts >= 100:
                     print(f"⚠️ Could not find a clear spot for bot {bot_id_to_assign}. Placing anyway.")
-
+                print(f"🤖 Spawning bot {bot_id_to_assign} at ({new_x}, {new_y})")
                 is_long_range = random.random() < 0.5
                 bot = bots.Bot(new_x, new_y, is_long_range, self.kd_tree, self.pos_to_tile, self.loop, bot_id_to_assign,
                                self)
@@ -241,6 +241,8 @@ class SubServer:
                 if bot_id not in self.updated_elements: self.updated_elements[bot_id] = {}
                 for key, value in data_updates.items():
                     self.updated_elements[bot_id][key] = value
+
+            print(f"🔄 Updated bot {bot_id} data in server: {data_updates}")
 
         if self.loop and self.loop.is_running():
             self.loop.create_task(_update())
@@ -286,14 +288,21 @@ class SubServer:
 
     async def trigger_bots_near_player(self, player_x, player_y, player_id):
         bots_to_alert = []
-        async with self.bots_lock:
-            bots_to_alert = list(self.bots.values())
-        for bot in bots_to_alert:
-            if not bot or bot.hp <= 0: continue
-            dist_sq = (bot.my_x - player_x) ** 2 + (bot.my_y - player_y) ** 2
-            detection_range_sq = bot.bot_range_sq * 2.25
-            if dist_sq < detection_range_sq:
-                bot.send_target(player_x, player_y)
+        print(f"🔍 Triggering bots near player {player_id} at ({player_x}, {player_y})")
+        async with self.grid_lock:
+            nearby_bots = self.grid.get_nearby_players(player_x, player_y, 2000)
+            nearby_bots = [bot_id for bot_id in nearby_bots if bot_id in self.bots]
+            for bot_id in nearby_bots:
+                if bot_id in self.bots and bot_id != player_id:
+                    bots_to_alert.append(bot_id)
+
+        if bots_to_alert:
+            async with self.bots_lock:
+                for bot_id in bots_to_alert:
+                    if bot_id in self.bots:
+                        bot = self.bots[bot_id]
+                        print(f"🔔 Alerting bot {bot_id} to player {player_id}'s position.")
+                        bot.send_target(player_x, player_y)
 
     async def create_new_pos_async(self):  # Made async to use grid_lock properly
         borders = {
@@ -393,6 +402,8 @@ class SubServer:
                     if exit_code_signal == 1: break
                 if exit_code_signal == 1: break
 
+                await asyncio.sleep(0.05)  # Yield control to allow other tasks
+
         except ConnectionResetError:
             print(f"🔌 Client {client_id} ({addr}) reset TCP connection.")
         except asyncio.IncompleteReadError:
@@ -439,6 +450,8 @@ class SubServer:
                 # Pass server, client_id, writer, and payload
                 await handler(self, client_id, writer, data_payload)  # Ensure handler is async
             elif protocol in self.receive_protocol:
+                async with self.elements_lock:
+                    self.updated_elements[client_id] = {}  # Reset for new request
                 handler = self.receive_protocol[protocol]
                 kick_signal = await handler(self, client_id, writer)  # Ensure handler is async
                 if kick_signal == 1:
@@ -531,7 +544,7 @@ class SubServer:
                 sub_lb_prots.SendLogin(self)
                 sub_lb_prots.SendRegister(self)
                 sub_lb_prots.SendCache(self)
-                sub_lb_prots.SendInfoLB(self)
+                #sub_lb_prots.SendInfoLB(self)
                 #sub_lb_prots.getRIGHT(self)
                 #sub_lb_prots.getSEND(self)
                 time.sleep(0.2)
