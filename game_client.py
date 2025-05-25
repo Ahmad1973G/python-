@@ -225,7 +225,7 @@ def other_shoot(weapons, bullet_sprite2,data, screen, my_player, Socket):
         if rect.colliderect(bullet_sprite2['rect']):
             print("got hit")
             my_player['hp'] -= weapons[int(data['shoot'][4])]['damage']
-            Socket.sendHEALTH(my_player['id'], my_player['hp'])
+            Socket.sendHEALTH(my_player['hp'])
 
             hit2 = True
 
@@ -462,7 +462,7 @@ def run_game(data, Socket):
     chat_input = ""
     chat_log = []
     clock = pg.time.Clock()
-    my_player = {'x': 1500, 'y': 8000, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 8000, 'y': 12000, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}

@@ -379,7 +379,7 @@ async def process_request_async(server, client_id, writer):  # Client requests n
                 return
 
         async with server.grid_lock:
-            nearby_ids = server.grid.get_nearby_players(player_x, player_y, 600)  # RADIUS
+            nearby_ids = server.grid.get_nearby_players(player_x, player_y, 5000)  # RADIUS
             if client_id in nearby_ids:  # Client should not get its own full update here unless intended
                 nearby_ids.remove(client_id)
 
@@ -388,10 +388,10 @@ async def process_request_async(server, client_id, writer):  # Client requests n
         nearby_updates_for_client = {}
         async with server.elements_lock:  # For reading updated_elements
             for pid in nearby_ids:
-                if pid in server.updated_elements and server.updated_elements[pid]:
+                if pid in server.updated_elements:
                     nearby_updates_for_client[pid] = server.updated_elements[pid]
 
-        with server.other_server_lock:  # Assuming other_server_lock is a threading.Lock
+        with server.lb_data_lock:  # Assuming other_server_lock is a threading.Lock
             nearby_updates_for_client.update(server.different_server_players)  # This might overwrite local if IDs clash
 
         response_str = json.dumps(nearby_updates_for_client)

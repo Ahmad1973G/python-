@@ -1,6 +1,6 @@
 import asyncio
 import math
-# import pygame # Assuming pygame might still be used for bot_rect, ensure it's non-blocking or handled carefully
+import pygame # Assuming pygame might still be used for bot_rect, ensure it's non-blocking or handled carefully
 import random  # For simplified collision response example
 
 
@@ -84,6 +84,7 @@ class Bot:
 
     def send_target(self, target_x, target_y):
         # This can be called from server (potentially different thread or async context)
+        print(f"Bot {self.bot_id} received new target: ({target_x}, {target_y})")
         async def _set_event():
             if target_x is not None and target_y is not None:
                 self.closest_x = target_x
@@ -98,8 +99,8 @@ class Bot:
                 self.new_target_flag = True  # To make the loop re-evaluate and stop
                 self.move_event.set()  # Wake up loop to process the stop
 
-        self.loop.call_soon_threadsafe(_set_event)
-
+        # bots_async.py
+        self.loop.call_soon_threadsafe(asyncio.run_coroutine_threadsafe, _set_event(), self.loop)
     async def run_main_logic(self):
         # Main lifecycle coroutine for the bot
         # Starts and manages movement and shooting tasks
@@ -118,7 +119,7 @@ class Bot:
                 continue
 
             self.new_target_flag = False
-
+            await asyncio.sleep(0.1)  # Allow time for new target to be set
             # Simplified target point calculation: Bot tries to maintain bot_range from player
             # This differs from the original complex t_x, t_y calculation.
             # For a more faithful reproduction, the original math for t_x, t_y would be here.
@@ -133,7 +134,7 @@ class Bot:
 
             if dist_sq_to_player > self.bot_range_sq + 100:  # Too far, move closer
                 pass  # target_point_x,y is already player's position
-            elif dist_sq_to_player < self.bot_range_sq - 100 and dist_sq_to_player > 0:  # Too close, move away
+            elif self.bot_range_sq - 100 > dist_sq_to_player > 0:  # Too close, move away
                 # Move to a point on the line extending from player through bot
                 dist_to_player = math.sqrt(dist_sq_to_player)
                 target_dist_from_player = math.sqrt(self.bot_range_sq)
@@ -223,14 +224,14 @@ class Bot:
                 # Check conditions again and self.shoot_event.set() if still valid.
                 # For now, one shot per trigger, then clear.
                 # To re-enable continuous shooting if conditions met:
-                # dist_sq_to_player = (self.closest_x - self.my_x)**2 + (self.closest_y - self.my_y)**2
-                # if self.shooting and dist_sq_to_player <= self.bot_range_sq:
-                #    self.shoot_event.set() # Re-trigger immediately for continuous fire
-                # else:
-                #    self.shooting = False
-                #    self.shoot_event.clear()
-                #    self.server_ref.update_bot_data_in_server(self.bot_id, {'shooting': False})
-                self.shoot_event.clear()  # For single shot per trigger
+                dist_sq_to_player = (self.closest_x - self.my_x)**2 + (self.closest_y - self.my_y)**2
+                if self.shooting and dist_sq_to_player <= self.bot_range_sq:
+                    self.shoot_event.set() # Re-trigger immediately for continuous fire
+                else:
+                    self.shooting = False
+                    self.shoot_event.clear()
+                    self.server_ref.update_bot_data_in_server(self.bot_id, {'shooting': False})
+
             else:
                 self.shooting = False
                 self.shoot_event.clear()

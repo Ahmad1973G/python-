@@ -156,7 +156,7 @@ def CheckForLB(server, client_id, x, y):  # player_data_snapshot from asyncio co
         if x > server.server_borders[0] or y < server.server_borders[1]: moved_server = True
 
     if moved_server:
-        info_for_lb = server.updated_elemts.copy()  # Use the snapshot
+        info_for_lb = server.updated_elements.copy()  # Use the snapshot
         info_for_lb['server'] = server.server_id  # Add current server_id
         with server.lb_data_lock:  # This is server.players_to_lb_lock (threading.Lock)
             server.players_to_lb[client_id] = info_for_lb
@@ -285,7 +285,7 @@ def SortLogin(server, data_from_lb):  # data_from_lb is dict: {client_id_str: [p
                 data_to_send_client = payload.copy()
                 data_to_send_client['x'] = new_x
                 data_to_send_client['y'] = new_y
-                return f"SUCCESS CODE LOGIN {json.dumps(data_to_send_client)}\n".encode()
+                return f"SUCCESS CODE LOGIN {json.dumps(data_to_send_client)}".encode()
 
             future = asyncio.run_coroutine_threadsafe(_update_secret_and_player_data(), server.loop)
             message_bytes_to_client = future.result()  # Blocking wait for the result
@@ -346,7 +346,7 @@ def SortRegister(server, data_from_lb):
                 data_to_send_client = payload.copy()
                 data_to_send_client['x'] = new_x
                 data_to_send_client['y'] = new_y
-                return f"SUCCESS CODE REGISTER {json.dumps(data_to_send_client)}\n".encode()
+                return f"SUCCESS CODE REGISTER {json.dumps(data_to_send_client)}".encode()
 
             future = asyncio.run_coroutine_threadsafe(_update_secret_and_player_data_register(), server.loop)
             message_bytes_to_client = future.result()

@@ -108,7 +108,6 @@ class ClientServer:
 
     def protocol_check(self, data: str):
         if data == "ACK":
-            print("ACK received")
             return True
 
         if data.startswith("MOVING"):

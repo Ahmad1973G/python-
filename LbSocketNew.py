@@ -291,13 +291,12 @@ class LoadBalancer:
             except Exception as e:
                 print(f"Error handling server {id}: {e}")
                 print(f"Server {id} disconnected")
-                del self.servers[id]
-                for key, value in self.servers_index.items():
-                    if value == id:
-                        self.servers_index[key] = None
-                        break
                 break
 
+        del self.servers[id]
+        for key, value in self.servers_index.items():
+            if value == id:
+                self.servers_index[key] = None
 
 if __name__ == "__main__":
     lb = LoadBalancer()
