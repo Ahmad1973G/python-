@@ -112,35 +112,35 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
 
 
 def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, screen, my_player, Socket, selected_weapon):
-    if weapons[shared_data['used_weapon']]['ammo'] == 0:
+    if weapons[selected_weapon]['ammo'] == 0:
         print('out of ammo')
     else:
         b_image = pg.transform.rotate(bullet_sprite['image'], 45)
         sound_effect.play()
         hit = False
         range1 = 1
-        weapons[shared_data['used_weapon']]['ammo'] -= 1
+        weapons[selected_weapon]['ammo'] -= 1
         shot_offset = list(pg.mouse.get_pos())
 
         b_image = pg.transform.rotate(b_image, shared_data['angle'])
         shot_offset[0] -= 500
         shot_offset[1] = 325 - shot_offset[1]
-        added_dis = range1 * weapons[shared_data['used_weapon']]['bulet_speed']
+        added_dis = range1 * weapons[selected_weapon]['bulet_speed']
         direction = shot_offset[1] / shot_offset[0]
         shot_offset[0] = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
-            weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
+            weapons[selected_weapon]['range'] / (direction * direction + 1))
         shot_offset[1] = direction * shot_offset[
             0]
         end1 = (shot_offset[0] / abs(shot_offset[0])) * math.sqrt(
-            weapons[shared_data['used_weapon']]['range'] / (direction * direction + 1))
+            weapons[selected_weapon]['range'] / (direction * direction + 1))
         end2 = direction * end1
         end1 += 500
         end2 = 325 - end2
         end1 += my_player['x'] - 500
         end2 += my_player['y'] - 325
-        Socket.sendSHOOT(my_player['x'], my_player['y'], end1, end2, shared_data['used_weapon'])
+        Socket.sendSHOOT(my_player['x'], my_player['y'], end1, end2, selected_weapon)
         # ---------------------------------------------------------------
-        while abs(range1) < weapons[shared_data['used_weapon']]['range'] - 1 and not hit:
+        while abs(range1) < weapons[selected_weapon]['range'] - 1 and not hit:
             range1 += added_dis
             # direction = (0- (325 - shot_offset[1])) / (0- (shot_offset[0] - 500))
             try:
@@ -632,7 +632,7 @@ def run_game(data, Socket):
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 thread_shooting = threading.Thread(target=my_shoot,
                                                    args=(weapons, players_sprites,bots_sprite,
-                                                          bullet_sprite,sound_effect, screen, my_player, Socket))
+                                                          bullet_sprite,sound_effect, screen, my_player, Socket, selected_weapon))
                 thread_shooting.start()
             elif event.type == pg.MOUSEMOTION:
                 mouse = pg.mouse.get_pos()
