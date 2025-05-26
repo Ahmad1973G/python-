@@ -87,7 +87,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                     bomb_range = int(float(data['explode'][2]))
                     explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
-                    screen.fill((0, 0, 0))  # Clear screen
+                    #screen.fill((0, 0, 0))  # Clear screen
                     pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                     pg.display.flip()
                     time.sleep(0.5)
@@ -161,10 +161,22 @@ def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, s
             for key, data in players_sprites.items():
                 if data['rect'].colliderect(bullet_sprite['rect']):
                     hit = True
+                    damage = weapons[selected_weapon]['damage']
+                    text = str(damage)
+                    font = pg.font.SysFont(None, 36)
+                    img = font.render(text, True, (255, 0, 0))
+                    text_pos = img.get_rect(center=(data['rect'].centerx, data['rect'].top - 30))
+                    screen.blit(img, text_pos)
             for key, data in bots_sprite.items():
                 if data['rect'].colliderect(bullet_sprite['rect']):
                     #send server that the bot was hit
                     hit = True
+                    damage = weapons[selected_weapon]['damage']
+                    text = str(damage)
+                    font = pg.font.SysFont(None, 36)
+                    img = font.render(text, True, (255, 0, 0))
+                    text_pos = img.get_rect(center=(data['rect'].centerx, data['rect'].top - 30))
+                    screen.blit(img, text_pos)
 
 
 
@@ -199,7 +211,7 @@ def other_shoot(weapons, bullet_sprite2,data, screen, my_player, Socket):
             angala = 180 + (end_pos[0] / abs(end_pos[0])) * 90
         else:
             angala = (direction / abs(direction)) * -end_pos[0] / abs(end_pos[0]) * 90 + angala + (
-                                           1 + (-direction) / abs(direction)) * 90
+                                        1 + (-direction) / abs(direction)) * 90
     be_image = pg.transform.rotate(be_image, angala)
     #-----------------------setting the angle done----------------------------
     added_dis = range1 * weapons[int(data['shoot'][4])]['bulet_speed']
@@ -236,7 +248,7 @@ lock = threading.Lock()
 
 
 def render_map_surface(tmx_data, my_player, tile_width, tile_height, map_width, map_height, screen_width,
-                       screen_height):
+                    screen_height):
     map_surface = pg.Surface((screen_width, screen_height), pg.SRCALPHA)
 
     start_col = my_player['x'] // tile_width
@@ -390,8 +402,8 @@ def check_item_collision(my_player, items, weapons, shared_data, obj, hotbar, se
             for slot in hotbar:
                 if slot is None or (slot['name'] == item['type'] and slot['amount'] < 4):
                     hotbar[selected_slot] = {"name": item['type'],
-                                             "image": load_item_image(item['type'] + ".png", "C:/python_game/python-",
-                                                                      SLOT_SIZE), "amount": slot['amount'] + 1}
+                                            "image": load_item_image(item['type'] + ".png", "C:/python_game/python-",
+                                                                    SLOT_SIZE), "amount": slot['amount'] + 1}
             items.remove(item)  # Remove the item after it is picked up
             print(f"Picked up item: {item['type']}")
 
@@ -455,15 +467,15 @@ def run_game(data, Socket):
     weapon2_image = load_item_image("char_2.png", picture_path, SLOT_SIZE)
     weapon3_image = load_item_image("char_3.png", picture_path, SLOT_SIZE)
     hotbar = [{"name": "weapon1", "image": weapon1_image, "amount": 1},
-              {"name": "weapon2", "image": weapon2_image, "amount": 1},
-              {"name": "weapon3", "image": weapon3_image, "amount": 1}] + [None] * 7
+            {"name": "weapon2", "image": weapon2_image, "amount": 1},
+            {"name": "weapon3", "image": weapon3_image, "amount": 1}] + [None] * 7
     selected_weapon = 0
     selected_slot = 0
     chat_input = ""
     chat_log = []
     clock = pg.time.Clock()
     my_player = {'x': 8000, 'y': 12000, 'width': 60, 'height': 60, 'id': 0,
-                 'hp': 100}
+                'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
 
@@ -608,7 +620,7 @@ def run_game(data, Socket):
     theread_angle = threading.Thread(target=Socket.sendANGLE, args=(angle,))
 
     thread_movement_and_angle = threading.Thread(target=Socket.sendMOVE,
-                                                 args=(my_player['x'], my_player['y'], selected_weapon, angle, flag))
+                                                args=(my_player['x'], my_player['y'], selected_weapon, angle, flag))
 
     thread_sendchat = threading.Thread(target=Socket.sendCHAT, args=(chat_input))
     # thread_sendchat.daemon = True
@@ -632,8 +644,8 @@ def run_game(data, Socket):
                     print("Selected slot:", selected_slot)
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 thread_shooting = threading.Thread(target=my_shoot,
-                                                   args=(weapons, players_sprites,bots_sprite,
-                                                          bullet_sprite,sound_effect, screen, my_player, Socket, selected_weapon))
+                                                args=(weapons, players_sprites,bots_sprite,
+                                                        bullet_sprite,sound_effect, screen, my_player, Socket, selected_weapon))
                 thread_shooting.start()
             elif event.type == pg.MOUSEMOTION:
                 mouse = pg.mouse.get_pos()
@@ -858,7 +870,7 @@ def run_game(data, Socket):
             for key, data in players.items():
                 players_sprites[key]["image"] = pg.Surface((players[key]['width'], players[key]['height']))
                 players_sprites[key]["rect"] = pg.Rect(int(data["x"] + sum_offset[0]), int(data["y"] + sum_offset[1]),
-                                                       players[key]['width'], players[key]['height'])
+                                                    players[key]['width'], players[key]['height'])
 
         for key, data in players_sprites.items():
             if data['rect'].x >= (500 - my_player['width']) and data['rect'].x <= (500 + my_player['width']) and data[
