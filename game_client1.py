@@ -110,7 +110,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
 # Socket.sendMOVE(x,y)
 
 
-def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, screen, my_player, Socket, selected_weapon):
+def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, screen,angle, my_player, Socket, selected_weapon):
     if weapons[selected_weapon]['ammo'] == 0:
         print('out of ammo')
     else:
@@ -121,7 +121,7 @@ def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, s
         weapons[selected_weapon]['ammo'] -= 1
         shot_offset = list(pg.mouse.get_pos())
 
-        b_image = pg.transform.rotate(b_image, shared_data['angle'])
+        b_image = pg.transform.rotate(b_image,angle)
         shot_offset[0] -= 500
         shot_offset[1] = 325 - shot_offset[1]
         added_dis = range1 * weapons[selected_weapon]['bulet_speed']
@@ -644,7 +644,7 @@ def run_game(data, Socket):
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 thread_shooting = threading.Thread(target=my_shoot,
                                                    args=(weapons, players_sprites,bots_sprite,
-                                                          bullet_sprite,sound_effect, screen, my_player, Socket, selected_weapon))
+                                                          bullet_sprite,sound_effect, screen,angle, my_player, Socket, selected_weapon))
                 thread_shooting.start()
             elif event.type == pg.MOUSEMOTION:
                 mouse = pg.mouse.get_pos()
