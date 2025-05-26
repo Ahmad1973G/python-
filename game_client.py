@@ -53,8 +53,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
                 bomb_range = Brange
                 explosion_center = (bomb_x - my_player['x'] + 500, bomb_y - my_player['y'] + 325)
 
-                screen.fill((0, 0, 0))  # Clear screen
-                screen.fill((0, 0, 0))  # Clear screen
+
                 pg.draw.circle(screen, red, explosion_center, bomb_range, width=0)
                 pg.display.flip()
 
@@ -110,7 +109,7 @@ def bomb(players_sprites, screen, red, Brange, my_player, Socket):
 # Socket.sendMOVE(x,y)
 
 
-def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, screen,angle, my_player, Socket, selected_weapon):
+def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, screen,angle,current_offset, my_player, Socket, selected_weapon):
     if weapons[selected_weapon]['ammo'] == 0:
         print('out of ammo')
     else:
@@ -151,8 +150,8 @@ def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, s
             except ZeroDivisionError:
                 shot_offset[1] = (shot_offset[1] / abs(shot_offset[1]) * math.sqrt(range1))
                 shot_offset[0] = 0
-            bullet_sprite['rect'].x = shot_offset[0] + 500
-            bullet_sprite['rect'].y = 325 - shot_offset[1]
+            bullet_sprite['rect'].x = shot_offset[0] + 500+shared_data['sum_offset'][0]-current_offset[0]
+            bullet_sprite['rect'].y = 325 - shot_offset[1]+shared_data['sum_offset'][1]-current_offset[1]
             with lock:
                 screen.blit(b_image, bullet_sprite['rect'])
             pg.display.flip()
@@ -165,7 +164,7 @@ def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, s
                     font = pg.font.SysFont(None, 36)
                     img = font.render(text, True, (255, 0, 0))
                     text_pos = img.get_rect(center=(data['rect'].centerx, data['rect'].top - 30))
-                    screen.blit(img, text_pos)
+                    screen.blit(img, text_pos)                           
             for key, data in bots_sprite.items():
                 if data['rect'].colliderect(bullet_sprite['rect']):
                     #send server that the bot was hit
@@ -175,7 +174,7 @@ def my_shoot(weapons, players_sprites,bots_sprite, bullet_sprite,sound_effect, s
                     font = pg.font.SysFont(None, 36)
                     img = font.render(text, True, (255, 0, 0))
                     text_pos = img.get_rect(center=(data['rect'].centerx, data['rect'].top - 30))
-                    screen.blit(img, text_pos)                    
+                    screen.blit(img, text_pos)                           
 
 
 
@@ -241,7 +240,7 @@ def other_shoot(weapons, bullet_sprite2,data, screen, my_player, Socket):
             hit2 = True
 
 
-shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False,'angle':0, 'recived': {}}
+shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False,'sum_offset':(0,0), 'recived': {}}
 lock_shared_data = threading.Lock()
 lock = threading.Lock()
 
@@ -323,7 +322,7 @@ def chat_sync_loop(Socket, chat_log):
     try:
         new_msgs = Socket.recvCHAT()
         if new_msgs is True:
-            return 
+            return "nigga"
         for msg in new_msgs:
             cid = msg[0]
             msg = msg[1]
@@ -644,7 +643,7 @@ def run_game(data, Socket):
             elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 thread_shooting = threading.Thread(target=my_shoot,
                                                    args=(weapons, players_sprites,bots_sprite,
-                                                          bullet_sprite,sound_effect, screen,angle, my_player, Socket, selected_weapon))
+                                                          bullet_sprite,sound_effect, screen,angle,sum_offset, my_player, Socket, selected_weapon))
                 thread_shooting.start()
             elif event.type == pg.MOUSEMOTION:
                 mouse = pg.mouse.get_pos()
@@ -824,8 +823,9 @@ def run_game(data, Socket):
                 if 'angle' in data:
                     players[key]['angle'] = data['angle']
                     
-                    if 'weapon' in data:
-                        players[key]['weapon'] = data['weapon']
+                if 'weapon' in data:
+                    players[key]['weapon'] = data['weapon']
+                    
             elif int(key) >= 100:
                 if 'x' in data and 'y' in data:
                     new_player = {
@@ -860,7 +860,7 @@ def run_game(data, Socket):
                         bots[key]['hp'] = data['hp']
                         if data['hp'] <= 0:
                             del (bots_sprite[key])
-                else:
+                elif 'x' in data:
                     bot ={
                         'hp':150,
                         'angle':0
@@ -875,8 +875,11 @@ def run_game(data, Socket):
                     bots_sprite[key]['image']=pg.image.load('enemy.png').convert()
 
 
+
+
         sum_offset[0] += move_x
         sum_offset[1] += move_y
+        shared_data['sum_offset']=sum_offset
         if players != {}:
         
             for key, data in players.items():
