@@ -559,7 +559,8 @@ def run_game(data, Socket):
                     'width': 60,
                     'height': 60,
                     'hp': 100,
-                    'angle': 0
+                    'angle': 0,
+                    'weapon': 0                   
                 }
                 players[key] = old_player
                 old_player = {'image': pg.Surface((60, 60)),
@@ -811,6 +812,10 @@ def run_game(data, Socket):
                     # check_if_they_dead(players[key]['hp'])
                 if 'angle' in data:
                     players[key]['angle'] = data['angle']
+                    
+                if 'weapon' in data:
+                    players[key]['weapon'] = data['weapon']
+                    
             elif int(key) >= 100:
                 if 'x' in data and 'y' in data:
                     new_player = {
@@ -819,7 +824,8 @@ def run_game(data, Socket):
                         'width': 60,
                         'height': 60,
                         'hp': 100,
-                        'angle': 0
+                        'angle': 0,
+                        'weapon': data['weapon'] if 'weapon' in data else 0
                     }
                     players[key] = new_player
                     new_player = {
