@@ -180,6 +180,7 @@ class Player(pg.sprite.Sprite):
 
     def print_players(self, players_sprites,bots_sprite,bots,players,angle, selected_weapon):
         PINK = (255, 174, 201)
+        player_filename = ""
         # Map selected_weapon to the corresponding character image
         if selected_weapon >= 48:
             selected_weapon -= 48
@@ -187,6 +188,10 @@ class Player(pg.sprite.Sprite):
 
         for key, data in players_sprites.items():
             # Load and process player sprite
+            if players[key]['weapon'] >= 48:
+                players[key]['weapon'] -= 48
+            player_filename = f"char_{players[key]['weapon'] + 1}.png"
+            data['image'] = pg.image.load(player_filename).convert()
             data['image'].set_colorkey(PINK)
             data['image'] = pg.transform.rotate(data['image'], players[key]['angle'])
             data['rect'] = data['image'].get_rect(center=(data['rect'].x, data['rect'].y))
