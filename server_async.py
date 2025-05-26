@@ -290,7 +290,7 @@ class SubServer:
         bots_to_alert = []
         print(f"🔍 Triggering bots near player {player_id} at ({player_x}, {player_y})")
         async with self.grid_lock:
-            nearby_bots = self.grid.get_nearby_players(player_x, player_y, 2000)
+            nearby_bots = self.grid.get_nearby_players(player_x, player_y, 5000)
             nearby_bots = [bot_id for bot_id in nearby_bots if bot_id in self.bots]
             for bot_id in nearby_bots:
                 if bot_id in self.bots and bot_id != player_id:
