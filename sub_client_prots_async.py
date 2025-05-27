@@ -440,20 +440,34 @@ async def process_requestFull_async(server, client_id, writer):  # Client reques
             print(f"Kicking client {client_id} due to rate limit (requestFull).")
             return
 
-        all_player_data_snapshot = {}
-        async with server.players_data_lock:  # Get a snapshot of all player data
-            # Filter out empty data and self
-            all_player_data_snapshot = {
-                pid: pdata for pid, pdata in server.players_data.items()
-                if pdata and pid != client_id
-            }
+        player_x, player_y = 0, 0
+        async with server.players_data_lock:
+            if client_id in server.players_data:
+                player_x = server.players_data[client_id].get('x', 0)
+                player_y = server.players_data[client_id].get('y', 0)
+            else:  # Player data not found, critical issue or disconnected
+                print(f"Request from {client_id} but player_data not found.")
+                return
+
+        async with server.grid_lock:
+            nearby_ids = server.grid.get_nearby_players(player_x, player_y, 5000)  # RADIUS
+            if client_id in nearby_ids:  # Client should not get its own full update here unless intended
+                nearby_ids.remove(client_id)
+
+        # print(f"Client {client_id} at ({player_x},{player_y}), nearby IDs: {nearby_ids}")
+
+        nearby_updates_for_client = {}
+        async with server.elements_lock:  # For reading updated_elements
+            for pid in nearby_ids:
+                if pid in server.updated_elements:
+                    nearby_updates_for_client[pid] = server.players_data[pid]
 
         # Note: This sends potentially large amounts of data. Consider if this is really needed.
         # The original also included self.different_server_players. This might be redundant
         # if players_data is the single source of truth for all known players on this server.
         # If different_server_players represents players ONLY on other servers, then merge carefully.
 
-        response_str = json.dumps(all_player_data_snapshot)
+        response_str = json.dumps(nearby_updates_for_client)
         if writer and not writer.is_closing():
             writer.write(response_str.encode())
             await writer.drain()
