@@ -1,4 +1,4 @@
-mport pygame as pg
+import pygame as pg
 import json
 import tkinter as tk
 from tkinter import messagebox, font
