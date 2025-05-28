@@ -2,6 +2,7 @@
 import os
 import sys
 
+print("Starting the game...")       
 # Import missing modules if they exist in the same directory
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 

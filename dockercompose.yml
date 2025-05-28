@@ -1,8 +1,0 @@
-version: '3'
-
-services:
-  game:
-    build:
-      context: .
-    ports:
-      - "5900:5900"

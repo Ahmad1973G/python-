@@ -150,6 +150,10 @@ def my_shoot(weapons, players_sprites, bots_sprite, bullet_sprite, sound_effect,
                 shot_offset[1] = (shot_offset[1] / abs(shot_offset[1]) * math.sqrt(range1))
                 shot_offset[0] = 0
             bullet_sprite['rect'].center = (shot_offset[0] + 500-shared_data['move'][0],325 - shot_offset[1] - shared_data['move'][1])
+<<<<<<< HEAD
+=======
+            shared_data['move']=(0,0)
+>>>>>>> 6428255136fb7f613aad051824ac70b51415b74e
             with lock:
                 screen.blit(b_image, bullet_sprite['rect'])
             pg.display.flip()
@@ -220,7 +224,12 @@ def other_shoot(weapons, bullet_sprite2, data, screen, my_player, Socket):
             end_pos[1] = (end_pos[1] / abs(end_pos[1]) * math.sqrt(range1))
             end_pos[0] = 0
         bullet_sprite2['rect'] = be_image.get_rect(
+<<<<<<< HEAD
             center=(end_pos[0] + start_pos[0]-shared_data['move'][0], start_pos[1] - end_pos[1]-shared_data['move'][1]))
+=======
+            center=(end_pos[0] + start_pos[0]-shared_data['move2'][0], start_pos[1] - end_pos[1]-shared_data['move2'][1]))
+        shared_data['move2']=(0,0)
+>>>>>>> 6428255136fb7f613aad051824ac70b51415b74e
         with lock:
             screen.blit(be_image, bullet_sprite2['rect'])
             pg.display.flip()
@@ -236,7 +245,11 @@ def other_shoot(weapons, bullet_sprite2, data, screen, my_player, Socket):
             hit2 = True
 
 
+<<<<<<< HEAD
 shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False, 'move': (0, 0), 'recived': {}}
+=======
+shared_data = {"fire": False, "bomb": False, "used_weapon": 0, 'got_shot': False, 'move': (0, 0),'move2':(0,0), 'recived': {}}
+>>>>>>> 6428255136fb7f613aad051824ac70b51415b74e
 lock_shared_data = threading.Lock()
 lock = threading.Lock()
 
@@ -757,6 +770,10 @@ def run_game(data, Socket):
                         move_x = -15
                         diraction = 'right'
                 shared_data['move']= (move_x,move_y)
+<<<<<<< HEAD
+=======
+                shared_data['move2']= (move_x, move_y)
+>>>>>>> 6428255136fb7f613aad051824ac70b51415b74e
                 print(my_player['x'], my_player['y'])
                 if keys[pg.K_p] and selected_slot >= 3 and hotbar[selected_slot] is not None:
                     apply_item_effect(hotbar[selected_slot], my_player, weapons, shared_data, obj)
@@ -810,11 +827,57 @@ def run_game(data, Socket):
 
         found = False
         for key, data in recived.items():
+<<<<<<< HEAD
             if int(key) >= 100:
                 if key in players:
+=======
+            if key in players:
+                if 'shoot' in data:
+                    thread_shooting2 = threading.Thread(target=other_shoot,
+                                                        args=(weapons, bullet_sprite, data, screen, my_player, Socket))
+                    thread_shooting2.start()
+                if 'x' in data:
+                    players[key]['x'] = int(float(data['x']) - float(dis_to_mid[0]))
+                    players[key]['y'] = int(float(data['y']) - float(dis_to_mid[1]))
+
+                if 'hp' in data:
+                    players[key]['hp'] = data['hp']
+                    if data['hp'] <= 0:
+                        del (players[key])
+                    # check_if_they_dead(players[key]['hp'])
+                if 'angle' in data:
+                    players[key]['angle'] = data['angle']
+
+                if 'weapon' in data:
+                    players[key]['weapon'] = data['weapon']
+
+            elif int(key) >= 100:
+                if 'x' in data and 'y' in data:
+                    new_player = {
+                        'x': int(float(data['x']) - float(dis_to_mid[0])),
+                        'y': int(float(data['y']) - float(dis_to_mid[1])),
+                        'width': 60,
+                        'height': 60,
+                        'hp': 100,
+                        'angle': 0,
+                        'weapon': data['weapon'] if 'weapon' in data else 0
+                    }
+                    players[key] = new_player
+                    new_player = {
+                        'image': pg.Surface((players[key]['width'], players[key]['height'])),
+                        'rect': pg.Rect(players[key]['x'], players[key]['y'], players[key]['width'],
+                                        players[key]['height'])
+                    }
+                    players_sprites[key] = new_player
+            else:
+                key = int(key)
+                if key in bots_sprite:
+
+>>>>>>> 6428255136fb7f613aad051824ac70b51415b74e
                     if 'shoot' in data:
                         thread_shooting2 = threading.Thread(target=other_shoot,
-                                                            args=(weapons, bullet_sprite, data, screen, my_player, Socket))
+                                                            args=(
+                                                            weapons, bullet_sprite, data, screen, my_player, Socket))
                         thread_shooting2.start()
                     if 'x' in data:
                         players[key]['x'] = int(float(data['x']) - float(dis_to_mid[0]))
@@ -884,10 +947,13 @@ def run_game(data, Socket):
                     }
                     bots_sprite[key] = bot
                     bots_sprite[key]['image'] = pg.image.load('enemy.png').convert()
+<<<<<<< HEAD
                 for key, data in bots_sprite.items():
                     if key not in recived:
                         del bots_sprite[key]
                         del bots[key]
+=======
+>>>>>>> 6428255136fb7f613aad051824ac70b51415b74e
 
         sum_offset[0] += move_x
         sum_offset[1] += move_y

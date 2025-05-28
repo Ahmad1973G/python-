@@ -1,0 +1,41 @@
+# Game Server Dockerfile
+FROM python:3.8-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libsdl2-dev \
+    libsdl2-image-dev \
+    libsdl2-mixer-dev \
+    libsdl2-ttf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set SDL to use dummy video driver (headless)
+ENV SDL_VIDEODRIVER=dummy
+
+# Copy requirements and install Python dependencies
+COPY requirements-server.txt .
+RUN pip install --no-cache-dir -r requirements-server.txt
+
+# Copy the server code and dependencies
+COPY server_async.py .
+COPY sub_client_prots_async.py .
+COPY sub_lb_prots_async.py .
+COPY bots_async.py .
+COPY players_grid.py .
+COPY map/ ./map/
+
+# Expose server ports
+EXPOSE 5000/TCP
+EXPOSE 5004/UDP
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Remove the HEALTHCHECK from Dockerfile to avoid conflicts
+# Health checks will be handled by Docker Compose
+
+# Run the server
+CMD ["python", "server_async.py"]

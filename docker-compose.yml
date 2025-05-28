@@ -1,0 +1,145 @@
+
+
+services:
+  load-balancer:
+    build:
+      context: .
+      dockerfile: Dockerfile.loadbalancer
+    container_name: game-load-balancer
+    ports:
+      - "5002:5002"  # TCP port for server connections
+      - "5003:5003/udp"  # UDP port for server discovery
+    networks:
+      - game-network
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RUNNING_IN_DOCKER=1
+    volumes:
+      - ./logs:/app/logs
+    restart: "no"  # Don't restart to see the actual error
+    # Completely disable health check for now
+
+  game-server-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: game-server-1
+    ports:
+      - "5000:5000/TCP"  # TCP port for client connections
+      - "5004:5004/udp"  # UDP port for client discovery
+      - "5005:5005/udp"  # ✅ ADD THIS for UDP discovery from client
+    networks:
+      - game-network
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SDL_VIDEODRIVER=dummy
+      - SERVER_INDEX=1
+      - LOAD_BALANCER_HOST=load-balancer
+      - LOAD_BALANCER_PORT=5002
+      - RUNNING_IN_DOCKER=1
+      - HOST_IP=host.docker.internal  # Use host IP for server discovery
+
+    volumes:
+      - ./logs:/app/logs
+      - ./map:/app/map
+    depends_on:
+      - load-balancer  # Simple dependency without health check
+    restart: unless-stopped
+    # Temporarily disable health check for debugging
+    # healthcheck:
+    #   test: ["CMD", "python", "-c", "import socket; import sys; s=socket.socket(); s.settimeout(2); result=s.connect_ex(('127.0.0.1', 5000)); s.close(); sys.exit(0 if result == 0 else 1)"]
+    #   interval: 45s
+    #   timeout: 15s
+    #   retries: 3
+    #   start_period: 60s
+
+  game-server-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: game-server-2
+    ports:
+      - "5000:5000/TCP"  # TCP port for client connections (mapped to different host port)
+      - "5004:5004/udp"  # UDP port for client discovery (mapped to different host port)
+      - "5005:5005/udp"  # ✅ ADD THIS for UDP discovery from client
+    networks:
+      - game-network
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SDL_VIDEODRIVER=dummy
+      - SERVER_INDEX=2
+      - LOAD_BALANCER_HOST=load-balancer
+      - LOAD_BALANCER_PORT=5002
+      - RUNNING_IN_DOCKER=1
+      - HOST_IP=host.docker.internal  # Use host IP for client connections
+
+    volumes:
+      - ./logs:/app/logs
+      - ./map:/app/map
+    depends_on:
+      - load-balancer
+    restart: unless-stopped
+
+  game-server-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: game-server-3
+    ports:
+      - "5000:5000/TCP"  # TCP port for client connections
+      - "5004:5004/udp"  # UDP port for client discovery
+      - "5005:5005/udp"  # ✅ ADD THIS for UDP discovery from client
+    networks:
+      - game-network
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SDL_VIDEODRIVER=dummy
+      - SERVER_INDEX=3
+      - LOAD_BALANCER_HOST=load-balancer
+      - LOAD_BALANCER_PORT=5002
+      - RUNNING_IN_DOCKER=1
+      - HOST_IP=host.docker.internal  # Use host IP for server discovery
+    volumes:
+      - ./logs:/app/logs
+      - ./map:/app/map
+    depends_on:
+      - load-balancer
+    restart: unless-stopped
+
+  game-server-4:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: game-server-4
+    ports:
+      - "5000:5000/TCP"  # TCP port for client connections
+      - "5004:5004/udp"  # UDP port for client discovery
+      - "5005:5005/udp"  # ✅ ADD THIS for UDP discovery from client
+    networks:
+      - game-network
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SDL_VIDEODRIVER=dummy
+      - SERVER_INDEX=4
+      - LOAD_BALANCER_HOST=load-balancer
+      - LOAD_BALANCER_PORT=5002
+      - RUNNING_IN_DOCKER=1
+      - HOST_IP=host.docker.internal
+
+    volumes:
+      - ./logs:/app/logs
+      - ./map:/app/map
+    depends_on:
+      - load-balancer
+    restart: unless-stopped
+
+networks:
+  game-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  logs:
+    driver: local

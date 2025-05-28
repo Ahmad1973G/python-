@@ -1,0 +1,14 @@
+# Load Balancer Requirements
+# Add any specific database driver you're using
+# For example, if using MySQL:
+# PyMySQL==1.0.2
+# mysql-connector-python==8.2.0
+
+# If using PostgreSQL:
+# psycopg2-binary==2.9.7
+
+# If using SQLite (usually built-in with Python):
+# No additional requirements needed
+
+# Add other dependencies based on your database.py module
+requests==2.31.0

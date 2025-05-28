@@ -13,6 +13,7 @@ class Bot:
         self.moving = False
         self.bot_id = bot_id  # For logging and server updates
         self.server_ref = server_ref  # Reference to the server instance for updates
+        self.target_id = None  # Target ID, if any
 
         # type true= long range bot false=short
         if type:
@@ -82,22 +83,36 @@ class Bot:
                 return True
         return False
 
-    def send_target(self, target_x, target_y):
+    def send_target(self, target_x, target_y, target_id):
         # This can be called from server (potentially different thread or async context)
         print(f"Bot {self.bot_id} received new target: ({target_x}, {target_y})")
         async def _set_event():
             if target_x is not None and target_y is not None:
+                #if self.closest_x is not None and self.closest_y is not None and self.target_id is not None and self.target_id != target_id:
+                #    distance = math.sqrt((self.closest_x - target_x) ** 2 + (self.closest_y - target_y) ** 2)
+                #    closest_distance = math.sqrt((self.closest_x - self.my_x) ** 2 + (self.closest_y - self.my_y) ** 2)
+
+                #   if distance > closest_distance:
+                #        print(f"Bot {self.bot_id} ignoring target ({target_x}, {target_y}) as it is further than"
+                #              f" current closest ({self.closest_x}, {self.closest_y})")
+                #        print("Target ignored, further than current closest.")
+                #        return  # Ignore this target if it's further than the current closest
+
                 self.closest_x = target_x
                 self.closest_y = target_y
+                self.target_id = target_id
                 self.new_target_flag = True
                 self.moving = True
                 self.shooting = False  # Stop shooting when a new target is assigned
                 self.shoot_event.clear()
                 self.move_event.set()
+                print("Target set successfully.")
             else:  # No target
                 self.moving = False
                 self.new_target_flag = True  # To make the loop re-evaluate and stop
                 self.move_event.set()  # Wake up loop to process the stop
+
+
 
         # bots_async.py
         self.loop.call_soon_threadsafe(asyncio.run_coroutine_threadsafe, _set_event(), self.loop)
@@ -111,100 +126,121 @@ class Bot:
 
     async def move_loop(self):  # Adapted from original move method
         while True:
-            await self.move_event.wait()
+            try:
+                await self.move_event.wait()
 
-            if not self.moving:
-                self.move_event.clear()
-                self.server_ref.update_bot_data_in_server(self.bot_id, {'moving': False})
-                continue
+                if not self.moving:
+                    self.move_event.clear()
+                    self.server_ref.clear_bot_data(self.bot_id)
+                    continue
 
-            self.new_target_flag = False
-            await asyncio.sleep(0.1)  # Allow time for new target to be set
-            # Simplified target point calculation: Bot tries to maintain bot_range from player
-            # This differs from the original complex t_x, t_y calculation.
-            # For a more faithful reproduction, the original math for t_x, t_y would be here.
-            # The original calculation aimed to find a point t_x, t_y.
-            # Let's use a simpler "move towards player until in range" or "move to maintain range"
+                self.new_target_flag = False
+                await asyncio.sleep(0.1)  # Allow time for new target to be set
+                # Simplified target point calculation: Bot tries to maintain bot_range from player
+                # This differs from the original complex t_x, t_y calculation.
+                # For a more faithful reproduction, the original math for t_x, t_y would be here.
+                # The original calculation aimed to find a point t_x, t_y.
+                # Let's use a simpler "move towards player until in range" or "move to maintain range"
 
-            vec_to_player_x = self.closest_x - self.my_x
-            vec_to_player_y = self.closest_y - self.my_y
-            dist_sq_to_player = vec_to_player_x ** 2 + vec_to_player_y ** 2
+                vec_to_player_x = self.closest_x - self.my_x
+                vec_to_player_y = self.closest_y - self.my_y
+                dist_sq_to_player = vec_to_player_x ** 2 + vec_to_player_y ** 2
 
-            target_point_x, target_point_y = self.closest_x, self.closest_y  # Default: move towards player
+                target_point_x, target_point_y = self.closest_x, self.closest_y  # Default: move towards player
 
-            if dist_sq_to_player > self.bot_range_sq + 100:  # Too far, move closer
-                pass  # target_point_x,y is already player's position
-            elif self.bot_range_sq - 100 > dist_sq_to_player > 0:  # Too close, move away
-                # Move to a point on the line extending from player through bot
-                dist_to_player = math.sqrt(dist_sq_to_player)
-                target_dist_from_player = math.sqrt(self.bot_range_sq)
+                if dist_sq_to_player > self.bot_range_sq + 100:  # Too far, move closer
+                    pass  # target_point_x,y is already player's position
+                elif self.bot_range_sq - 100 > dist_sq_to_player > 0:  # Too close, move away
+                    # Move to a point on the line extending from player through bot
+                    dist_to_player = math.sqrt(dist_sq_to_player)
+                    target_dist_from_player = math.sqrt(self.bot_range_sq)
 
-                target_point_x = self.closest_x - (vec_to_player_x / dist_to_player) * target_dist_from_player
-                target_point_y = self.closest_y - (vec_to_player_y / dist_to_player) * target_dist_from_player
-            else:  # In range
-                self.moving = False
-                self.shooting = True
-                self.move_event.clear()
-                self.shoot_event.set()
-                self.server_ref.update_bot_data_in_server(self.bot_id, {'x': self.my_x, 'y': self.my_y, 'moving': False,
-                                                                        'shooting': True})
-                continue
-
-            # Inner loop for step-by-step movement towards target_point_x, target_point_y
-            max_steps = 50  # Limit steps per trigger to avoid long blocks if target is far
-            steps_taken = 0
-            while self.moving and not self.new_target_flag and steps_taken < max_steps:
-                if abs(self.my_x - target_point_x) < 2 and abs(self.my_y - target_point_y) < 2:
-                    break  # Reached intermediate target point for this cycle
-
-                move_dx = 0
-                if abs(self.my_x - target_point_x) >= 1:
-                    move_dx = 1 if target_point_x > self.my_x else -1
-
-                move_dy = 0
-                if abs(self.my_y - target_point_y) >= 1:
-                    move_dy = 1 if target_point_y > self.my_y else -1
-
-                if move_dx == 0 and move_dy == 0:  # Should be caught by distance check above
-                    break
-
-                next_x, next_y = self.my_x + move_dx, self.my_y + move_dy
-
-                collided = self.check_collision_nearby(next_x, next_y)
-
-                if collided:
-                    # Simplified collision: try to move only along one axis if the other is blocked
-                    collided_x = self.check_collision_nearby(self.my_x + move_dx, self.my_y)
-                    collided_y = self.check_collision_nearby(self.my_x, self.my_y + move_dy)
-
-                    if move_dx != 0 and not collided_x:
-                        self.my_x += move_dx
-                    elif move_dy != 0 and not collided_y:
-                        self.my_y += move_dy
-                    else:
-                        # Stuck for this step, perhaps try a very small random jitter next time or stop.
-                        # For now, just break this inner movement attempt.
-                        self.moving = False  # Stop if truly stuck
-                        break
-                else:
-                    self.my_x = next_x
-                    self.my_y = next_y
-
-                self.server_ref.update_bot_data_in_server(self.bot_id, {'x': self.my_x, 'y': self.my_y})
-                await asyncio.sleep(0.05)  # Time per step
-                steps_taken += 1
-
-                if self.new_target_flag: break  # New target during step-by-step
-
-            if self.new_target_flag:  # Loop again if new target was set
-                continue
-
-            if not self.moving:  # If movement was stopped (e.g. stuck, or reached range)
-                if abs(self.my_x - target_point_x) < 2 and abs(self.my_y - target_point_y) < 2:  # Reached
+                    target_point_x = self.closest_x - (vec_to_player_x / dist_to_player) * target_dist_from_player
+                    target_point_y = self.closest_y - (vec_to_player_y / dist_to_player) * target_dist_from_player
+                else:  # In range
+                    self.moving = False
                     self.shooting = True
+                    self.move_event.clear()
                     self.shoot_event.set()
-                self.move_event.clear()  # Stop moving until new target/event
-                self.server_ref.update_bot_data_in_server(self.bot_id, {'moving': False, 'shooting': self.shooting})
+                    continue
+
+                # Inner loop for step-by-step movement towards target_point_x, target_point_y
+                max_steps = 50  # Limit steps per trigger to avoid long blocks if target is far
+                steps_taken = 0
+                while self.moving and not self.new_target_flag and steps_taken < max_steps:
+                    if abs(self.my_x - target_point_x) < 2 and abs(self.my_y - target_point_y) < 2:
+                        break  # Reached intermediate target point for this cycle
+
+                    move_dx = 0
+                    if abs(self.my_x - target_point_x) >= 1:
+                        move_dx = 1 if target_point_x > self.my_x else -1
+
+                    move_dy = 0
+                    if abs(self.my_y - target_point_y) >= 1:
+                        move_dy = 1 if target_point_y > self.my_y else -1
+
+                    if move_dx == 0 and move_dy == 0:  # Should be caught by distance check above
+                        break
+
+                    next_x, next_y = self.my_x + move_dx, self.my_y + move_dy
+
+                    collided = self.check_collision_nearby(next_x, next_y)
+
+                    if collided:
+                        # Simplified collision: try to move only along one axis if the other is blocked
+                        collided_x = self.check_collision_nearby(self.my_x + move_dx, self.my_y)
+                        collided_y = self.check_collision_nearby(self.my_x, self.my_y + move_dy)
+
+                        if move_dx != 0 and not collided_x:
+                            self.my_x += move_dx
+                        elif move_dy != 0 and not collided_y:
+                            self.my_y += move_dy
+                        else:
+                            # Stuck for this step, perhaps try a very small random jitter next time or stop.
+                            # For now, just break this inner movement attempt.
+                            self.moving = False  # Stop if truly stuck
+                            break
+                    else:
+                        self.my_x = next_x
+                        self.my_y = next_y
+
+                    self.server_ref.update_bot_data_in_server(self.bot_id, {'x': self.my_x, 'y': self.my_y})
+                    await asyncio.sleep(0.05)  # Time per step
+                    async with self.server_ref.players_data_lock:
+
+                        if self.target_id not in self.server_ref.players_data:
+                            print(f"Bot {self.bot_id} target ID {self.target_id} disconnected or not found.")
+                            self.moving = False
+                            self.closest_x = None
+                            self.closest_y = None
+                            self.target_id = None
+                            self.shooting = False
+                            self.shoot_event.clear()
+                            self.server_ref.clear_bot_data(self.bot_id)
+                            self.move_event.clear()
+                            continue
+
+                    steps_taken += 1
+
+                    if self.new_target_flag: break  # New target during step-by-step
+
+                if self.new_target_flag:  # Loop again if new target was set
+                    continue
+
+                if not self.moving:  # If movement was stopped (e.g. stuck, or reached range)
+                    if abs(self.my_x - target_point_x) < 2 and abs(self.my_y - target_point_y) < 2:  # Reached
+                        self.shooting = True
+                        self.shoot_event.set()
+                    self.move_event.clear()  # Stop moving until new target/event
+                    self.server_ref.clear_bot_data(self.bot_id)
+            except Exception as e:
+                print(f"Error in move_loop for bot {self.bot_id}: {e}")
+                self.moving = False
+                self.shooting = False
+                self.move_event.clear()
+                self.shoot_event.clear()
+                self.server_ref.clear_bot_data(self.bot_id)
+                await asyncio.sleep(1)
 
     async def shoot_loop(self):
         while True:
@@ -212,14 +248,24 @@ class Bot:
             if self.shooting and self.closest_x is not None and self.closest_y is not None:
                 # Update server about shooting action
                 shoot_data = {
-                    'shoot': [self.my_x, self.my_y, self.closest_x, self.closest_y, self.weapon],
-                    'shooting': True  # Keep shooting flag
-                }
+                    'shoot': [self.my_x, self.my_y, self.closest_x, self.closest_y, self.weapon]}
                 self.server_ref.update_bot_data_in_server(self.bot_id, shoot_data)
-
+                await asyncio.sleep(0.05)  # Simulate processing time for shooting
+                print(f"Bot {self.bot_id} shooting at target ({self.closest_x}, {self.closest_y})")
+                self.server_ref.clear_bot_data(self.bot_id)  # Clear bot data after shooting
                 # Simulate shooting duration / cooldown before allowing next shot trigger
-                await asyncio.sleep(0.5)  # Example: 0.5s cooldown or time between shots
-
+                await asyncio.sleep(1)  # Example: 0.5s cooldown or time between shots
+                async with self.server_ref.players_data_lock:
+                    if self.target_id not in self.server_ref.players_data:
+                        print(f"Bot {self.bot_id} target ID {self.target_id} disconnected or not found.")
+                        self.shooting = False
+                        self.shoot_event.clear()
+                        self.server_ref.clear_bot_data(self.bot_id)
+                    if self.server_ref.players_data[self.target_id]['health'] <= 0:
+                        print(f"Bot {self.bot_id} target ID {self.target_id} is dead.")
+                        self.shooting = False
+                        self.shoot_event.clear()
+                        self.server_ref.clear_bot_data(self.bot_id)
                 # If bot should continuously shoot while target is valid & in range:
                 # Check conditions again and self.shoot_event.set() if still valid.
                 # For now, one shot per trigger, then clear.
@@ -230,12 +276,12 @@ class Bot:
                 else:
                     self.shooting = False
                     self.shoot_event.clear()
-                    self.server_ref.update_bot_data_in_server(self.bot_id, {'shooting': False})
+                    self.server_ref.clear_bot_data(self.bot_id)
 
             else:
                 self.shooting = False
                 self.shoot_event.clear()
-                self.server_ref.update_bot_data_in_server(self.bot_id, {'shooting': False})
+                self.server_ref.clear_bot_data(self.bot_id)
 
     def take_damage(self, amount):
         self.hp -= amount
