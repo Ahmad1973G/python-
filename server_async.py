@@ -249,6 +249,16 @@ class SubServer:
         if self.loop and self.loop.is_running():
             self.loop.create_task(_update())
 
+    def clear_bot_data(self, bot_id):
+        async def _clear():
+            async with self.players_data_lock, self.elements_lock, self.grid_lock:
+                if bot_id in self.updated_elements:
+                    self.updated_elements[bot_id] = {}
+            print(f"🗑️ Cleared data for bot {bot_id}.")
+
+        if self.loop and self.loop.is_running():
+            self.loop.create_task(_clear())
+
     async def restart_bot(self, bot_id_to_replace):
         print(f"🔄 Restarting bot (ID was {bot_id_to_replace})...")
         async with self.bots_lock, self.players_data_lock, self.elements_lock, self.grid_lock:
@@ -304,7 +314,8 @@ class SubServer:
                     if bot_id in self.bots:
                         bot = self.bots[bot_id]
                         print(f"🔔 Alerting bot {bot_id} to player {player_id}'s position.")
-                        bot.send_target(player_x, player_y)
+                        bot.send_target(player_x, player_y, player_id)
+                        await asyncio.sleep(0.01)  # Yield control to allow other tasks
 
     async def create_new_pos_async(self):  # Made async to use grid_lock properly
         borders = {
