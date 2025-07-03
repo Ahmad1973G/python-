@@ -1,8 +1,12 @@
+import base64
 import socket
 import json
 import threading
 import time
 import asyncio
+
+from RSA import RSA
+from AES import AES
 
 SERVER_PORT = 5004
 
@@ -20,6 +24,7 @@ class ClientServer:
         self.chat_sequence = 0
 
         self.lock = threading.Lock()
+        self.aes = AES()
 
     def broadcast_packet(self, packet, port):
         self.udp_socket.sendto(packet, ('255.255.255.255', port))
@@ -77,6 +82,21 @@ class ClientServer:
             return int(str_data.split(" ")[-1])
         return -1
 
+
+    def recvRsaPublicKeySendAes(self):
+        packet_data = self.socket.recv(1024)
+        str_data = packet_data.decode()
+        if str_data.startswith("RSA PUBLIC"):
+            str_data = str_data.split("|", 1)[-1]
+            data = str_data.encode()
+            rsa = RSA()
+            aes_key = self.aes.key
+            print("AES key generated:", base64.b64encode(aes_key).decode())
+            data_to_send = rsa.encrypt_aes_key(aes_key, rsa.load_public_key_from_bytes(data))
+            print("Encrypted AES key with RSA public key len: ", len(data_to_send))
+            self.socket.send(data_to_send)
+
+
     def connect(self):
         self.broadcast_packet(self.createSYNCpacket(), SERVER_PORT)
         print("Sent the SYNC packet")
@@ -84,7 +104,13 @@ class ClientServer:
             print("Received the SYNC+ACK packet successfully")
             self.id = self.recv_ID()
             print("Received the ID packet, ID:", self.id)
-            return self.id
+            if self.id != -1:
+                print("Sent the ID packet")
+                self.recvRsaPublicKeySendAes()
+                print("Received RSA public key and sent AES key")
+                return self.id
+            else:
+                print("Failed to receive ID packet")
         return None
 
     def MoveServer(self, data):

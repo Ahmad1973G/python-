@@ -6,6 +6,7 @@ import time
 import json
 import os
 import pytmx
+import base64
 
 from scipy.spatial import KDTree
 import sub_client_prots_async as sub_client_prots  # Adapted
@@ -13,6 +14,8 @@ import sub_lb_prots_async as sub_lb_prots  # Adapted
 import bots_async as bots  # Adapted
 import players_grid
 
+from RSA import RSA  # Assuming RSA is a module for handling RSA encryption/decryption
+from AES import AES  # Assuming AES is a module for handling AES encryption/decryption
 # Constants
 LB_PORT = 5002
 UDP_PORT = LB_PORT + 1  # This is for LB discovery in original
@@ -160,6 +163,9 @@ class SubServer:
 
         self.grid = players_grid.PlayersGrid(cell_size=1000)
         print("🥅 Player grid initialized.")
+
+        self.aes_keys = {}  # Store AES keys for clients
+        self.rsa_keys = {}  # Store RSA public keys for clients
 
     # --- Threadsafe Communication Helper (as previously defined) ---
     def send_to_client_threadsafe(self, client_id, message_bytes):
@@ -388,6 +394,24 @@ class SubServer:
             writer.write(f"ID CODE 69 {client_id}".encode())
             await writer.drain()
             print(f"Sent TCP ID {client_id} to {addr}")
+
+            rsa = RSA()  # Generate RSA keys for this client
+
+            writer.write("RSA PUBLIC |".encode() + rsa.get_public_key_bytes())
+            await writer.drain()
+            print(f"Sent RSA public key to client {client_id} ({addr})")
+
+            data = await asyncio.wait_for(reader.read(256), timeout=300.0)
+            print(f"Received AES key from client {client_id} ({addr}), length: {len(data)} bytes")
+            print(base64.b64encode(data).decode())
+            if not data:
+                print(f"Client {client_id} ({addr}) disconnected (TCP).")
+                return
+
+            aes_key = rsa.decrypt_aes_key(data)
+            self.aes_keys[client_id] = AES(aes_key)  # Store AES key for this client
+            print(f"Received and decrypted AES key for client {client_id} ({addr})")
+            print(f"AES key for client {client_id}: {base64.b64encode(aes_key).decode()}")
 
             async with self.players_data_lock, self.elements_lock, self.counter_lock:
                 temp_x, temp_y = 0, 0
