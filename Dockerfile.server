@@ -1,5 +1,5 @@
 # Game Server Dockerfile
-FROM python:3.9-slim
+FROM python:3.8-slim
 
 WORKDIR /app
 
@@ -28,8 +28,8 @@ COPY players_grid.py .
 COPY map/ ./map/
 
 # Expose server ports
-EXPOSE 5000
-EXPOSE 5004
+EXPOSE 5000/TCP
+EXPOSE 5004/UDP
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1

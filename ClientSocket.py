@@ -58,7 +58,7 @@ class ClientServer:
                     print("Error receiving SYNC+ACK packet:", e)
 
             if str_data.startswith("SYNC+ACK CODE 69"):
-                self.server = (str_data.split(" ")[-1].split(";")[0],
+                self.server = (addr[0],
                                int(str_data.split(" ")[-1].split(";")[1]))
                 try:
                     print("Connecting to server at IP:", self.server[0], "Port:", self.server[1])

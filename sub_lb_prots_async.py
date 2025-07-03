@@ -336,7 +336,7 @@ def SortRegister(server, data_from_lb):
                 async with server.secret_player_data_async_lock:  # asyncio.Lock
                     server.secret_players_data[client_id] = payload  # payload is new player data
 
-                new_x, new_y = server.create_new_pos()  # Sync server method
+                new_x, new_y = await server.create_new_pos_async()  # Sync server method
                 async with server.players_data_lock:  # asyncio.Lock
                     if client_id not in server.players_data: server.players_data[client_id] = {}
                     server.players_data[client_id]['x'] = new_x

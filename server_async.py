@@ -30,9 +30,11 @@ RADIUS = 600
 
 
 def get_ip_address():
-    hostname = socket.gethostname()
-    ip_address = socket.gethostbyname(hostname)
-    return ip_address
+    if os.environ.get("RUNNING_IN_DOCKER", "0") == "1":
+        return "0.0.0.0"
+    else:
+        hostname = socket.gethostname()
+        return socket.gethostbyname(hostname)
 
 
 def get_collidable_tiles_optimized(tmx_data):
