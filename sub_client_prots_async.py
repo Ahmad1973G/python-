@@ -31,7 +31,9 @@ async def process_bot_damage_async(server, client_id, writer, message: str):
 
         # ACK is sent after processing
         if writer and not writer.is_closing():
-            writer.write(b"ACK_DAMAGE\n")
+            data = "ACK_DAMAGE\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
 
     except Exception as e:
@@ -54,7 +56,9 @@ async def process_chat_async(server, client_id, writer, data: str):
         await process_chat_send_async(server, client_id, writer, sequence_payload)
     else:
         if writer and not writer.is_closing():
-            writer.write(b"ERR_CHAT_FORMAT\n")
+            data = "ERR_CHAT_FORMAT\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
 
 
@@ -70,12 +74,16 @@ async def process_chat_recv_async(server, client_id, writer, message: str):
             server.sequence_id += 1
 
         if writer and not writer.is_closing():
-            writer.write(b"ACK_CHAT_SEND\n")
+            data = "ACK_CHAT_SEND\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
     except Exception as e:
         print(f"Error processing chat send for {client_id}: {e}")
         if writer and not writer.is_closing():
-            writer.write(b"ERR_CHAT_SEND\n")
+            data = "ERR_CHAT_SEND\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
 
 
@@ -97,18 +105,25 @@ async def process_chat_send_async(server, client_id, writer, message: str):  # C
             response_data = f"{current_max_sequence_id};{json.dumps(new_logs)}\n".encode()
 
         if writer and not writer.is_closing():
-            writer.write(response_data)
+            data = response_data
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
 
     except ValueError:
         print(f"Error processing chat request for {client_id}: Invalid sequence ID")
         if writer and not writer.is_closing():
-            writer.write(b"ERR_CHAT_INVALID_SEQ\n")
+            data = "ERR_CHAT_INVALID_SEQ\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
+
     except Exception as e:
         print(f"Error processing chat request for {client_id}: {e}")
         if writer and not writer.is_closing():
-            writer.write(b"ERR_CHAT_RECV\n")
+            data = "ERR_CHAT_RECV\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
 
 
@@ -125,7 +140,9 @@ async def process_money_async(server, client_id, writer, message: str):
             server.secret_players_data[client_id]["PlayerMoney"] = money
 
         if writer and not writer.is_closing():
-            writer.write(b"ACK_MONEY\n")
+            data = "ACK_MONEY\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
     except Exception as e:
         print(f"Error processing money for {client_id}: {e}")
@@ -141,7 +158,9 @@ async def process_ammo_async(server, client_id, writer, message: str):
             server.secret_players_data[client_id]["PlayerAmmo"] = ammo  # Corrected key from original
 
         if writer and not writer.is_closing():
-            writer.write(b"ACK_AMMO\n")
+            data = "ACK_AMMO\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
     except Exception as e:
         print(f"Error processing ammo for {client_id}: {e}")
@@ -164,12 +183,16 @@ async def process_inventory_async(server, client_id, writer, message: str):
             server.secret_players_data[client_id]["PlayerSlot5"] = items_int[4]
 
         if writer and not writer.is_closing():
-            writer.write(b"ACK_INVENTORY\n")
+            data = "ACK_INVENTORY\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
     except Exception as e:
         print(f"Error processing inventory for {client_id}: {e}")
         if writer and not writer.is_closing():
-            writer.write(b"ERR_INVENTORY\n")  # Send error back
+            data = "ERR_INVENTORY\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
 
 
@@ -229,11 +252,15 @@ async def process_move_async(server, client_id, writer, message: str):
             client_id)  # This is sync, reads data locked by moving_lock (threading.Lock)
         if is_moving_servers:
             if writer and not writer.is_closing():
-                writer.write(f"MOVING {dest_ip}".encode())
+                data = "MOVING " + dest_ip
+                data = server.aes_keys[client_id].encrypt_message(data)
+                writer.write(data)
                 await writer.drain()
         else:
             if writer and not writer.is_closing():  # Send ACK if not moving to another server
-                writer.write(b"ACK")
+                data = "ACK"
+                data = server.aes_keys[client_id].encrypt_message(data)
+                writer.write(data)
                 await writer.drain()
 
         # CheckForLB is synchronous, updates players_to_lb (needs lb_data_lock - threading.Lock)
@@ -247,7 +274,9 @@ async def process_move_async(server, client_id, writer, message: str):
     except Exception as e:
         print(f"Error processing move for {client_id}: {e}")
         if writer and not writer.is_closing():
-            writer.write(b"ERR_MOVE\n")
+            data = "ERR_MOVE\n"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
 
 
@@ -261,7 +290,9 @@ async def process_boom_async(server, client_id, writer, message: str):
             server.updated_elements[client_id]['explode'] = [x_str, y_str, Brange_str]
         print(f"SERVER: got bomb activation from {client_id}")
         if writer and not writer.is_closing():
-            writer.write(b"ACK")
+            data = "ACK"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
     except Exception as e:
         print(f"SERVER: Error processing bomb for {client_id}: {e}")
@@ -278,7 +309,9 @@ async def process_shoot_async(server, client_id, writer, message: str):
             server.updated_elements[client_id]['shoot'] = [start_x, start_y, end_x, end_y, weapon]
 
         if writer and not writer.is_closing():
-            writer.write(b"ACK")
+            data = "ACK"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
     except Exception as e:
         print(f"Error processing shoot for {client_id}: {e}")
@@ -301,7 +334,9 @@ async def process_damage_taken_async(server, client_id, writer, message: str):  
                 # server.loop.create_task(server.handle_player_death(client_id)) # If exists
 
         if writer and not writer.is_closing():
-            writer.write(b"ACK")
+            data = "ACK"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
     except Exception as e:
         print(f"Error processing damage taken for {client_id}: {e}")
@@ -322,7 +357,9 @@ async def process_power_async(server, client_id, writer, message: str):
             server.updated_elements[client_id]['power'] = [power_params, player_x, player_y]
 
         if writer and not writer.is_closing():
-            writer.write(b"ACK")
+            data = "ACK"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
     except Exception as e:
         print(f"Error processing power for {client_id}: {e}")
@@ -339,7 +376,9 @@ async def process_angle_async(server, client_id, writer, message: str):
             server.players_data[client_id]['angle'] = angle
 
         if writer and not writer.is_closing():
-            writer.write(b"ACK")
+            data = "ACK"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
     except Exception as e:
         print(f"Error processing angle for {client_id}: {e}")
@@ -358,11 +397,15 @@ async def process_request_async(server, client_id, writer):  # Client requests n
 
         if counter == 10000:  # Rate limiting example
             if writer and not writer.is_closing():
-                writer.write(b"WARNING")
+                data = "WARNING"
+                data = server.aes_keys[client_id].encrypt_message(data)
+                writer.write(data)
                 await writer.drain()
         elif counter >= 100000:  # Kick for excessive requests
             if writer and not writer.is_closing():
-                writer.write(b"KICK")
+                data = "KICK"
+                data = server.aes_keys[client_id].encrypt_message(data)
+                writer.write(data)
                 await writer.drain()
             # To signal kick, could close writer or raise custom exception
             if writer and not writer.is_closing(): writer.close(); await writer.wait_closed()
@@ -396,13 +439,17 @@ async def process_request_async(server, client_id, writer):  # Client requests n
 
         response_str = json.dumps(nearby_updates_for_client)
         if writer and not writer.is_closing():
-            writer.write(response_str.encode())
+            data = response_str
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
 
     except KeyError as e:
         print(f"KeyError processing request for {client_id}: {e}")
         if writer and not writer.is_closing():
-            writer.write(b"ERR_REQUEST")
+            data = "ERR_REQUEST"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
         return
 
@@ -411,7 +458,9 @@ async def process_request_async(server, client_id, writer):  # Client requests n
     except Exception as e:
         print(f"Error processing request for {client_id}: {e}")
         if writer and not writer.is_closing():
-            writer.write(b"ERR_REQUEST")
+            data = "ERR_REQUEST"
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
         return
 
@@ -430,11 +479,15 @@ async def process_requestFull_async(server, client_id, writer):  # Client reques
 
         if counter == 10000:
             if writer and not writer.is_closing():
-                writer.write(b"WARNING")
+                data = "WARNING"
+                data = server.aes_keys[client_id].encrypt_message(data)
+                writer.write(data)
                 await writer.drain()
         elif counter >= 100000:
             if writer and not writer.is_closing():
-                writer.write(b"KICK")
+                data = "KICK"
+                data = server.aes_keys[client_id].encrypt_message(data)
+                writer.write(data)
                 await writer.drain()
             if writer and not writer.is_closing(): writer.close(); await writer.wait_closed()
             print(f"Kicking client {client_id} due to rate limit (requestFull).")
@@ -469,7 +522,9 @@ async def process_requestFull_async(server, client_id, writer):  # Client reques
 
         response_str = json.dumps(nearby_updates_for_client)
         if writer and not writer.is_closing():
-            writer.write(response_str.encode())
+            data = response_str
+            data = server.aes_keys[client_id].encrypt_message(data)
+            writer.write(data)
             await writer.drain()
 
     except ConnectionResetError:

@@ -2,8 +2,6 @@ import base64
 import socket
 import json
 import threading
-import time
-import asyncio
 
 from RSA import RSA
 from AES import AES
@@ -120,7 +118,7 @@ class ClientServer:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.connect((ip, port))
             data = self.socket.recv(1024)
-            str_data = data.decode()
+            str_data = self.aes.decrypt_message(data)
             if str_data.startswith("ID"):
                 self.socket.send(f"ID CODE 69;{self.id}".encode())
                 print("Received the ID packet successfully")
@@ -146,9 +144,10 @@ class ClientServer:
 
     def sendBOTDAMAGE(self, damage: int, bot_id: int):
         with self.lock:
-            self.socket.send(f"DAMAGE {bot_id};{damage}".encode())
+            data = self.aes.encrypt_message(f"DAMAGE {bot_id};{damage}")
+            self.socket.send(data)
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if self.protocol_check(message):
             print("Damage sent successfully")
 
@@ -156,84 +155,85 @@ class ClientServer:
         # Add newline delimiter to separate messages
         if flag:
             with self.lock:
-                self.socket.send(f"MOVE {x};{y};{weapon}".encode())
+                data = self.aes.encrypt_message(f"MOVE {x};{y};{weapon}")
+                self.socket.send(data)
                 message = self.socket.recv(1024)
-            message = message.decode()
+            message = self.aes.decrypt_message(message)
             if self.protocol_check(message):
                 print("Move sent successfully")
         else:
             with self.lock:
-                self.socket.send(f"ANGLE {angle}".encode())
+                self.socket.send(self.aes.encrypt_message(f"ANGLE {angle}"))
                 message = self.socket.recv(1024)
-            message = message.decode()
+            message = self.aes.decrypt_message(message)
             if self.protocol_check(message):
                 pass
             # print("Angle sent successfully")
 
     def sendSHOOT(self, start_x, start_y, end_x, end_y, weapon):
         with self.lock:
-            self.socket.send(f"SHOOT {start_x};{start_y};{end_x};{end_y};{weapon}".encode())
+            self.socket.send(self.aes.encrypt_message(f"SHOOT {start_x};{start_y};{end_x};{end_y};{weapon}"))
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if self.protocol_check(message):
             print("Shoot sent successfully")
 
     def sendANGLE(self, angle):
         with self.lock:
-            self.socket.send(f"ANGLE {angle}".encode())
+            self.socket.send(self.aes.encrypt_message(f"ANGLE {angle}"))
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if self.protocol_check(message):
             pass
             # print("Angle sent successfully")
 
     def sendHEALTH(self, health: int):
         with self.lock:
-            self.socket.send(f"HEALTH {health}".encode())
+            self.socket.send(self.aes.encrypt_message(f"HEALTH {health}"))
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if self.protocol_check(message):
             print("Damage sent successfully")
 
     def sendPOWER(self, power):
         with self.lock:
-            self.socket.send(f"POWER {power}".encode())
+            self.socket.send(self.aes.encrypt_message(f"POWER {power}"))
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if self.protocol_check(message):
             print("Power sent successfully")
 
     def sendMONEY(self, money):
         with self.lock:
-            self.socket.send(f"MONEY {money}".encode())
+            self.socket.send(self.aes.encrypt_message(f"MONEY {money}"))
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if self.protocol_check(message):
             print("Power sent successfully")
 
     def sendAMMO(self, ammo):
         with self.lock:
-            self.socket.send(f"AMMO {ammo}".encode())
+            self.socket.send(self.aes.encrypt_message(f"AMMO {ammo}"))
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if self.protocol_check(message):
             print("Power sent successfully")
 
     def sendINVENTORY(self, inventory):
         with self.lock:
-            self.socket.send(f"INVENTORY {inventory[0]};{inventory[1]};"
-                         f"{inventory[2]};{inventory[3]};{inventory[4]}".encode())
+            self.socket.send(self.aes.encrypt_message(f"INVENTORY {inventory[0]};{inventory[1]};"
+                         f"{inventory[2]};{inventory[3]};{inventory[4]}"))
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if self.protocol_check(message):
             print("Inventory sent successfully")
 
 
     def sendBOOM(self, x, y, brange):
         with self.lock:
-            self.socket.send(f"BOMB {x};{y};{brange}\n".encode())
+            self.socket.send(self.aes.encrypt_message(f"BOMB {x};{y};{brange}\n"))
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if message == "ACK":
             print("SOCKET; boom sent successfully")
         else:
@@ -243,7 +243,7 @@ class ClientServer:
         with self.lock:
             self.socket.send(f"CHAT SEND {message}".encode())
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if message == "ACK":
             print("SOCKET; chat sent successfully")
         else:
@@ -251,9 +251,9 @@ class ClientServer:
 
     def recvCHAT(self):
         with self.lock:
-            self.socket.send(f"CHAT RECV {self.chat_sequence}".encode())
+            self.socket.send(self.aes.encrypt_message(f"CHAT RECV {self.chat_sequence}"))
             message = self.socket.recv(1024)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if message == "UPDATED":
             print("SOCKET; chat already updated")
             return True
@@ -268,12 +268,12 @@ class ClientServer:
     def requestDATA(self):
         try:
             with self.lock:
-                self.socket.send("REQUEST".encode())
+                self.socket.send(self.aes.encrypt_message("REQUEST"))
                 data = self.socket.recv(100000)
             if not data:
                 return None
 
-            data = data.decode()
+            data = self.aes.decrypt_message(data)
             if data == "WARNING":
                 return "WARNING"
             elif data == "KICK":
@@ -293,12 +293,13 @@ class ClientServer:
     def requestDATAFULL(self):
         try:
             with self.lock:
-                self.socket.send("REQUESTFULL".encode())
+                data = self.aes.encrypt_message("REQUESTFULL")
+                self.socket.send(data)
                 data = self.socket.recv(100000)
             if not data:
                 return None
 
-            data = data.decode()
+            data = self.aes.decrypt_message(data)
             if data == "WARNING":
                 return "WARNING"
             elif data == "KICK":
@@ -318,11 +319,12 @@ class ClientServer:
 
     def login(self, user, password):
         with self.lock:
-            self.socket.send(f"LOGIN {user};{password}".encode())
+            data = self.aes.encrypt_message(f"LOGIN {user};{password}")
+            self.socket.send(data)
             print("user login...")
             message = self.socket.recv(1024)
         print("Received message:", message)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if message.startswith("SUCCESS CODE LOGIN"):
             try:
                 # Extract JSON data and ensure proper formatting
@@ -343,11 +345,12 @@ class ClientServer:
 
     def register(self, user, password):
         with self.lock:
-            self.socket.send(f"REGISTER {user};{password}".encode())
+            data = self.aes.encrypt_message(f"REGISTER {user};{password}")
+            self.socket.send(data)
             print("Registering user...")
             message = self.socket.recv(1024)
         print("Received message:", message)
-        message = message.decode()
+        message = self.aes.decrypt_message(message)
         if message.startswith("SUCCESS CODE REGISTER"):
             try:
                 # Extract JSON data and ensure proper formatting

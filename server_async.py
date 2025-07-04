@@ -423,6 +423,10 @@ class SubServer:
                 if writer.is_closing(): break
                 try:
                     data = await asyncio.wait_for(reader.read(2048), timeout=300.0)
+                    if data == b'':
+                        print(f"Client {client_id} ({addr}) sent empty data (TCP).")
+                        break
+                    data = self.aes_keys[client_id].decrypt_message(data)  # Decrypt message
                 except asyncio.TimeoutError:
                     print(f"Client {client_id} timed out.")
                     if not writer.is_closing(): writer.write(b"KICK_INACTIVE\n"); await writer.drain()
@@ -432,7 +436,7 @@ class SubServer:
                     print(f"Client {client_id} ({addr}) disconnected (TCP).")
                     break
 
-                message_decoded = data.decode().strip()
+                message_decoded = data.strip()
                 for single_message in message_decoded.split('\n'):
                     if not single_message.strip(): continue
                     exit_code_signal = await self.process_player_data_async(client_id, writer, single_message)

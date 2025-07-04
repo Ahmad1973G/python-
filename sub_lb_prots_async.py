@@ -285,7 +285,10 @@ def SortLogin(server, data_from_lb):  # data_from_lb is dict: {client_id_str: [p
                 data_to_send_client = payload.copy()
                 data_to_send_client['x'] = new_x
                 data_to_send_client['y'] = new_y
-                return f"SUCCESS CODE LOGIN {json.dumps(data_to_send_client)}".encode()
+                data_to_send_client = "SUCCESS CODE LOGIN " + json.dumps(data_to_send_client)
+                data_to_send_client = server.aes_keys[client_id].encrypt_message(data_to_send_client)  # Encrypt data for client
+
+                return data_to_send_client
 
             future = asyncio.run_coroutine_threadsafe(_update_secret_and_player_data(), server.loop)
             message_bytes_to_client = future.result()  # Blocking wait for the result
@@ -293,7 +296,9 @@ def SortLogin(server, data_from_lb):  # data_from_lb is dict: {client_id_str: [p
 
         elif protocol_msg.startswith("FAILED CODE LOGIN"):
             print(f"LB Comms: Login for client {client_id} failed: {protocol_msg}")
-            server.send_to_client_threadsafe(client_id, f"{protocol_msg}\n".encode())
+            data = f"{protocol_msg}\n"  # Prepare error message
+            data = server.aes_keys[client_id].encrypt_message(data)  # Encrypt error message for client
+            server.send_to_client_threadsafe(client_id, data)
 
 
 def SendRegister(server):  # Uses credentials_lock (threading.Lock)
@@ -346,7 +351,10 @@ def SortRegister(server, data_from_lb):
                 data_to_send_client = payload.copy()
                 data_to_send_client['x'] = new_x
                 data_to_send_client['y'] = new_y
-                return f"SUCCESS CODE REGISTER {json.dumps(data_to_send_client)}".encode()
+                data_to_send_client = "SUCCESS CODE REGISTER " + json.dumps(data_to_send_client)
+                data_to_send_client = server.aes_keys[client_id].encrypt_message(data_to_send_client)  # Encrypt data for client
+
+                return data_to_send_client
 
             future = asyncio.run_coroutine_threadsafe(_update_secret_and_player_data_register(), server.loop)
             message_bytes_to_client = future.result()
@@ -360,7 +368,8 @@ def SortRegister(server, data_from_lb):
             elif protocol_msg == "FAILED CODE REGISTER 3":
                 result_msg = "FAILED CODE REGISTER Username already taken, try another one"
             print(f"LB Comms: Register for client {client_id} failed: {result_msg}")
-            server.send_to_client_threadsafe(client_id, f"{result_msg}\n".encode())
+            result_msg = server.aes_keys[client_id].encrypt_message(f"{result_msg}\n")
+            server.send_to_client_threadsafe(client_id, result_msg)
 
 
 def SendCache(server):  # Uses server.secret_cache_lock (threading.Lock)
