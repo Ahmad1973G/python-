@@ -82,8 +82,9 @@ def recvACKLB(server):  # No change
 
 
 def getINDEX(server):  # No change
-    server.lb_socket.send("INDEX".encode())
-    data = server.lb_socket.recv(1024).decode()
+    server.lb_socket.send(server.aes_lb.encrypt_message("INDEX"))
+    data = server.lb_socket.recv(1024)
+    data = server.aes_lb.decrypt_message(data)
     if data.startswith("INDEX CODE 2"):
         server.server_index = int(data.split(";")[-1])
         print("LB Comms: Server INDEX:", server.server_index)
@@ -92,8 +93,9 @@ def getINDEX(server):  # No change
 
 
 def getBORDERS(server):  # No change
-    server.lb_socket.send("BORDERS".encode())
-    data = server.lb_socket.recv(1024).decode()
+    server.lb_socket.send(server.aes_lb.encrypt_message("BORDERS"))
+    data = server.lb_socket.recv(1024)
+    data = server.aes_lb.decrypt_message(data)
     if data.startswith("BORDERS CODE 2"):
         data_payload = data.split()[-1]  # Get the last part "X;Y"
         server.server_borders[0] = int(float(data_payload.split(";")[0]))
@@ -173,8 +175,9 @@ def SendInfoLB(server):  # players_to_lb is protected by lb_data_lock
         # Clear after preparing, or after ACK from LB
         # server.players_to_lb.clear() # Option 1: clear optimistically
 
-    server.lb_socket.send(message_to_send)
-    data = server.lb_socket.recv(1024).decode()  # Blocking
+    server.lb_socket.send(server.aes_lb.encrypt_message(message_to_send))  # Encrypt message for LB
+    data = server.lb_socket.recv(1024)  # Blocking
+    data = server.aes_lb.decrypt_message(data)  # Decrypt response from LB
     if data == "ACK":
         with server.lb_data_lock:  # Option 2: clear after ACK
             server.players_to_lb.clear()
@@ -186,8 +189,9 @@ def SendInfoLB(server):  # players_to_lb is protected by lb_data_lock
 
 
 def getRIGHT(server):  # Manages moving_servers, calls WelcomePlayers (problematic)
-    server.lb_socket.send(f"RIGHT".encode())
-    data_json = server.lb_socket.recv(1024).decode()  # Blocking
+    server.lb_socket.send(server.aes_lb.encrypt_message("RIGHT"))
+    data_json = server.lb_socket.recv(1024)  # Blocking
+    data_json = server.aes_lb.decrypt_message(data_json)  # Decrypt response from LB
     data = json.loads(data_json)
 
     players_to_welcome_here = []  # List of client_ids LB says should be on this server
@@ -220,8 +224,9 @@ def getRIGHT(server):  # Manages moving_servers, calls WelcomePlayers (problemat
 def getSEND(server):  # Populates different_server_players
     with server.lb_data_lock:  # Assuming different_server_players also uses lb_data_lock
         server.different_server_players.clear()  # Clear old data
-        server.lb_socket.send(f"SEND".encode())
-        data_json = server.lb_socket.recv(1024).decode()  # Blocking
+        server.lb_socket.send(server.aes_lb.encrypt_message("SEND"))  # Encrypt message for LB
+        data_json = server.lb_socket.recv(1024) # Blocking
+        data_json = server.aes_lb.decrypt_message(data_json)  # Decrypt response from LB
         try:
             data = json.loads(data_json)
             server.different_server_players = data  # This should be a dict client_id -> data
@@ -241,9 +246,10 @@ def SendLogin(server):  # Uses credentials_lock (threading.Lock)
         if login_data_snapshot:
             str_login = f"LOGIN {json.dumps(login_data_snapshot)}"
             print(f"LB Comms: Sending login data: {str_login}")
-            server.lb_socket.send(str_login.encode())
+            server.lb_socket.send(server.aes_lb.encrypt_message(str_login))  # Encrypt message for LB
 
-            response_data_json = server.lb_socket.recv(1024).decode()  # Blocking
+            response_data_json = server.lb_socket.recv(1024)  # Blocking
+            response_data_json = server.aes_lb.decrypt_message(response_data_json)
             response_data = json.loads(response_data_json)
             SortLogin(server, response_data)  # Call SortLogin to process LB's response
 
@@ -313,9 +319,10 @@ def SendRegister(server):  # Uses credentials_lock (threading.Lock)
         if register_data_snapshot:
             str_register = f"REGISTER {json.dumps(register_data_snapshot)}"
             print(f"LB Comms: Sending register data: {str_register}")
-            server.lb_socket.send(str_register.encode())
+            server.lb_socket.send(server.aes_lb.encrypt_message(str_register))  # Encrypt message for LB
 
-            response_data_json = server.lb_socket.recv(1024).decode()  # Blocking
+            response_data_json = server.lb_socket.recv(1024)  # Blocking
+            response_data_json = server.aes_lb.decrypt_message(response_data_json)
             response_data = json.loads(response_data_json)
             SortRegister(server, response_data)
 
@@ -384,9 +391,11 @@ def SendCache(server):  # Uses server.secret_cache_lock (threading.Lock)
         if cached_data_snapshot:
             str_cache = f"CACHE {json.dumps(cached_data_snapshot)}"
             # print(f"LB Comms: Sending cache data: {str_cache}") # Can be verbose
-            server.lb_socket.send(str_cache.encode())
+            server.lb_socket.send(server.aes_lb.encrypt_message(str_cache))
 
-            response = server.lb_socket.recv(1024).decode()  # Blocking
+
+            response = server.lb_socket.recv(1024) # Blocking
+            response = server.aes_lb.decrypt_message(response)
             if response == "ACK":
                 print("LB Comms: Cache data sent successfully to LB.")
             else:

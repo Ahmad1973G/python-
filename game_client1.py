@@ -473,7 +473,7 @@ def run_game(data, Socket):
     chat_input = ""
     chat_log = []
     clock = pg.time.Clock()
-    my_player = {'x': 8000, 'y': 12000, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 8000, 'y': 12000, 'width': 60, 'height': 60, 'server_id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
@@ -515,9 +515,9 @@ def run_game(data, Socket):
     sum_offset = [0, 0]
     flag = False
     PINK = (255, 174, 201)
-    # my_sprite = Pmodel1.Player.convert_to_sprite(my_player['x'], my_player['y'], my_player['height'], my_player['width'],my_player['id'])
+    # my_sprite = Pmodel1.Player.convert_to_sprite(my_player['x'], my_player['y'], my_player['height'], my_player['width'],my_player['server_id'])
     # players_sprites = [
-    #   Pmodel1.Player.convert_to_sprite(player['x'], player['y'], player['height'], player['width'], player['id'])
+    #   Pmodel1.Player.convert_to_sprite(player['x'], player['y'], player['height'], player['width'], player['server_id'])
     #  for player in players
     # ]
     bots={}

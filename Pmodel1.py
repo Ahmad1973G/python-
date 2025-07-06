@@ -161,7 +161,7 @@ class Player(pg.sprite.Sprite):
         sprite = {
             "image": pg.Surface((width, height)),
             "rect": pg.Rect(x, y, width, height),
-            "id": player_id
+            "server_id": player_id
         }
         sprite["image"].fill((255, 0, 0))  # Fill with red for visibility
         return sprite

@@ -5,12 +5,29 @@ import time
 import random
 from typing import Union, Tuple, Dict, Any, Optional
 import database  
+from AES import AES
+from RSA import RSA
+import base64
+
 
 thread_local = threading.local()
 
+
+def get_db():
+    if not hasattr(thread_local, "db"):
+        thread_local.db = database.database()
+    return thread_local.db
+
+
+def get_ip_address():
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    return ip_address
+
+
 class LoadBalancer:
     def __init__(self):
-        self.IP = self.get_ip_address()
+        self.IP = get_ip_address()
         self.PORT = 5002
         self.servers = {}  # Store connected servers (ID -> socket)
         self.servers_index = {'1': None, '2': None, '3': None, '4': None}  # Store server index (ID -> index)
@@ -37,15 +54,7 @@ class LoadBalancer:
         self.right_lock = threading.Lock()
         self.send_lock = threading.Lock()
 
-    def get_db(self):
-        if not hasattr(thread_local, "db"):
-            thread_local.db = database.database()
-        return thread_local.db
-
-    def get_ip_address(self):
-        hostname = socket.gethostname()
-        ip_address = socket.gethostbyname(hostname)
-        return ip_address
+        self.aes_keys = {} # Store AES keys for each server
 
     def createSYNCpacket(self):
         packet = "SYNC CODE 1, IP;" + self.IP + ",PORT;" + str(self.PORT)
@@ -55,19 +64,19 @@ class LoadBalancer:
         data = conn.recv(1024)
         str_data = data.decode()
         if str_data == 'SYNC+ACK CODE 1':
-            id = random.randint(1, 1000)
-            while id in self.servers.keys():
-                id = random.randint(1, 1000)
+            server_id = random.randint(1, 1000)
+            while server_id in self.servers.keys():
+                server_id = random.randint(1, 1000)
             for key, value in self.servers_index.items():
                 if value is None:
-                    self.servers_index[key] = id
+                    self.servers_index[key] = server_id
                     break
-            self.servers[id] = conn
-            conn.send(f"ACK CODE 2;{id}".encode())
+            self.servers[server_id] = conn
+            conn.send(f"ACK CODE 2;{server_id}".encode())
             print("Received the SYNC+ACK packet successfully")
             print("Sent the ACK packet")
-            return True, id
-        return False, id
+            return True, server_id
+        return False, -1
 
     def MoveServer(self, packet_info, server_borders) -> Tuple[Dict, Dict]:
         right_servers = {}
@@ -106,6 +115,18 @@ class LoadBalancer:
 
         server_to_send[client_id].remove(properties['server'])
 
+    def start_security_protocol(self, server_id):
+        rsa = RSA()
+        public_key = rsa.get_public_key_bytes()
+        self.servers[server_id].send(public_key)
+        print(f"Sent public key to server {server_id}")
+        data = self.servers[server_id].recv(1024)
+        print("AES key length:", len(data))
+        aes_key = rsa.decrypt_aes_key(data)
+        self.aes_keys[server_id] = AES(aes_key)
+        print(f"Received AES key from server {server_id}, AES key:", base64.b64encode(aes_key).decode())
+
+
     def start_protocol(self):
         while len(self.servers) < 5:
             self.broadcast_packet(self.createSYNCpacket(), self.PORT + 1)
@@ -113,11 +134,11 @@ class LoadBalancer:
 
             try:
                 conn, _ = self.socket.accept()  # Will time out after 2 seconds
-                tr, id = self.read_sa_send_ack(conn)
+                tr, server_id = self.read_sa_send_ack(conn)
                 if tr:
-                    print("Sent id to server")
+                    print("Sent server_id to server")
                     print(f"{len(self.servers)} Servers connected")
-                    server_thread = threading.Thread(target=self.handle_server, args=(id,))
+                    server_thread = threading.Thread(target=self.handle_server, args=(server_id,))
                     server_thread.start()
                 else:
                     conn.close()
@@ -150,7 +171,7 @@ class LoadBalancer:
                     for server in servers:
                         self.final_packet_to_send[server] = data[client_id]
 
-            self.servers[id].send("ACK".encode())
+            self.servers[id].send(self.aes_keys[id].encrypt_message("ACK"))
         except Exception as e:
             print(f"Error processing info: {e}")
             return
@@ -172,13 +193,13 @@ class LoadBalancer:
             data = json.loads(data)
             for client_id, properties in data.items():
                 with self.db_lock:
-                    db = self.get_db()
+                    db = get_db()
                     db.updateplayer(properties['PlayerID'], properties['PlayerModel'], properties['PlayerLifecount'],
                                     properties['PlayerMoney'], properties['Playerammo'], properties['Playerslot1'],
                                     properties['Playerslot2'], properties['Playerslot3'], properties['Playerslot4'],
                                     properties['Playerslot5'])
 
-            self.servers[id].send("ACK".encode())
+            self.servers[id].send(self.aes_keys[id].encrypt_message("ACK"))
         except json.JSONDecodeError:
             print(f"Error decoding JSON data: {data}")
             return
@@ -198,7 +219,7 @@ class LoadBalancer:
                     password = data[1]
 
                     with self.db_lock:  # Protect database access
-                        db = self.get_db()
+                        db = get_db()
                         if db.login(username, password) is True:
                             player = db.getallplayer(username)
                             clients[client_id] = ("SUCCESS CODE LOGIN", player)
@@ -208,7 +229,7 @@ class LoadBalancer:
                     print(f"Error processing login data for client {client_id}: {e}")
                     clients[client_id] = (f"FAILED CODE LOGIN {e}", None)
 
-            self.servers[id].send(json.dumps(clients).encode())
+            self.servers[id].send(self.aes_keys[id].encrypt_message(json.dumps(clients)))
 
         except json.JSONDecodeError:
             print(f"Error decoding JSON data: {data}")
@@ -227,7 +248,7 @@ class LoadBalancer:
 
                 try:
                     with self.db_lock:  # Protect database access
-                        db = self.get_db()
+                        db = get_db()
                         if db.login(username, password) is True:
                             clients[client_id] = ("FAILED CODE REGISTER 2", None)
                             continue
@@ -240,7 +261,7 @@ class LoadBalancer:
                 except Exception as e:
                     print(f"Error processing register data for client {client_id}: {e}")
                     clients[client_id] = (f"FAILED CODE REGISTER {e}", None)
-            self.servers[id].send(json.dumps(clients).encode())
+            self.servers[id].send(self.aes_keys[id].encrypt_message(json.dumps(clients)))
 
         except json.JSONDecodeError:
             print(f"Error decoding JSON data: {data}")
@@ -249,53 +270,55 @@ class LoadBalancer:
             print(f"Error processing register data: {e}")
             return
 
-    def handle_server(self, id):
+    def handle_server(self, server_id):
+        self.start_security_protocol(server_id)
+
         while True:
             try:
-                data = self.servers[id].recv(1024).decode()
+                data = self.servers[server_id].recv(1024)
                 if not data:
                     break
-
+                data = self.aes_keys[server_id].decrypt_message(data)
                 try:
                     if data.startswith("INDEX"):
-                        print(f"INDEX request received from server {id}")
+                        print(f"INDEX request received from server {server_id}")
                         for key, value in self.servers_index.items():
-                            if value == id:
-                                self.servers[id].send(f"INDEX CODE 2;{key}".encode())
+                            if value == server_id:
+                                self.servers[server_id].send(self.aes_keys[server_id].encrypt_message(f"INDEX CODE 2;{key}"))
                                 break
                         continue
 
                     if data.startswith("BORDERS"):
-                        print(f"BORDERS request received from server {id}")
-                        self.servers[id].send(f"BORDERS CODE 2 {self.server_borders[0]};{self.server_borders[1]}".encode())
+                        print(f"BORDERS request received from server {server_id}")
+                        self.servers[server_id].send(self.aes_keys[server_id].encrypt_message(f"BORDERS CODE 2 {self.server_borders[0]};{self.server_borders[1]}"))
                         continue
 
                     protocol = data.split(" ")[0]
                     data = data.split(" ", maxsplit=1)[1]
                     if protocol in self.protocols:
-                        self.protocols[protocol](data, id)
+                        self.protocols[protocol](data, server_id)
                     else:
-                        print(f"Unknown protocol {protocol} from server {id}")
+                        print(f"Unknown protocol {protocol} from server {server_id}")
                         continue
 
                 except json.JSONDecodeError:
-                    print(f"Error decoding JSON data from server {id}: {data}")
+                    print(f"Error decoding JSON data from server {server_id}: {data}")
                     continue
                 except Exception as e:
-                    print(f"Error processing data from server {id}: {e}")
+                    print(f"Error processing data from server {server_id}: {e}")
 
             except socket.timeout:
-                print(f"Socket timeout for server {id}")
+                print(f"Socket timeout for server {server_id}")
                 continue
 
             except Exception as e:
-                print(f"Error handling server {id}: {e}")
-                print(f"Server {id} disconnected")
+                print(f"Error handling server {server_id}: {e}")
+                print(f"Server {server_id} disconnected")
                 break
 
-        del self.servers[id]
+        del self.servers[server_id]
         for key, value in self.servers_index.items():
-            if value == id:
+            if value == server_id:
                 self.servers_index[key] = None
 
 if __name__ == "__main__":

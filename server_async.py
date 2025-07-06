@@ -165,7 +165,7 @@ class SubServer:
         print("🥅 Player grid initialized.")
 
         self.aes_keys = {}  # Store AES keys for clients
-        self.rsa_keys = {}  # Store RSA public keys for clients
+        self.aes_lb = AES()  # AES instance for Load Balancer communication
 
     # --- Threadsafe Communication Helper (as previously defined) ---
     def send_to_client_threadsafe(self, client_id, message_bytes):
@@ -544,6 +544,16 @@ class SubServer:
                 await server.wait_closed()
                 print("TCP Server closed.")
 
+
+    def lb_security_prot(self):
+        rsa_key_bytes = self.lb_socket.recv(1024)
+        rsa = RSA()  # Generate RSA keys for LB
+        rsa_key = rsa.load_public_key_from_bytes(rsa_key_bytes)
+        data = rsa.encrypt_aes_key(self.aes_lb.key, rsa_key)
+        print("AES key length for LB:", len(data))
+        self.lb_socket.send(data)  # Send encrypted AES key to LB
+        print("🔐 LB security protocol completed. AES key sent to Load Balancer. AES key:", base64.b64encode(self.aes_lb.key).decode())
+
     def _lb_thread_function(self):
         # (This method remains the same, using self.lb_discovery_udp_socket for LB)
         print("🚦 LB Thread: Starting...")
@@ -573,6 +583,9 @@ class SubServer:
             return
 
         try:
+
+            self.lb_security_prot()
+
             sub_lb_prots.getINDEX(self)
             sub_lb_prots.getBORDERS(self)
             print(f"🗺️ LB Thread: Server Index: {self.server_index}, Borders: {self.server_borders}")
