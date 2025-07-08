@@ -162,6 +162,7 @@ class Bot:
                     self.shooting = True
                     self.move_event.clear()
                     self.shoot_event.set()
+                    print(f"Bot {self.bot_id} is in range of target ({self.closest_x}, {self.closest_y}), ready to shoot.")
                     continue
 
                 # Inner loop for step-by-step movement towards target_point_x, target_point_y
@@ -231,6 +232,7 @@ class Bot:
                     if abs(self.my_x - target_point_x) < 2 and abs(self.my_y - target_point_y) < 2:  # Reached
                         self.shooting = True
                         self.shoot_event.set()
+                        print(f"Bot {self.bot_id} reached target ({target_point_x}, {target_point_y}), ready to shoot.")
                     self.move_event.clear()  # Stop moving until new target/event
                     self.server_ref.clear_bot_data(self.bot_id)
             except Exception as e:
@@ -245,43 +247,51 @@ class Bot:
     async def shoot_loop(self):
         while True:
             await self.shoot_event.wait()
-            if self.shooting and self.closest_x is not None and self.closest_y is not None:
-                # Update server about shooting action
-                shoot_data = {
-                    'shoot': [self.my_x, self.my_y, self.closest_x, self.closest_y, self.weapon]}
-                self.server_ref.update_bot_data_in_server(self.bot_id, shoot_data)
-                await asyncio.sleep(0.05)  # Simulate processing time for shooting
-                print(f"Bot {self.bot_id} shooting at target ({self.closest_x}, {self.closest_y})")
-                self.server_ref.clear_bot_data(self.bot_id)  # Clear bot data after shooting
-                # Simulate shooting duration / cooldown before allowing next shot trigger
-                await asyncio.sleep(1)  # Example: 0.5s cooldown or time between shots
-                async with self.server_ref.players_data_lock:
-                    if self.target_id not in self.server_ref.players_data:
-                        print(f"Bot {self.bot_id} target ID {self.target_id} disconnected or not found.")
+            try:
+                if self.shooting and self.closest_x is not None and self.closest_y is not None:
+                    # Update server about shooting action
+                    shoot_data = {
+                        'shoot': [self.my_x, self.my_y, self.closest_x, self.closest_y, self.weapon]}
+                    self.server_ref.update_bot_data_in_server(self.bot_id, shoot_data)
+                    await asyncio.sleep(0.05)  # Simulate processing time for shooting
+                    print(f"Bot {self.bot_id} shooting at target ({self.closest_x}, {self.closest_y})")
+                    self.server_ref.clear_bot_data(self.bot_id)  # Clear bot data after shooting
+                    # Simulate shooting duration / cooldown before allowing next shot trigger
+                    await asyncio.sleep(1)  # Example: 0.5s cooldown or time between shots
+                    async with self.server_ref.players_data_lock:
+                        if self.target_id not in self.server_ref.players_data:
+                            print(f"Bot {self.bot_id} target ID {self.target_id} disconnected or not found.")
+                            self.shooting = False
+                            self.shoot_event.clear()
+                            self.server_ref.clear_bot_data(self.bot_id)
+                        if self.server_ref.players_data[self.target_id]['health'] <= 0:
+                            print(f"Bot {self.bot_id} target ID {self.target_id} is dead.")
+                            self.shooting = False
+                            self.shoot_event.clear()
+                            self.server_ref.clear_bot_data(self.bot_id)
+                    # If bot should continuously shoot while target is valid & in range:
+                    # Check conditions again and self.shoot_event.set() if still valid.
+                    # For now, one shot per trigger, then clear.
+                    # To re-enable continuous shooting if conditions met:
+                    dist_sq_to_player = (self.closest_x - self.my_x)**2 + (self.closest_y - self.my_y)**2
+                    if self.shooting and dist_sq_to_player <= self.bot_range_sq:
+                        self.shoot_event.set() # Re-trigger immediately for continuous fire
+                    else:
                         self.shooting = False
                         self.shoot_event.clear()
                         self.server_ref.clear_bot_data(self.bot_id)
-                    if self.server_ref.players_data[self.target_id]['health'] <= 0:
-                        print(f"Bot {self.bot_id} target ID {self.target_id} is dead.")
-                        self.shooting = False
-                        self.shoot_event.clear()
-                        self.server_ref.clear_bot_data(self.bot_id)
-                # If bot should continuously shoot while target is valid & in range:
-                # Check conditions again and self.shoot_event.set() if still valid.
-                # For now, one shot per trigger, then clear.
-                # To re-enable continuous shooting if conditions met:
-                dist_sq_to_player = (self.closest_x - self.my_x)**2 + (self.closest_y - self.my_y)**2
-                if self.shooting and dist_sq_to_player <= self.bot_range_sq:
-                    self.shoot_event.set() # Re-trigger immediately for continuous fire
+
                 else:
                     self.shooting = False
                     self.shoot_event.clear()
                     self.server_ref.clear_bot_data(self.bot_id)
 
-            else:
+            except Exception as e:
+                print(f"Error in shoot_loop for bot {self.bot_id}: {e}")
                 self.shooting = False
                 self.shoot_event.clear()
                 self.server_ref.clear_bot_data(self.bot_id)
+                await asyncio.sleep(1)
 
     def take_damage(self, amount):
         self.hp -= amount

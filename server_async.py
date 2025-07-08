@@ -244,7 +244,7 @@ class SubServer:
                 for key, value in data_updates.items():
                     self.updated_elements[bot_id][key] = value
 
-            print(f"🔄 Updated bot {bot_id} data in server: {data_updates}")
+            #print(f"🔄 Updated bot {bot_id} data in server: {data_updates}")
 
         if self.loop and self.loop.is_running():
             self.loop.create_task(_update())

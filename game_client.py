@@ -470,7 +470,7 @@ def run_game(data, Socket):
     chat_input = ""
     chat_log = []
     clock = pg.time.Clock()
-    my_player = {'x': 8000, 'y': 12000, 'width': 60, 'height': 60, 'id': 0,
+    my_player = {'x': 3000, 'y': 11000, 'width': 60, 'height': 60, 'id': 0,
                  'hp': 100}
     dis_to_mid = [my_player['x'] - 500, my_player['y'] - 325]
     players = {}
