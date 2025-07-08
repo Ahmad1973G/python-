@@ -27,7 +27,6 @@ def start_portocol():
     if app.data is None:
         print("No data received from the login window.")
         return
-
     run_game(app.data, Socket)
 
 
